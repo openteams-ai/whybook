@@ -1,0 +1,131 @@
+/*
+ * Where agents' runs live, and their history (design iteration 1.73):
+ * "Agent runs" in the Exploration panel, the strip of a run at the end of
+ * the Code view, and the outline that shows where a strip came into sight.
+ */
+
+/* The folded line: the head of the block, as a button, as the Check-up's. */
+.jp-Epi-runhistory-head {
+  width: 100%;
+  gap: 2px;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--jp-ui-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-runhistory-head:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: 2px;
+}
+
+/* The caret and the name are one child: the rule of block heads moves the last child, the count, to the end. */
+.jp-Epi-runhistory-title {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.jp-Epi-runhistory-caret {
+  display: inline-flex;
+  margin-left: -4px;
+}
+
+/* The runs, the newest first: the question, then a line of grey facts. */
+.jp-Epi-runhistory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-runhistory-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 8px;
+  border-left: 2px solid var(--jp-border-color2);
+}
+
+/* A run whose strip shows in the notebook now. */
+.jp-Epi-runhistory-row.jp-mod-shown {
+  border-left-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-runhistory-row.jp-mod-failed {
+  border-left-color: var(--jp-error-color1);
+}
+
+.jp-Epi-runhistory-question {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.35;
+  color: var(--jp-ui-font-color0);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-runhistory-question:hover {
+  color: var(--jp-brand-color1);
+  text-decoration: underline;
+}
+
+.jp-Epi-runhistory-question:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: 1px;
+}
+
+.jp-Epi-runhistory-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  align-items: baseline;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-runhistory-cell {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jp-content-link-color);
+  cursor: pointer;
+}
+
+.jp-Epi-runhistory-cell:hover {
+  text-decoration: underline;
+}
+
+/* The way from a cell to its run, in Cell details. */
+.jp-Epi-details-run .jp-Epi-link {
+  padding: 0;
+}
+
+/* A run from the history: the note of a record without steps. */
+.jp-Epi-agentrun-kept {
+  margin: 0 8px 6px;
+}
+
+/* A strip at the end of the Code view, under the cells' code rather than their prompts. */
+.jp-Epi-linear > .jp-Epi-strip,
+.jp-Epi-linear > .jp-Epi-agentpointerwrap {
+  margin-left: 64px;
+}
+
+/*
+ * With less motion asked for, the outline that shows where a strip or a
+ * cell came into sight holds, then goes, with no fade.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .jp-mod-flash {
+    animation-timing-function: steps(1, end);
+  }
+}

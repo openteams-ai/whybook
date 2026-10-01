@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/lib
+**/package.json
+!/package.json
+whybook
+epi
+eslint.config.mjs
+.venv
+src/kernelCode.ts
+# Markdown is written by hand and not checked
+**/*.md

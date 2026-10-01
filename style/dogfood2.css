@@ -1,0 +1,99 @@
+/*
+ * The issues of the view that the second pass of dogfooding found (design
+ * iteration 1.83).
+ */
+
+/*
+ * The names that an agent's run made for its own steps, under the run in
+ * Variables, folded: a line that says what they are, then a row per run,
+ * as a folded section of JupyterLab's panels.
+ */
+.jp-Epi-rungroups-label {
+  margin-top: 8px;
+  padding: 4px 8px 2px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-rungroup-head {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 26px;
+  padding: 4px 8px 4px 2px;
+  border: var(--jp-border-width) solid transparent;
+  border-radius: var(--jp-border-radius);
+  background: transparent;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-rungroup-head:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-rungroup-caret {
+  display: flex;
+  flex: none;
+}
+
+.jp-Epi-rungroup-question {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-rungroup-count {
+  flex: none;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/* A name of a run, under its head. */
+.jp-Epi-variable.jp-mod-inrun {
+  padding-left: 22px;
+}
+
+/*
+ * The table of a quick look, in the narrow right panel: a long value, such
+ * as the three lowest values with their rows, wraps at its spaces, so that
+ * the table fits the panel and every number shows whole.
+ */
+.jp-Epi-sidebar .jp-Epi-preview .jp-Epi-rendered td,
+.jp-Epi-docpanel .jp-Epi-preview .jp-Epi-rendered td {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* Under an agent's answer: the cells of the run that the analyst changed since. */
+.jp-Epi-agentrun-edited {
+  padding: 4px 8px;
+  border-left: 2px solid var(--epi-warn-line);
+  background: var(--epi-warn-tint);
+  color: var(--jp-ui-font-color1);
+}
+
+/* After a model's summary of a cell's code that the analyst changed since. */
+.jp-Epi-edited-since {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * The note of a file over a card follows the pointer, below the name of the
+ * file that the pointer carries (placeDropNote in src/ui/bench.tsx): the
+ * corner of a large card can lie out of sight. It starts at the corner
+ * until the pointer moves.
+ */
+.jp-Epi-cell > .jp-Epi-filedrop-note {
+  white-space: nowrap;
+  box-shadow: var(--jp-elevation-z4);
+}

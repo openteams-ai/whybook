@@ -1,0 +1,63 @@
+/*
+    Tables of data frames that ask questions (src/ui/tablequestions.tsx): a
+    click on a header asks about its column, a click or a drag on row labels
+    asks about those rows. A polars table has no row labels, and the first
+    cell of each row, a <td>, picks the row. The colours are tints of the
+    theme's brand colour, for the light and dark themes alike.
+*/
+
+.jp-Epi-asktable th.jp-Epi-askhead,
+.jp-Epi-asktable .jp-Epi-askrow:is(th, td) {
+  cursor: pointer;
+}
+
+/* A drag across row labels picks rows, and selects no text. */
+.jp-Epi-asktable .jp-Epi-askrow:is(th, td) {
+  user-select: none;
+}
+
+.jp-Epi-asktable th.jp-Epi-askhead:hover,
+.jp-Epi-asktable .jp-Epi-askrow:is(th, td):hover {
+  background: color-mix(in srgb, var(--jp-brand-color1) 12%, transparent);
+  color: var(--jp-brand-color0);
+}
+
+.jp-Epi-asktable th.jp-Epi-askhead:focus-visible,
+.jp-Epi-asktable .jp-Epi-askrow:is(th, td):focus-visible {
+  outline: var(--jp-border-width) solid var(--jp-brand-color1);
+  outline-offset: -1px;
+}
+
+/* The columns and rows a question asks about. */
+.jp-Epi-asktable .jp-mod-picked:is(th, td),
+.jp-Epi-asktable tr.jp-mod-picked > :is(th, td) {
+  background: color-mix(in srgb, var(--jp-brand-color1) 20%, transparent);
+}
+
+.jp-Epi-asktable th.jp-Epi-askhead.jp-mod-picked {
+  box-shadow: inset 0 -2px 0 var(--jp-brand-color1);
+}
+
+.jp-Epi-asktable .jp-Epi-askrow:is(th, td).jp-mod-picked,
+.jp-Epi-asktable tr.jp-mod-picked > .jp-Epi-askrow:is(th, td) {
+  box-shadow: inset 2px 0 0 var(--jp-brand-color1);
+}
+
+.jp-Epi-tableask-frame {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* The copy button of a table in full sits in a gutter to the right of the
+   table, where it covers no header: on the bench, and in the Output panel. */
+.jp-Epi-tableoutput.jp-mod-inline .jp-Epi-tableoutput-box,
+.jp-Epi-tablequestions > .jp-Epi-copyable {
+  box-sizing: border-box;
+  padding-right: 24px;
+}
+
+.jp-Epi-tableoutput.jp-mod-inline .jp-Epi-tableoutput-box > .jp-Epi-copy-corner,
+.jp-Epi-tablequestions > .jp-Epi-copyable > .jp-Epi-copy-corner {
+  top: 0;
+  right: 0;
+}

@@ -1,0 +1,208 @@
+/*
+ * Questions about the notebook itself (src/checkup.ts): the Check-up
+ * section at the end of the Exploration panel, and the trial icon on a
+ * notebook's tab. Nothing here moves or takes a colour until the analyst
+ * opens the section (design iteration 1.70).
+ */
+
+/* The folded line: the head of the block, as a button. */
+.jp-Epi-checkup-head {
+  width: 100%;
+  gap: 2px;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--jp-ui-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-checkup-head:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: 2px;
+}
+
+/*
+ * Opened from a notebook's tab, the section is outlined for a moment
+ * (jp-mod-flash of base.css). Its lines start at its left edge, so the
+ * outline goes around it, in the padding of the Exploration panel, and
+ * does not cover their first letters.
+ */
+.jp-Epi-checkup.jp-mod-flash {
+  outline-offset: 4px;
+}
+
+/*
+ * The caret and the name are one child of the head: the rule of block heads
+ * moves a last child to the end, for a count, and the name was the last
+ * child while no note followed it.
+ */
+.jp-Epi-checkup-title {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.jp-Epi-checkup-caret {
+  display: inline-flex;
+  margin-left: -4px;
+}
+
+/*
+ * The icon of the Check-up (src/icons.ts), beside the name: the icon that a
+ * notebook's tab fades into, at the size of a tab's icon, and as far from
+ * the name as a tab's icon is from its label.
+ */
+.jp-Epi-checkup-icon {
+  display: inline-flex;
+  margin-right: 2px;
+}
+
+.jp-Epi-checkup-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.jp-Epi-checkup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.jp-Epi-checkup-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-checkup-name {
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--jp-ui-font-color2);
+}
+
+/* What the rules found: one line each, after a dot. */
+.jp-Epi-checkup-found {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-checkup-found li {
+  position: relative;
+  padding-left: 10px;
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.4;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-checkup-found li::before {
+  content: '·';
+  position: absolute;
+  left: 1px;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-checkup-line {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+button.jp-Epi-checkup-line {
+  cursor: pointer;
+}
+
+button.jp-Epi-checkup-line:hover {
+  text-decoration: underline;
+}
+
+/* The questions that a model asked as a reviewer, under its card. */
+.jp-Epi-checkup-review {
+  display: flex;
+  flex-direction: column;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-checkup-asked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 4px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-checkup-asked-text {
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+}
+
+.jp-Epi-checkup-asking {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/*
+ * The trial on a notebook's tab (design iteration 1.68, A3). While the
+ * pointer is on the tab, its icon fades into the icon of the Check-up, of
+ * the same size, in the same place, so the label does not move. The plugin
+ * puts the icon in --epi-checkup-icon, and the icon's shape masks the grey
+ * of jp-icon3, the colour of JupyterLab's own icons in every theme.
+ */
+.lm-TabBar-tab[data-whybook-ask] > .lm-TabBar-tabIcon {
+  position: relative;
+}
+
+.lm-TabBar-tab[data-whybook-ask] > .lm-TabBar-tabIcon > * {
+  transition: opacity 150ms ease;
+}
+
+.lm-TabBar-tab[data-whybook-ask] > .lm-TabBar-tabIcon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--jp-inverse-layout-color3);
+  mask: var(--epi-checkup-icon) center / 14px 14px no-repeat;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.lm-TabBar-tab[data-whybook-ask]:hover > .lm-TabBar-tabIcon {
+  cursor: pointer;
+}
+
+.lm-TabBar-tab[data-whybook-ask]:hover > .lm-TabBar-tabIcon > * {
+  opacity: 0;
+}
+
+.lm-TabBar-tab[data-whybook-ask]:hover > .lm-TabBar-tabIcon::after {
+  opacity: 1;
+}
+
+/*
+ * With the reduced motion of the system, the tab's icon changes with no
+ * fade, and the outline of a Check-up opened from the tab (jp-mod-flash of
+ * base.css) shows for the same time with no fade, then goes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .lm-TabBar-tab[data-whybook-ask] > .lm-TabBar-tabIcon > *,
+  .lm-TabBar-tab[data-whybook-ask] > .lm-TabBar-tabIcon::after {
+    transition: none;
+  }
+
+  .jp-Epi-checkup.jp-mod-flash {
+    animation-timing-function: step-end;
+  }
+}

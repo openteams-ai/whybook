@@ -1,0 +1,50 @@
+/*
+ * Variables explored, in the Exploration panel (design iteration 1.82): past
+ * a few rows, a list of a fixed height that scrolls under its head. The head
+ * takes the keyboard focus, for the menu of its order.
+ */
+
+.jp-Epi-explored-head:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: 2px;
+}
+
+/* The rows keep the gap that the block puts between its parts. */
+.jp-Epi-explored-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/*
+ * About five rows and a half, in the panel's font: the row cut at the bottom
+ * shows that more rows follow. A shadow lies along each edge past which rows
+ * are hidden, also where the system shows no scroll bar until a scroll: the
+ * first two layers scroll with the rows, and cover the shadow of an edge
+ * once the list reaches it.
+ */
+.jp-Epi-explored-list.jp-mod-scroll {
+  max-height: 22em;
+  overflow-y: auto;
+  background:
+    linear-gradient(var(--jp-layout-color1) 40%, transparent) top / 100% 16px
+      no-repeat local,
+    linear-gradient(transparent, var(--jp-layout-color1) 60%) bottom / 100% 16px
+      no-repeat local,
+    linear-gradient(
+        color-mix(in srgb, var(--jp-ui-font-color0) 16%, transparent),
+        transparent
+      )
+      top / 100% 8px no-repeat,
+    linear-gradient(
+        transparent,
+        color-mix(in srgb, var(--jp-ui-font-color0) 16%, transparent)
+      )
+      bottom / 100% 8px no-repeat,
+    var(--jp-layout-color1);
+}
+
+.jp-Epi-explored-list:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: -1px;
+}

@@ -1,0 +1,16 @@
+{
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook",
+  "title": "Whybook agent runs",
+  "description": "The runs of agents in every notebook, in the Running panel, the status bar and each notebook's history.",
+  "type": "object",
+  "properties": {
+    "history": {
+      "type": "boolean",
+      "title": "History of agents' runs",
+      "description": "The notebook keeps each run of an agent, with its steps and its answer, and \"Agent runs\" in the Exploration panel lists them. Off: it keeps only the question, the model, the cost, the cells and how the run ended.",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

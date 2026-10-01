@@ -1,0 +1,25 @@
+/*
+ * The Whybook section of JupyterLab's launcher (src/launcher.ts). A card's
+ * icon holds the kernel's logo, or the first letter of the kernel's name,
+ * and Whybook's icon. The launcher draws a section's header with the icon
+ * of the section's first card, so the header shows Whybook's icon, and a
+ * card shows the kernel.
+ */
+.jp-Epi-launcher-mark {
+  display: none;
+}
+
+.jp-Launcher-sectionHeader .jp-Epi-launcher-mark {
+  display: inline;
+}
+
+.jp-Launcher-sectionHeader .jp-Epi-launcher-logo {
+  display: none;
+}
+
+/* As JupyterLab's Notebook section draws a kernel with no logo. */
+.jp-Epi-launcher-letter {
+  fill: var(--jp-jupyter-icon-color);
+  font-family: var(--jp-ui-font-family);
+  font-size: 64px;
+}

@@ -1,0 +1,173 @@
+[build-system]
+requires = ["hatchling>=1.5.0", "hatch-nodejs-version>=0.3.2", "jupyter-builder>=1.2.0,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "whybook"
+readme = "README.md"
+license = "Apache-2.0"
+# The Seatbelt profiles in whybook/sandbox/codex/ are OpenAI Codex's: their LICENSE and NOTICE ship with them.
+license-files = ["LICENSE", "whybook/sandbox/codex/LICENSE", "whybook/sandbox/codex/NOTICE"]
+requires-python = ">=3.10"
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    # The prebuilt frontend extension needs JupyterLab 4.4, the first release that
+    # can send kernel messages to a subshell (NOTES.md, "The JupyterLab floor").
+    "jupyterlab>=4.4.0,<5",
+    "jupyter_server>=2.13.0,<3",
+    # A tree file browser: files are dragged from it into the view.
+    "jupyterlab-unfold>=0.3.4",
+]
+dynamic = ["version", "description", "authors", "urls", "keywords"]
+
+[project.optional-dependencies]
+# Claude for suggesting questions and writing cells; uses the Claude Code login or ANTHROPIC_API_KEY.
+claude = [
+    "claude-agent-sdk>=0.2.157",
+]
+# Any other model for cells and answers, through Pydantic AI: OpenRouter,
+# Hugging Face, Anthropic, OpenAI, Google, Mistral AI, and servers with an
+# OpenAI-compatible API such as Ollama, llama.cpp and vLLM. The openrouter extra
+# brings the openai client alone, without the tiktoken of the openai extra; the
+# others bring each company's own SDK. Pydantic AI raises its floors within 2.x.
+models = [
+    "pydantic-ai-slim[openrouter,anthropic,google,mistral]>=2.51,<3",
+]
+# Installed in the kernel's environment: narwhals summarises data frames there.
+kernel = [
+    "narwhals>=2",
+]
+# What the pain diary demo notebook imports, in the kernel's environment.
+demo = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "statsmodels",
+]
+# The documentation book, with the research reports: myst.yml.
+docs = [
+    "jupyter-book>=2.1,<3",
+]
+# Libraries whose outputs the view shows as the notebook does, in the kernel's
+# environment; two UI tests use them.
+plots = [
+    "ipywidgets>=8",
+    "plotly>=6",
+    "tqdm",
+]
+# Small models run in the server: table labels without a call to Claude.
+# huggingface_hub fetches a model when the user presses Download for it.
+local = [
+    "huggingface_hub",
+    "llama-cpp-python>=0.3.35",
+]
+# Spoken questions written as text in the server, by Moonshine Medium or Small
+# Streaming (research/voice-questions.md). moonshine-voice fetches a model from
+# download.moonshine.ai when the user presses Download for it.
+speech = [
+    "moonshine-voice>=0.1.5,<0.2",
+]
+dev = [
+    "jupyter-builder>=1.2.0",
+]
+test = [
+    "coverage",
+    "narwhals>=2",
+    "pandas",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-jupyter[server]>=0.6.0"
+]
+
+# The kernel in a sandbox (whybook/sandbox/), which the kernelspec
+# "Python 3 (sandboxed)" names in metadata.kernel_provisioner.
+[project.entry-points."jupyter_client.kernel_provisioners"]
+whybook-sandbox = "whybook.sandbox:SandboxProvisioner"
+
+[tool.hatch.version]
+source = "nodejs"
+
+[tool.hatch.metadata.hooks.nodejs]
+fields = ["description", "authors", "urls", "keywords"]
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["whybook/labextension"]
+exclude = [
+    ".github",
+    "binder",
+    # The pictures of the README.
+    "/screenshots",
+    # Local files that git does not track; hatch skips only what .gitignore lists.
+    "/Untitled*.ipynb",
+    "/*-Copy*.ipynb",
+    "*.swp",
+]
+
+[tool.hatch.build.targets.wheel]
+# whybook holds the notebook helpers and, in whybook.server, the server extension.
+packages = ["whybook"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"whybook/labextension" = "share/jupyter/labextensions/whybook"
+"install.json" = "share/jupyter/labextensions/whybook/install.json"
+"jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
+# The kernelspec "Python 3 (sandboxed)". A kernel.json cannot hold the path of
+# the environment it is installed into, so its argv starts with "python", and
+# jupyter_client replaces that word with the Jupyter server's own interpreter,
+# as it does for ipykernel's kernelspec: the kernel runs in this environment.
+"jupyter-config/kernels/python3-sandboxed" = "share/jupyter/kernels/python3-sandboxed"
+
+[tool.hatch.build.hooks.version]
+path = "whybook/_version.py"
+
+[tool.hatch.build.hooks.jupyter-builder]
+dependencies = ["hatch-jupyter-builder>=0.5"]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "whybook/labextension/static/style.js",
+    "whybook/labextension/package.json",
+]
+skip-if-exists = ["whybook/labextension/static/style.js"]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build:prod"
+npm = ["jlpm"]
+
+[tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
+build_cmd = "install:extension"
+npm = ["jlpm"]
+source_dir = "src"
+build_dir = "whybook/labextension"
+
+[tool.jupyter-releaser.options]
+version_cmd = "hatch version"
+
+[tool.jupyter-releaser.hooks]
+before-build-npm = [
+    "python -m pip install 'jupyter-builder>=1.2.0,<2'",
+    "jlpm",
+    "jlpm build:prod"
+]
+before-build-python = ["jlpm clean:all"]
+
+[tool.check-wheel-contents]
+ignore = ["W002"]
+
+[tool.pytest.ini_options]
+markers = [
+    "demo: runs the demo notebook in an IPython shell first, about 9 s (deselect with -m 'not demo')",
+]

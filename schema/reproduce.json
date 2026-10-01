@@ -1,0 +1,28 @@
+{
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook",
+  "title": "Whybook another kernel",
+  "description": "Reproduce the analysis with another kernel, in a notebook of its own.",
+  "type": "object",
+  "properties": {
+    "kernelMenu": {
+      "type": "boolean",
+      "title": "Kernel menu",
+      "description": "What a click on the kernel's name in a notebook's toolbar opens: a menu with other kernels and Reproduce in another kernel, or JupyterLab's dialog.",
+      "oneOf": [
+        {
+          "const": false,
+          "title": "Off",
+          "description": "JupyterLab's dialog to change the kernel"
+        },
+        {
+          "const": true,
+          "title": "On",
+          "description": "A menu with Reproduce in another kernel"
+        }
+      ],
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

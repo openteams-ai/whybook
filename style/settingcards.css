@@ -1,0 +1,278 @@
+/*
+ * Settings whose choices JupyterLab's settings editor shows as cards, each
+ * with a picture, its title and one short line (src/ui/settingcards.tsx).
+ * The colours are JupyterLab's theme variables, so the cards and their
+ * pictures follow the light and the dark theme.
+ */
+
+.jp-Epi-choicefield {
+  --epi-card-tint: color-mix(in srgb, var(--jp-brand-color1) 10%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jp-Epi-choicefield > h3.jp-FormGroup-fieldLabel {
+  margin: 0;
+}
+
+.jp-Epi-choicefield-description {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.jp-Epi-choicecards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+
+/* Two classes, over JupyterLab's rule for the radius of every button. */
+.jp-Epi-choicecards .jp-Epi-choicecard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 152px;
+  padding: 8px 8px 7px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 6px;
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  text-align: center;
+  cursor: pointer;
+}
+
+.jp-Epi-choicecard:hover {
+  border-color: var(--jp-border-color1);
+}
+
+.jp-Epi-choicecard[aria-checked='true'] {
+  border-color: var(--jp-brand-color1);
+  box-shadow: inset 0 0 0 1px var(--jp-brand-color1);
+  background: var(--epi-card-tint);
+}
+
+.jp-Epi-choicecard:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 2px;
+}
+
+.jp-Epi-choicecard:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.jp-Epi-choicecard-picture {
+  display: block;
+  line-height: 0;
+}
+
+.jp-Epi-choicecard-title {
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color0);
+}
+
+/* A radio's dot in the card's corner, filled on the chosen card. */
+.jp-Epi-choicecard::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 50%;
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-choicecard[aria-checked='true']::before {
+  border: 4px solid var(--jp-brand-color1);
+}
+
+.jp-Epi-choicecard-line {
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.35;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-choicefield-default {
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * The row of the settings editor that holds the cards. The field draws the
+ * title, the description above the cards, and the default with the
+ * choice's title, so the editor's own description and default are hidden.
+ * The editor draws no mark of a changed value for a field of its own, so the
+ * row draws it, as the editor does for its other fields.
+ */
+.jp-SettingsForm
+  .jp-FormGroup-content
+  > .jp-inputFieldWrapper:has(> .jp-Epi-choicefield) {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.jp-SettingsForm
+  .form-group:has(
+    > .jp-FormGroup-content > .jp-inputFieldWrapper > .jp-Epi-choicefield
+  )
+  > .jp-FormGroup-content
+  > :is(.jp-FormGroup-description, .jp-FormGroup-default) {
+  display: none;
+}
+
+.jp-SettingsForm
+  .form-group:has(
+    > .jp-FormGroup-content
+      > .jp-inputFieldWrapper
+      > .jp-Epi-choicefield.jp-mod-modified
+  )::before {
+  content: '';
+  width: 5px;
+  margin-left: calc(var(--jp-private-settingeditor-modifier-indent, 5px) * -1);
+  background-color: var(--jp-brand-color2);
+  flex-shrink: 0;
+}
+
+/* The shapes of the pictures (src/ui/settingpictures.tsx). */
+.jp-Epi-pic {
+  display: block;
+  overflow: visible;
+}
+
+.jp-Epi-pic-ground {
+  fill: var(--jp-layout-color2);
+}
+
+.jp-Epi-pic-window {
+  fill: var(--jp-layout-color0);
+}
+
+.jp-Epi-pic-tab {
+  fill: var(--jp-layout-color2);
+  stroke: var(--jp-border-color1);
+  stroke-width: 0.6px;
+}
+
+.jp-Epi-pic-edge {
+  stroke: var(--jp-border-color1);
+  stroke-width: 1px;
+}
+
+.jp-Epi-pic-edge-only {
+  fill: none;
+}
+
+.jp-Epi-pic-card {
+  fill: var(--jp-layout-color0);
+  stroke: var(--jp-border-color1);
+  stroke-width: 0.75px;
+}
+
+.jp-Epi-pic-tile {
+  fill: var(--jp-layout-color0);
+  stroke: var(--jp-border-color1);
+  stroke-width: 0.75px;
+}
+
+.jp-Epi-pic-field {
+  fill: var(--jp-layout-color0);
+  stroke: var(--jp-border-color1);
+  stroke-width: 0.75px;
+}
+
+.jp-Epi-pic-ink {
+  fill: var(--jp-layout-color3);
+}
+
+.jp-Epi-pic-ink-line {
+  fill: none;
+  stroke: var(--jp-layout-color3);
+  stroke-width: 1px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jp-Epi-pic-accent {
+  fill: var(--jp-brand-color1);
+}
+
+.jp-Epi-pic-accent-line {
+  fill: none;
+  stroke: var(--jp-brand-color1);
+  stroke-width: 1.2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jp-Epi-pic-accent-line.jp-mod-dashed {
+  stroke-dasharray: 2.5 2;
+}
+
+.jp-Epi-pic-accent-edge {
+  stroke: var(--jp-brand-color1);
+  stroke-width: 1px;
+}
+
+.jp-Epi-pic-tint {
+  fill: color-mix(in srgb, var(--jp-brand-color1) 16%, var(--jp-layout-color0));
+}
+
+.jp-Epi-pic-ghost {
+  fill: color-mix(in srgb, var(--jp-brand-color1) 25%, transparent);
+  stroke: var(--jp-brand-color1);
+  stroke-width: 0.8px;
+  stroke-dasharray: 2 1.5;
+}
+
+.jp-Epi-pic-pointer {
+  fill: var(--jp-layout-color0);
+  stroke: var(--jp-ui-font-color0);
+  stroke-width: 0.9px;
+  stroke-linejoin: round;
+}
+
+.jp-Epi-pic-number {
+  fill: var(--jp-ui-inverse-font-color0);
+  font-family: var(--jp-ui-font-family);
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.jp-Epi-pic-glyph {
+  fill: var(--jp-brand-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+/* The page behind a dialog. */
+.jp-Epi-pic-shade {
+  fill: var(--jp-dialog-background, rgb(0 0 0 / 25%));
+}
+
+.jp-Epi-pic-checkup {
+  fill: none;
+  stroke: var(--jp-brand-color1);
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jp-Epi-pic-notebook {
+  fill: var(--jp-notebook-icon-color, var(--jp-warn-color0));
+}
+
+.jp-Epi-pic-notebook-mark {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.9px;
+}

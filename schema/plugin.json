@@ -1,0 +1,455 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook",
+  "title": "Whybook",
+  "description": "Settings of the question-driven Whybook view.",
+  "type": "object",
+  "properties": {
+    "interaction": {
+      "title": "How to ask",
+      "description": "How you pick what a question is about: drag a variable or a column onto a cell or onto another variable, or click one and then the other.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "drag",
+          "title": "Drag",
+          "description": "Drop it on a cell to see the questions"
+        },
+        {
+          "const": "click",
+          "title": "Click",
+          "description": "Click one, then the other, or use the keys"
+        }
+      ],
+      "default": "drag"
+    },
+    "variablesPlacement": {
+      "title": "Variables, Contents and Questions",
+      "description": "Where the Variables, Contents and Questions panels show.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "sidebar",
+          "title": "Side panel",
+          "description": "In JupyterLab's left side panel"
+        },
+        {
+          "const": "document",
+          "title": "In the Whybook view",
+          "description": "A column inside the view"
+        }
+      ],
+      "default": "sidebar"
+    },
+    "explorationPlacement": {
+      "title": "Exploration and Cell details",
+      "description": "Where the Exploration and Cell details panels show.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "sidebar",
+          "title": "Side panel",
+          "description": "In JupyterLab's right side panel"
+        },
+        {
+          "const": "document",
+          "title": "In the Whybook view",
+          "description": "A column inside the view"
+        }
+      ],
+      "default": "sidebar"
+    },
+    "exploredOrder": {
+      "title": "Order of Variables explored",
+      "description": "The order of the rows of Variables explored, in the Exploration panel. A right click on the head of the list changes it too.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "auto",
+          "title": "Auto",
+          "description": "The most used first, then the largest"
+        },
+        {
+          "const": "used",
+          "title": "Most used",
+          "description": "Used by the most cells first"
+        },
+        {
+          "const": "size",
+          "title": "Largest",
+          "description": "The biggest tables first"
+        },
+        {
+          "const": "name",
+          "title": "By name",
+          "description": "From A to Z"
+        }
+      ],
+      "default": "auto"
+    },
+    "subshellCapacity": {
+      "title": "Parallel runs",
+      "description": "How many branches can run at the same time, the notebook's own run included. They share the kernel's data without a copy.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 32,
+      "default": 8
+    },
+    "mapColumns": {
+      "title": "Columns of a data node on the map",
+      "description": "Where the columns of a data node show when you click the node on the map.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "contents",
+          "title": "In Contents",
+          "description": "In the Contents panel, beside its questions"
+        },
+        {
+          "const": "popover",
+          "title": "In the questions",
+          "description": "In the questions, with a filter"
+        }
+      ],
+      "default": "contents"
+    },
+    "outputDetail": {
+      "title": "Level of detail of outputs",
+      "description": "How much of each output the bench shows. The Detail slider in the toolbar changes it too.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "overview",
+          "title": "Overview",
+          "description": "Each table and text as a tile"
+        },
+        {
+          "const": "compact",
+          "title": "Compact",
+          "description": "Tables scaled down, short texts"
+        },
+        {
+          "const": "full",
+          "title": "Full",
+          "description": "Small tables in full, large plots"
+        }
+      ],
+      "default": "full"
+    },
+    "mapDetail": {
+      "title": "Outputs on the map",
+      "description": "How much of each cell's outputs the map shows. The Detail slider in the toolbar changes it while the map shows.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "none",
+          "title": "None",
+          "description": "The cells alone"
+        },
+        {
+          "const": "minimal",
+          "title": "Minimal",
+          "description": "One line of small tiles under each cell"
+        },
+        {
+          "const": "overview",
+          "title": "Overview",
+          "description": "Tiles and thumbnails, as on the bench"
+        }
+      ],
+      "default": "minimal"
+    },
+    "mapOutputs": {
+      "title": "Outputs on the map (replaced)",
+      "description": "Replaced by mapDetail. false still reads as none.",
+      "type": "boolean",
+      "default": true
+    },
+    "minimap": {
+      "title": "Minimap",
+      "description": "A small map of the notebook's sections and cells in a corner of the bench, which opens the map view. It floats over the cards, and a wide bench keeps a column for it.",
+      "type": "boolean",
+      "oneOf": [
+        {
+          "const": false,
+          "title": "Off",
+          "description": "The bench shows only the cards"
+        },
+        {
+          "const": true,
+          "title": "On",
+          "description": "The sections and cells in a corner"
+        }
+      ],
+      "default": false
+    },
+    "detailFollowsSpace": {
+      "title": "Level of detail follows the space",
+      "description": "A trial: the level of detail grows with the width of the view, and on the map with the zoom. A level you pick on the Detail slider holds until the space calls for another one.",
+      "type": "boolean",
+      "oneOf": [
+        {
+          "const": false,
+          "title": "Off",
+          "description": "The Detail slider sets the level"
+        },
+        {
+          "const": true,
+          "title": "On",
+          "description": "More room shows more detail"
+        }
+      ],
+      "default": false
+    },
+    "guessFirst": {
+      "title": "A guess before a result",
+      "description": "While a cell answers a question about a relation or an effect, offer one click to say what you expect. Guessing first helps you notice a surprise.",
+      "type": "boolean",
+      "oneOf": [
+        {
+          "const": false,
+          "title": "Off",
+          "description": "The cell runs, and asks nothing"
+        },
+        {
+          "const": true,
+          "title": "On",
+          "description": "Higher, lower, no difference or not sure"
+        }
+      ],
+      "default": true
+    },
+    "offeredQuestions": {
+      "title": "Offered questions per request",
+      "description": "How many questions a drop or a click offers, best first. None: you type every question yourself.",
+      "type": "integer",
+      "oneOf": [
+        { "const": 0, "title": "None" },
+        { "const": 3, "title": "3" },
+        { "const": 5, "title": "5" },
+        { "const": 8, "title": "8" },
+        { "const": 12, "title": "12" }
+      ],
+      "default": 12
+    },
+    "resultStrips": {
+      "title": "Result strips",
+      "description": "When the strip with Undo under a changed cell closes: after you move on to another cell, or only when you close it. A strip of a failed answer stays until you close it.",
+      "type": "string",
+      "oneOf": [
+        { "const": "elsewhere", "title": "After another cell" },
+        { "const": "manual", "title": "When you close it" }
+      ],
+      "default": "elsewhere"
+    },
+    "answers": {
+      "title": "Answers that need AI",
+      "description": "How the remote model answers a question that needs AI: as an agent that adds and runs the cells it needs, or with one cell.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "agent",
+          "title": "Agent",
+          "description": "Adds and runs cells, then answers"
+        },
+        {
+          "const": "cell",
+          "title": "One cell",
+          "description": "Writes one cell"
+        }
+      ],
+      "default": "agent"
+    },
+    "agentView": {
+      "title": "Where an agent's run shows",
+      "description": "Where the steps of an agent's run show while it works.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "strip",
+          "title": "Strip",
+          "description": "Above the cells that the run adds"
+        },
+        {
+          "const": "card",
+          "title": "Card",
+          "description": "A card of its own on the bench"
+        },
+        {
+          "const": "sidebar",
+          "title": "Side panel",
+          "description": "In JupyterLab's right side panel"
+        }
+      ],
+      "default": "strip"
+    },
+    "showCost": {
+      "title": "Cost of AI answers",
+      "description": "Show what the AI answers of a notebook cost, and set a cap for the notebook. Answers from a model with no known price are not counted.",
+      "type": "boolean",
+      "default": false
+    },
+    "keepDataLocal": {
+      "title": "Keep data on this machine",
+      "description": "Only models on this machine read outputs and variables, so no values, tables or pictures leave the machine. Labels and captions then need a local model, and pictures cannot be asked about.",
+      "type": "boolean",
+      "default": false
+    },
+    "zeroDataRetention": {
+      "title": "Zero data retention (OpenRouter)",
+      "description": "Requests through OpenRouter go only to providers that keep neither the prompt nor the answer. A model with no such provider cannot answer.",
+      "type": "boolean",
+      "default": true
+    },
+    "models": {
+      "title": "AI models by task",
+      "description": "Which model does each task: the model you connected or a faster one of its provider, a local model, or none. A remote model gets the data that a task needs, unless it runs on this machine.",
+      "type": "object",
+      "properties": {
+        "cells": {
+          "title": "Cells and answers",
+          "type": "string",
+          "oneOf": [
+            { "const": "remote", "title": "Remote model" },
+            { "const": "off", "title": "Off" }
+          ],
+          "default": "remote"
+        },
+        "questions": {
+          "title": "More questions",
+          "type": "string",
+          "description": "remote, a faster model of the connected provider such as remote:fast, remote:fastest or remote:openrouter:z-ai/glm-5.3-flash, off, a local model such as gemma-4-e2b, or custom: and the name of a custom local model in lower case, with dashes for other characters",
+          "default": "remote:fast"
+        },
+        "labels": {
+          "title": "Labels and captions",
+          "type": "string",
+          "description": "remote, a faster model of the connected provider such as remote:fast, remote:fastest or remote:openrouter:z-ai/glm-5.3-flash, off, a local model such as gemma-4-e2b, or custom: and the name of a custom local model in lower case, with dashes for other characters",
+          "default": "remote:fastest"
+        },
+        "tableLabels": {
+          "title": "Table labels (replaced by labels)",
+          "description": "Read only when labels is not set.",
+          "type": "string"
+        },
+        "typed": {
+          "title": "Typed questions",
+          "type": "string",
+          "description": "rules, jev, a local model such as gemma-4-e2b, or custom: and the name of a custom local model in lower case, with dashes for other characters",
+          "default": "rules"
+        },
+        "ranking": {
+          "title": "Question order",
+          "type": "string",
+          "description": "rules, remote, a faster model of the connected provider such as remote:fast, jev, a local model such as gemma-4-e2b, or custom: and the name of a custom local model in lower case, with dashes for other characters",
+          "default": "rules"
+        },
+        "speech": {
+          "title": "Spoken questions",
+          "type": "string",
+          "oneOf": [
+            { "const": "off", "title": "Off" },
+            { "const": "browser-local", "title": "Browser, on this device" },
+            { "const": "moonshine-medium", "title": "Moonshine Medium" },
+            { "const": "moonshine-small", "title": "Moonshine Small" }
+          ],
+          "default": "off"
+        }
+      },
+      "additionalProperties": false,
+      "default": {
+        "cells": "remote",
+        "questions": "remote:fast",
+        "labels": "remote:fastest",
+        "typed": "rules",
+        "speech": "off",
+        "ranking": "rules"
+      }
+    },
+    "modelQuestions": {
+      "title": "Questions from a model",
+      "description": "When a drop or a click also asks the AI model of More questions for questions, beside those of the templates. None of its questions runs until you pick it.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "always",
+          "title": "Always, with the questions of the templates"
+        },
+        {
+          "const": "no-template",
+          "title": "Only when no template fits"
+        },
+        {
+          "const": "never",
+          "title": "Never: only More questions from AI"
+        }
+      ],
+      "default": "always"
+    },
+    "aiWhenNoTemplate": {
+      "title": "Questions from AI when no template fits (replaced)",
+      "description": "Replaced by modelQuestions. false still reads as never.",
+      "type": "boolean",
+      "default": true
+    },
+    "findDefaults": {
+      "title": "Find more defaults with AI",
+      "description": "When a cell runs, the AI model of More questions reads each library function that the cell calls and that it has not read before. The defaults that can change the result then show as chips on the cell.",
+      "type": "boolean",
+      "default": true
+    },
+    "localJsonCheck": {
+      "title": "JSON check of local models",
+      "description": "How a local model's answer is held to its JSON rules. Fast gives the same answers sooner, and when it fails the server uses Standard and shows a warning.",
+      "type": "string",
+      "oneOf": [
+        { "const": "fast", "title": "Fast" },
+        { "const": "standard", "title": "Standard" }
+      ],
+      "default": "fast"
+    },
+    "customLocalModels": {
+      "title": "Custom local models",
+      "description": "GGUF models that the Jupyter server runs with llama.cpp, offered after its own local models. Give each a name, and a Hugging Face repository and file, or the path of a file on the server's machine.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name in the selects, such as \"Llama 3.2 3B\"."
+          },
+          "repo": {
+            "type": "string",
+            "description": "A Hugging Face repository, such as ggml-org/gemma-4-E2B-it-GGUF."
+          },
+          "file": {
+            "type": "string",
+            "description": "The GGUF file in the repository, such as gemma-4-E2B-it-Q4_0.gguf."
+          },
+          "revision": {
+            "type": "string",
+            "description": "A commit or a branch of the repository; the latest when left out."
+          },
+          "sha256": {
+            "type": "string",
+            "description": "The SHA-256 of the file: a download whose file differs is deleted."
+          },
+          "path": {
+            "type": "string",
+            "description": "The absolute path of a GGUF file on the server's machine, in place of a repository and a file."
+          },
+          "note": {
+            "type": "string",
+            "description": "What the choice means, under the select."
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}

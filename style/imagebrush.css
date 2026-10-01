@@ -1,0 +1,61 @@
+/*
+    Pictures that ask questions (src/ui/imagebrush.tsx): a drag on a figure
+    draws a box, and a click marks a point. The colours are tints of the
+    theme's brand colour, for the light and dark themes alike.
+*/
+
+.jp-Epi-imagebrush-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jp-Epi-imagebrush {
+  position: relative;
+  cursor: crosshair;
+  user-select: none;
+}
+
+/* A picture that asks is one Tab stop: the arrow keys move a point over it. */
+.jp-Epi-imagebrush:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 1px;
+}
+
+/* Over a chart in a frame of its own, while Select rows is on. */
+.jp-Epi-imagebrush-cover {
+  position: absolute;
+  z-index: 1;
+  cursor: crosshair;
+}
+
+/* The chart's own tooltips, or a box that asks: the button says which. */
+.jp-Epi-imagebrush-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+/* The box a drag draws, and the box asked about while its questions are open. */
+.jp-Epi-imagebox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--jp-brand-color1);
+  background: color-mix(in srgb, var(--jp-brand-color1) 20%, transparent);
+  pointer-events: none;
+}
+
+/* The point a click asked about, and the point that the arrow keys move. */
+.jp-Epi-imagepoint {
+  position: absolute;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 2px solid var(--jp-brand-color1);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--jp-brand-color1) 20%, transparent);
+  pointer-events: none;
+}

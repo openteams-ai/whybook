@@ -1,0 +1,54 @@
+/*
+ * Chips, their popover and their tooltip (design iteration 1.86).
+ */
+
+/*
+ * The first line of the popover of a chip: the value as code, where it comes
+ * from, and, for a default that a model flagged, the AI tag. It wraps within
+ * the popover's width.
+ */
+.jp-Epi-decision-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The reason under it, in the popover's own caption type. */
+.jp-Epi-decision-reason {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Tooltip, as JupyterLab's own (its colours, fonts and elevation). The view
+ * places it under its element, or above it, inside the window, once it knows
+ * its size: hidden until then. The pointer passes through it.
+ */
+.jp-Epi-tooltip {
+  position: fixed;
+  z-index: 10001;
+  visibility: hidden;
+  box-sizing: border-box;
+  max-width: 360px;
+  padding: 4px 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  box-shadow: var(--jp-elevation-z6);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.jp-Epi-tooltip code {
+  font-family: var(--jp-code-font-family);
+  font-size: 0.95em;
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-tooltip div + div {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}

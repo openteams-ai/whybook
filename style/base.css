@@ -1,0 +1,5012 @@
+/*
+    The Whybook view. Fonts, colours, borders and shadows come from the
+    JupyterLab theme variables (--jp-*), so the view follows the light and dark
+    themes and any other installed theme. The few --epi-* tokens below are tints
+    of theme colours, for backgrounds that work on light and dark themes alike.
+*/
+
+.jp-Epi,
+.jp-Epi-popover,
+.jp-Epi-statusbar,
+.jp-Epi-mimeplot {
+  --epi-brand-tint: color-mix(in srgb, var(--jp-brand-color1) 10%, transparent);
+  --epi-brand-tint2: color-mix(
+    in srgb,
+    var(--jp-brand-color1) 20%,
+    transparent
+  );
+  --epi-brand-line: color-mix(in srgb, var(--jp-brand-color1) 45%, transparent);
+  --epi-warn-tint: color-mix(in srgb, var(--jp-warn-color1) 14%, transparent);
+  --epi-warn-line: color-mix(in srgb, var(--jp-warn-color1) 50%, transparent);
+  --epi-error-tint: color-mix(in srgb, var(--jp-error-color1) 12%, transparent);
+  --epi-success-tint: color-mix(
+    in srgb,
+    var(--jp-success-color1) 12%,
+    transparent
+  );
+
+  /* Text that a model wrote or chose: a very dark blue on the light theme,
+     a light blue on the dark one, from the theme's own colours. */
+  --epi-ai-ink: color-mix(
+    in srgb,
+    var(--jp-brand-color0) 72%,
+    var(--jp-ui-font-color0)
+  );
+
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+/* Common pieces. */
+
+/* Low specificity: JupyterLab's own button classes keep their fonts and colours. */
+:where(.jp-Epi, .jp-Epi-popover) button {
+  font: inherit;
+  color: inherit;
+}
+
+:where(.jp-Epi, .jp-Epi-popover) button:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: -1px;
+}
+
+.jp-Epi code,
+.jp-Epi-popover code {
+  font-family: var(--jp-code-font-family);
+  font-size: 0.95em;
+}
+
+/* JupyterLab's Button: a gap for the icon, and no wrapping. */
+.jp-Epi-button.jp-Button {
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.jp-Epi-button.jp-Button.jp-mod-active {
+  background: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color1);
+}
+
+/* JupyterLab's accept button, at the height of a small button. */
+.jp-Epi button.jp-mod-styled,
+.jp-Epi-popover button.jp-mod-styled {
+  height: 24px;
+  padding: 0 10px;
+  line-height: 24px;
+  letter-spacing: normal;
+}
+
+.jp-Epi button.jp-mod-styled:disabled,
+.jp-Epi-popover button.jp-mod-styled:disabled {
+  opacity: 0.5;
+}
+
+/* A button that reads as a link takes the font of the text around it, which a
+   button does not do by default. */
+.jp-Epi-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--jp-content-link-color);
+  font: inherit;
+  cursor: pointer;
+}
+
+.jp-Epi-link:hover {
+  text-decoration: underline;
+}
+
+.jp-Epi-close.jp-Button {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+}
+
+.jp-Epi-caption,
+.jp-Epi-empty {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.4;
+}
+
+.jp-Epi-empty {
+  padding: 6px 8px;
+}
+
+.jp-Epi-error {
+  color: var(--jp-error-color1);
+  font-size: var(--jp-ui-font-size1);
+  white-space: pre-wrap;
+}
+
+.jp-Epi-mono {
+  font-family: var(--jp-code-font-family);
+}
+
+/* Execution counts look like JupyterLab's input prompts. */
+.jp-Epi-label {
+  font-family: var(--jp-cell-prompt-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-cell-inprompt-font-color);
+}
+
+.jp-Epi-percent {
+  width: 34px;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  text-align: right;
+}
+
+.jp-Epi-subshell {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-brand-color1);
+  white-space: nowrap;
+}
+
+/* Question types, colour-coded from the theme palette. */
+.jp-Epi-type {
+  --epi-type-color: var(--jp-layout-color4);
+
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: var(--jp-border-radius);
+  font-size: var(--jp-ui-font-size0);
+  line-height: 16px;
+  color: var(--jp-ui-inverse-font-color0);
+  background: var(--epi-type-color);
+  white-space: nowrap;
+}
+
+.jp-Epi-type.jp-mod-association {
+  --epi-type-color: var(--jp-accent-color1);
+}
+
+.jp-Epi-type.jp-mod-causal {
+  --epi-type-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-type.jp-mod-quality {
+  --epi-type-color: var(--jp-warn-color0);
+}
+
+.jp-Epi-type.jp-mod-model {
+  --epi-type-color: var(--jp-layout-color4);
+}
+
+.jp-Epi-type.jp-mod-descriptive {
+  --epi-type-color: var(--jp-info-color0);
+}
+
+/*
+ * On a cell, the type badge is quiet: an outline in its type's colour, and
+ * its text in that colour mixed with the theme's text colour, so that it
+ * reads at 4.5:1 at least on JupyterLab's light and dark themes (the pure
+ * colour of Data quality measures 3.8:1 on white, and Model check 3.5:1 on
+ * the dark theme's cells). The pointer on a badge of a cell, or on a bar of
+ * the Exploration panel, fills every badge of that type and rings every cell
+ * of that type in its colour.
+ */
+.jp-Epi-cell-head .jp-Epi-type,
+.jp-Epi-linear-head .jp-Epi-type {
+  border: var(--jp-border-width) solid var(--epi-type-color);
+  color: color-mix(
+    in srgb,
+    var(--epi-type-color) 85%,
+    var(--jp-ui-font-color0)
+  );
+  background: transparent;
+  line-height: calc(16px - 2 * var(--jp-border-width));
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.jp-Epi-document[data-lit-type='association'] .jp-Epi-type.jp-mod-association,
+.jp-Epi-document[data-lit-type='causal'] .jp-Epi-type.jp-mod-causal,
+.jp-Epi-document[data-lit-type='quality'] .jp-Epi-type.jp-mod-quality,
+.jp-Epi-document[data-lit-type='model'] .jp-Epi-type.jp-mod-model,
+.jp-Epi-document[data-lit-type='descriptive'] .jp-Epi-type.jp-mod-descriptive {
+  color: var(--jp-ui-inverse-font-color0);
+  background: var(--epi-type-color);
+}
+
+[data-question-type='association'] {
+  --epi-type-color: var(--jp-accent-color1);
+}
+
+[data-question-type='causal'] {
+  --epi-type-color: var(--jp-brand-color1);
+}
+
+[data-question-type='quality'] {
+  --epi-type-color: var(--jp-warn-color0);
+}
+
+[data-question-type='model'] {
+  --epi-type-color: var(--jp-layout-color4);
+}
+
+[data-question-type='descriptive'] {
+  --epi-type-color: var(--jp-info-color0);
+}
+
+.jp-Epi-document[data-lit-type='association']
+  [data-question-type='association'],
+.jp-Epi-document[data-lit-type='causal'] [data-question-type='causal'],
+.jp-Epi-document[data-lit-type='quality'] [data-question-type='quality'],
+.jp-Epi-document[data-lit-type='model'] [data-question-type='model'],
+.jp-Epi-document[data-lit-type='descriptive']
+  [data-question-type='descriptive'] {
+  border-radius: var(--jp-border-radius);
+  box-shadow: 0 0 0 2px var(--epi-type-color);
+}
+
+.jp-Epi-typebar:hover {
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-relevance {
+  display: inline-block;
+  flex: 1;
+  min-width: 40px;
+  max-width: 120px;
+  height: 4px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  overflow: hidden;
+}
+
+.jp-Epi-relevance > span {
+  display: block;
+  height: 100%;
+  background: var(--jp-brand-color1);
+}
+
+/* Progress as in JupyterLab's status bar. */
+.jp-Epi-progress {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 60px;
+  height: 5px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+/* A wide bar fills a row, and keeps its height in a column. */
+.jp-Epi-progress.jp-mod-wide {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 60px;
+  max-height: 5px;
+}
+
+.jp-Epi-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--jp-brand-color2);
+  transition: width 0.4s ease;
+}
+
+.jp-Epi-progress.jp-mod-indeterminate > span {
+  width: 40%;
+  animation: jp-epi-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes jp-epi-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.jp-Epi-spinner {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border: 2px solid var(--jp-layout-color2);
+  border-top-color: var(--jp-brand-color1);
+  border-radius: 50%;
+  animation: jp-epi-spin 0.8s linear infinite;
+  vertical-align: -1px;
+}
+
+@keyframes jp-epi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.jp-Epi-chip {
+  padding: 1px 6px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  font-size: var(--jp-ui-font-size1);
+  cursor: pointer;
+}
+
+.jp-Epi-chip:hover {
+  border-color: var(--jp-border-color1);
+}
+
+.jp-Epi-chip.jp-mod-open {
+  border-color: var(--epi-warn-line);
+  background: var(--epi-warn-tint);
+}
+
+/* The frame of a chip's call, where other calls leave another value. */
+.jp-Epi-chip-target {
+  color: var(--jp-ui-font-color2);
+}
+
+/* Where a what-if value goes, for a chip of several calls. */
+.jp-Epi-where {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.jp-Epi-where .jp-Epi-segmented {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+
+.jp-Epi-placement {
+  padding: 1px 6px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color1);
+  white-space: nowrap;
+}
+
+.jp-Epi-placement.jp-mod-branch {
+  background: var(--epi-brand-tint2);
+}
+
+.jp-Epi-placement.jp-mod-preview,
+.jp-Epi-placement.jp-mod-metadata {
+  border: var(--jp-border-width) dashed var(--jp-border-color1);
+  background: transparent;
+}
+
+.jp-Epi-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-option:hover {
+  border-color: var(--jp-border-color1);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-option.jp-mod-checked {
+  border-color: var(--jp-brand-color1);
+  background: var(--epi-brand-tint);
+}
+
+/*
+ * A question that needs AI, when no AI model answers: greyed, and it does
+ * nothing, but it stays in the list and takes the focus so that it is read.
+ */
+.jp-Epi-option.jp-mod-disabled,
+.jp-Epi-followup.jp-mod-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.jp-Epi-option.jp-mod-disabled:hover {
+  border-color: var(--jp-border-color2);
+  background: var(--jp-layout-color0);
+}
+
+/* The questions have the focus after a click, with no ring of their own. */
+.jp-Epi-popover:focus,
+.jp-Epi-ask-block:focus {
+  outline: none;
+}
+
+/* What keeps the questions that need AI off, and how to set a model up. */
+.jp-Epi-aioff {
+  padding: 6px 8px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.4;
+}
+
+.jp-Epi-checkbox {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: var(--jp-border-width) solid var(--jp-border-color0);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-mod-checked > .jp-Epi-checkbox {
+  border-color: var(--jp-brand-color1);
+  background: var(--jp-brand-color1);
+}
+
+.jp-Epi-option-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+
+.jp-Epi-option-text {
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-option-effect {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-needs {
+  color: var(--jp-warn-color0);
+}
+
+.jp-Epi-option-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.jp-Epi-option-side {
+  flex-shrink: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sections of the left panel. */
+
+.jp-Epi-sidebar {
+  background: var(--jp-layout-color1);
+  overflow: auto;
+}
+
+.jp-Epi-sidebar-empty {
+  padding: 12px;
+}
+
+.jp-Epi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 10px;
+}
+
+/* As JupyterLab's side panel titles. */
+.jp-Epi-section-head,
+.jp-Epi-panel-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-section-head code {
+  text-transform: none;
+}
+
+.jp-Epi-section-count {
+  margin-left: auto;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jp-Epi-list.jp-mod-virtual {
+  display: block;
+  overflow-y: auto;
+}
+
+/* Rows as in JupyterLab's file browser. */
+.jp-Epi-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  box-sizing: border-box;
+  width: 100%;
+  height: 26px;
+  padding: 4px 8px;
+  border: var(--jp-border-width) solid transparent;
+  border-radius: var(--jp-border-radius);
+  background: transparent;
+  text-align: left;
+  cursor: grab;
+}
+
+.jp-Epi-item:hover:not(.jp-mod-selected) {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-item.jp-mod-selected {
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-Epi-item.jp-mod-selected .jp-Epi-item-type,
+.jp-Epi-item.jp-mod-selected .jp-Epi-item-shape,
+.jp-Epi-item.jp-mod-selected .jp-Epi-column-tag {
+  color: var(--jp-ui-inverse-font-color2);
+}
+
+.jp-Epi-item.jp-mod-armed {
+  border-color: var(--jp-brand-color1);
+  background: var(--epi-brand-tint2);
+}
+
+.jp-mod-click .jp-Epi-item,
+.jp-mod-click .jp-Epi-cell {
+  cursor: pointer;
+}
+
+/* The name keeps its width, up to two thirds of the row, and the value after
+   it takes what is left: they shrank alike, and a long value cut DB_URL to "D…". */
+.jp-Epi-item-name {
+  flex-shrink: 0;
+  max-width: 65%;
+  overflow: hidden;
+  font-family: var(--jp-code-font-family);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-item-type {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-Epi-item-shape {
+  margin-left: auto;
+  overflow: hidden;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-column {
+  align-items: center;
+}
+
+.jp-Epi-column-tag {
+  flex-shrink: 0;
+  width: 28px;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-used {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jp-border-color1);
+}
+
+.jp-Epi-used.jp-mod-used {
+  background: var(--jp-brand-color1);
+}
+
+.jp-Epi-item.jp-mod-selected .jp-Epi-used.jp-mod-used {
+  background: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-Epi-repr {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-repr-label {
+  padding: 1px 6px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-repr-who {
+  margin-left: auto;
+}
+
+.jp-Epi-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jp-Epi-group {
+  padding: 1px 6px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+  font-size: var(--jp-ui-font-size0);
+  cursor: pointer;
+}
+
+.jp-Epi-group span {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-group:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-group.jp-mod-used {
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-group.jp-mod-active {
+  border-color: var(--jp-brand-color1);
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-Epi-group.jp-mod-active span {
+  color: var(--jp-ui-inverse-font-color2);
+}
+
+.jp-Epi-contents-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jp-Epi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-card.jp-mod-open {
+  border-color: var(--epi-warn-line);
+  background: var(--epi-warn-tint);
+}
+
+.jp-Epi-card-value {
+  font-family: var(--jp-code-font-family);
+  font-size: calc(var(--jp-code-font-size) * 1.5);
+  color: var(--jp-ui-font-color0);
+  overflow-wrap: anywhere;
+}
+
+/* The cells that make, import and use the variable in Contents. */
+.jp-Epi-varcells {
+  padding: 6px 0 0;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color2);
+  line-height: 1.6;
+}
+
+.jp-Epi-varcells .jp-Epi-cell-link {
+  font-family: var(--jp-code-font-family);
+}
+
+.jp-Epi-formula {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-table th {
+  padding: 3px 6px;
+  background: var(--jp-layout-color2);
+  text-align: left;
+  font-weight: 500;
+}
+
+.jp-Epi-table td {
+  padding: 3px 6px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+/* The p-value of a model's table stays on one line: "< 0.001" wrapped after
+   its "<" in a sidebar of 250 px. The interval wraps at its comma, and the
+   name of a term anywhere, so that the table fits the sidebar. */
+.jp-Epi-model .jp-Epi-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.jp-Epi-model .jp-Epi-table td:first-child {
+  overflow-wrap: anywhere;
+}
+
+.jp-Epi-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: var(--jp-border-width) dashed var(--jp-brand-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-preview-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 500;
+}
+
+.jp-Epi-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-preview-actions .jp-Epi-button {
+  flex: none;
+}
+
+.jp-Epi-preview .jp-Epi-rendered {
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* Tables in the narrow panels: small type, tight cells, columns sized to content. */
+.jp-Epi-sidebar .jp-Epi-rendered table,
+.jp-Epi-docpanel .jp-Epi-rendered table {
+  table-layout: auto;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-sidebar .jp-Epi-rendered th,
+.jp-Epi-sidebar .jp-Epi-rendered td,
+.jp-Epi-docpanel .jp-Epi-rendered th,
+.jp-Epi-docpanel .jp-Epi-rendered td {
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/*
+ * A segmented control: one choice out of a few. The chosen segment is a
+ * raised surface on a quiet track, lighter than a row of framed buttons.
+ * Theme colours and fonts; rounder than JupyterLab's 2 px, except in the
+ * JupyterLab toolbar, where it keeps to the size and shape of the buttons
+ * around it.
+ */
+.jp-Epi-segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  align-items: center;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--jp-layout-color2);
+  font-weight: 400;
+  text-transform: none;
+}
+
+.jp-Epi-segment {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--jp-ui-font-color2);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.jp-Epi-segment:hover {
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-segment[aria-checked='true'] {
+  background: var(--jp-layout-color0);
+  box-shadow: var(--jp-elevation-z1);
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-segment:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 0;
+}
+
+.jp-Epi-segment.jp-mod-icon {
+  padding: 0 7px;
+}
+
+.jp-Epi-segmented.jp-mod-toolbar {
+  margin: 0 4px;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.jp-Epi-segmented.jp-mod-toolbar .jp-Epi-segment {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 3px;
+}
+
+.jp-Epi-segmented.jp-mod-toolbar .jp-Epi-segment.jp-mod-icon {
+  padding: 0 6px;
+}
+
+.jp-Epi-layout-icon {
+  display: block;
+}
+
+.jp-Epi-instructions {
+  line-height: 1.45;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-instructions p {
+  margin: 0 0 6px;
+}
+
+.jp-Epi kbd {
+  padding: 0 4px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-switches {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.jp-Epi-switches label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.jp-Epi-picked {
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--epi-brand-line);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-picked .jp-Epi-link {
+  margin-left: 6px;
+}
+
+.jp-Epi-ask-block,
+.jp-Epi-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The order of the questions offered, when the model for it failed. */
+.jp-Epi-ordernote.jp-mod-failed {
+  color: var(--jp-warn-color0);
+}
+
+/*
+ * Where the values of a constant come from, and why no template fits a
+ * drop: a line, then the model's stage and its bar on a line of their own
+ * while it works.
+ */
+.jp-Epi-modelwait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/*
+ * The outcome and the unit that the questions take from the notebook, each
+ * a chip that says where it came from (design iteration 1.64). A click lists
+ * the other candidates on a line of their own.
+ */
+.jp-Epi-inferred {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-inferred-chips,
+.jp-Epi-inferred-others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.jp-Epi-inferred-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 1px 8px;
+  text-align: left;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 10px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.jp-Epi-inferred-chip:hover,
+.jp-Epi-inferred-chip.jp-mod-open {
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-inferred-chip:focus-visible {
+  outline: 1px solid var(--jp-brand-color1);
+  outline-offset: 1px;
+}
+
+.jp-Epi-inferred-chip.jp-mod-other {
+  border-style: dashed;
+}
+
+.jp-Epi-askbody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A question of one's own, typed beside the questions offered. */
+.jp-Epi-own {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* A question of one's own, in a box like the questions offered. */
+.jp-Epi-ownbox {
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-own-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.jp-Epi-own .jp-Epi-own-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.jp-Epi-own .jp-Epi-own-input input {
+  padding-right: 26px;
+}
+
+/* The microphone stays grey while the engine of Spoken questions cannot listen. */
+.jp-Epi-voice {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  display: flex;
+  padding: 3px;
+  border: none;
+  background: none;
+  transform: translateY(-50%);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The glyph as a block, so that no line box adds room under it and the
+   microphone sits in the middle of the field; 14 px, the weight of its text. */
+.jp-Epi-voice > span,
+.jp-Epi-voice svg {
+  display: block;
+}
+
+.jp-Epi-voice svg {
+  width: 14px;
+  height: 14px;
+}
+
+.jp-Epi-voice:focus-visible {
+  outline: var(--jp-border-width) solid var(--jp-brand-color1);
+  opacity: 0.7;
+}
+
+.jp-Epi-voice.jp-mod-live {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* A ring while it listens. */
+.jp-Epi-voice[data-state='listening'] {
+  border-radius: 50%;
+  background: var(--jp-error-color3);
+  box-shadow: 0 0 0 2px var(--jp-error-color1);
+}
+
+.jp-Epi-voice .jp-Epi-spinner {
+  margin-right: 0;
+}
+
+.jp-Epi-own-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/* The Ask button and its menu of places, as a merge button and its methods. */
+.jp-Epi-split {
+  position: relative;
+  display: inline-flex;
+}
+
+.jp-Epi-split > .jp-Button:first-child:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.jp-Epi-split .jp-Epi-split-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  min-width: 0;
+  margin-left: 1px;
+  padding: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.jp-Epi-split-toggle > span {
+  display: flex;
+}
+
+/* The caret on the blue of the accept button, as its label is. */
+.jp-Epi-split-toggle .jp-icon3[fill] {
+  fill: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-Epi-placemenu {
+  position: fixed;
+  z-index: 10001;
+  min-width: 260px;
+  padding: 4px 0;
+  background: var(--jp-layout-color1);
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  box-shadow: var(--jp-elevation-z4);
+}
+
+.jp-Epi-placemenu button {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-placemenu button:hover,
+.jp-Epi-placemenu button:focus-visible {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-placemenu-parallel {
+  border-top: var(--jp-border-width) solid var(--jp-border-color2) !important;
+}
+
+.jp-Epi-placemenu-key {
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-ask-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-parallel-switch {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-followups .jp-Epi-own {
+  flex-basis: 100%;
+}
+
+.jp-Epi-ask-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.jp-Epi-ask-head code {
+  font-weight: 500;
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-pill {
+  padding: 1px 6px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-pill.jp-mod-strong {
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1);
+}
+
+.jp-Epi-joinnote,
+.jp-Epi-seen {
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--epi-warn-line);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-warn-tint);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-seen {
+  border-color: var(--jp-border-color2);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-parallel-foot,
+.jp-Epi-capacity {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.jp-Epi-parallel-foot {
+  justify-content: space-between;
+}
+
+.jp-Epi-capacity {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-slots {
+  display: flex;
+  gap: 3px;
+}
+
+.jp-Epi-slots span {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-slots span.jp-mod-busy {
+  background: var(--jp-layout-color4);
+}
+
+.jp-Epi-slots span.jp-mod-planned {
+  background: var(--jp-brand-color1);
+}
+
+.jp-Epi-more,
+.jp-Epi-keep {
+  padding: 4px 10px;
+  border: var(--jp-border-width) dashed var(--jp-brand-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+  color: var(--jp-brand-color1);
+  cursor: pointer;
+}
+
+.jp-Epi-more:hover,
+.jp-Epi-keep:hover {
+  background: var(--epi-brand-tint2);
+}
+
+.jp-Epi-keep {
+  align-self: flex-start;
+}
+
+/* The document view. */
+
+.jp-Epi-document {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.jp-Epi-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.jp-Epi-docpanel {
+  flex-shrink: 0;
+  width: 290px;
+  overflow: auto;
+  background: var(--jp-layout-color1);
+}
+
+.jp-Epi-docpanel.jp-mod-left {
+  border-right: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-docpanel.jp-mod-right {
+  border-left: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-docpanel .jp-Epi-section + .jp-Epi-section {
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+/* Bench. */
+
+.jp-Epi-bench {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  padding: 14px 18px 60px;
+  box-sizing: border-box;
+}
+
+/* Headings in the type of rendered Markdown. */
+.jp-Epi-nbtitle {
+  margin: 0;
+  font-family: var(--jp-content-font-family);
+  font-size: calc(var(--jp-content-font-size1) * 1.728);
+  font-weight: var(--jp-content-heading-font-weight);
+  color: var(--jp-content-font-color1);
+}
+
+.jp-Epi-sectionblock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jp-Epi-sectionhead {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 4px 4px;
+  border: none;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
+  background: transparent;
+  color: var(--jp-ui-font-color2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-sectionhead:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-sectionhead .jp-Epi-label {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-sectiontitle {
+  font-family: var(--jp-content-font-family);
+  font-size: calc(var(--jp-content-font-size1) * 1.44);
+  font-weight: var(--jp-content-heading-font-weight);
+  color: var(--jp-content-font-color1);
+}
+
+.jp-Epi-sectioncount {
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-chevron {
+  display: flex;
+  align-self: center;
+  margin-left: auto;
+}
+
+.jp-Epi-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+/*
+ * On the bench too, a card or a text far from the window is not laid out or
+ * painted until it comes near, as the cells of the Code view.
+ */
+.jp-Epi-bench .jp-Epi-cell,
+.jp-Epi-bench .jp-Epi-note {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* Drop targets light up without moving: the layout must not shift under a drag. */
+.jp-Epi-cell.jp-mod-target {
+  border-style: dashed;
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-cell.jp-mod-over {
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-cell.jp-mod-branch {
+  border-style: dashed;
+  border-color: var(--jp-brand-color2);
+}
+
+.jp-Epi-branchwrap {
+  margin-left: 28px;
+  padding-left: 12px;
+  border-left: 2px dashed var(--jp-brand-color2);
+}
+
+/* In a narrow card the actions move under the title, which keeps its width. */
+.jp-Epi-cell-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+.jp-Epi-title {
+  flex: 1 1 14em;
+  min-width: 0;
+  font-family: var(--jp-content-font-family);
+  font-size: calc(var(--jp-content-font-size1) * 1.2);
+  font-weight: var(--jp-content-heading-font-weight);
+  line-height: 1.3;
+  color: var(--jp-content-font-color1);
+}
+
+.jp-Epi-cell-actions {
+  display: flex;
+  gap: 2px;
+  align-self: center;
+  margin-left: auto;
+}
+
+.jp-Epi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* While a model reads the signatures of the cell's functions: "Find more defaults with AI". */
+.jp-Epi-chips-waiting {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.jp-Epi-summary {
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Code as in JupyterLab's cell input area. */
+.jp-Epi-editor {
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  background: var(--jp-cell-editor-background);
+  overflow: hidden;
+}
+
+.jp-Epi-code-fallback {
+  margin: 0;
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  background: var(--jp-cell-editor-background);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  line-height: var(--jp-code-line-height);
+  overflow-x: auto;
+}
+
+/* In the Code view, the code of files under a cell's editor: one line, folded, that opens the lines read only. */
+.jp-Epi-filesfold {
+  margin-top: 2px;
+}
+
+.jp-Epi-filesfold-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 8px;
+  border: var(--jp-border-width) dashed var(--jp-cell-editor-border-color);
+  border-radius: var(--jp-border-radius);
+  background: transparent;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-filesfold-toggle:hover {
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-filesfold-caret {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentcolor;
+  transition: transform 120ms ease;
+}
+
+.jp-Epi-filesfold.jp-mod-open .jp-Epi-filesfold-caret {
+  transform: rotate(90deg);
+}
+
+.jp-Epi-filesfold.jp-mod-open .jp-Epi-filesfold-toggle {
+  border-style: solid;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.jp-Epi-filesfold .jp-Epi-attachment {
+  border-top: none;
+}
+
+.jp-Epi-attachment {
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  background: var(--jp-cell-editor-background);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+}
+
+.jp-Epi-attachment-head {
+  display: flex;
+  padding: 4px 8px;
+  border-bottom: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-attachment-head .jp-Epi-link {
+  margin-left: auto;
+}
+
+.jp-Epi-attachment-body {
+  margin: 0;
+  padding: 4px 8px;
+  font-family: inherit;
+  line-height: var(--jp-code-line-height);
+  overflow-x: auto;
+}
+
+.jp-Epi-attachment-body .jp-mod-highlight {
+  background: var(--epi-warn-tint);
+}
+
+.jp-Epi-lineno {
+  display: inline-block;
+  width: 3ch;
+  margin-right: 1ch;
+  color: var(--jp-ui-font-color2);
+  text-align: right;
+}
+
+.jp-Epi-cell-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* A whole row of the card: a table in it measures the room it has. */
+.jp-Epi-miniatures {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.jp-Epi-miniature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 54px;
+  padding: 0 4px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.jp-Epi-miniature:hover {
+  border-color: var(--jp-border-color1);
+}
+
+.jp-Epi-miniature.jp-mod-plot {
+  padding: 0;
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-miniature.jp-mod-text {
+  max-width: 180px;
+  justify-content: flex-start;
+}
+
+/* A chart drawn by its library at the size the notebook gives it, scaled down. */
+.jp-Epi-miniature.jp-mod-chart {
+  width: 96px;
+  padding: 0;
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-miniature-chart {
+  flex: none;
+  width: 640px;
+  height: 360px;
+  overflow: hidden;
+  transform: scale(0.15);
+  pointer-events: none;
+}
+
+/* A widget in a card is live, as in the notebook: a bar, a control, a figure. */
+.jp-Epi-widgetoutput {
+  flex-basis: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.jp-Epi-miniature-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-miniature.jp-mod-error {
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-miniature.jp-mod-active {
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-miniature img {
+  max-width: 120px;
+  max-height: 52px;
+}
+
+.jp-Epi-pinned {
+  width: 100%;
+  max-height: 420px;
+  overflow: auto;
+}
+
+/*
+ * A table output: in full, as a miniature, or as a tile. The rendered table
+ * stays in the page at every size; behind a tile it is hidden, and measured.
+ */
+.jp-Epi-tableoutput {
+  position: relative;
+  min-width: 0;
+}
+
+.jp-Epi-tableoutput.jp-mod-inline,
+.jp-Epi-tableoutput.jp-mod-miniature {
+  flex-basis: 100%;
+}
+
+.jp-Epi-tableoutput-content {
+  width: max-content;
+  transform-origin: 0 0;
+}
+
+.jp-Epi-tableoutput-content .jp-RenderedHTMLCommon {
+  padding-right: 0;
+}
+
+.jp-Epi-tableoutput-content table {
+  margin: 0;
+}
+
+.jp-Epi-tableoutput.jp-mod-measuring .jp-Epi-tableoutput-frame,
+.jp-Epi-tableoutput.jp-mod-tile .jp-Epi-tableoutput-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.jp-Epi-tableoutput.jp-mod-inline .jp-Epi-tableoutput-frame {
+  overflow-x: auto;
+}
+
+.jp-Epi-tableoutput.jp-mod-miniature .jp-Epi-tableoutput-frame {
+  position: relative;
+  overflow: hidden;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 6px;
+  background: var(--jp-layout-color0);
+  cursor: pointer;
+}
+
+.jp-Epi-tableoutput.jp-mod-miniature .jp-Epi-tableoutput-frame:hover {
+  border-color: var(--jp-border-color1);
+}
+
+.jp-Epi-tableoutput.jp-mod-miniature .jp-Epi-tableoutput-frame:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 1px;
+}
+
+.jp-Epi-tableoutput-frame.jp-mod-active {
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-tableoutput.jp-mod-miniature .jp-Epi-tableoutput-content {
+  pointer-events: none;
+}
+
+/* The bottom of a table cut to the height of a miniature. */
+.jp-Epi-tableoutput-fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 28px;
+  background: linear-gradient(transparent, var(--jp-layout-color0));
+}
+
+.jp-Epi-tableoutput-caption {
+  margin-top: 3px;
+  font-size: var(--jp-ui-font-size0);
+  font-variant-numeric: tabular-nums;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-tabletile {
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  height: auto;
+  min-height: 54px;
+  max-width: 180px;
+  padding: 6px 10px;
+  font-family: var(--jp-ui-font-family);
+  text-align: left;
+}
+
+.jp-Epi-tabletile-kind {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-tabletile-icon {
+  display: flex;
+}
+
+.jp-Epi-tabletile-dims {
+  font-size: var(--jp-ui-font-size0);
+  font-variant-numeric: tabular-nums;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-tabletile-description {
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-tabletile-headline {
+  font-size: var(--jp-ui-font-size1);
+  font-weight: 600;
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-tabletile .jp-Epi-progress {
+  margin-top: 2px;
+}
+
+/* A short printed output, in full, as the notebook shows it. */
+.jp-Epi-textoutput {
+  flex-basis: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px 8px;
+  overflow-x: auto;
+  border: 0;
+  border-left: 2px solid var(--jp-border-color2);
+  border-radius: 0;
+  background: none;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  line-height: var(--jp-code-line-height);
+  color: var(--jp-content-font-color1);
+  text-align: left;
+  white-space: pre;
+}
+
+.jp-Epi-textoutput.jp-mod-stderr {
+  border-left-color: var(--jp-warn-color1);
+  background: var(--jp-rendermime-error-background);
+}
+
+button.jp-Epi-textoutput {
+  cursor: pointer;
+}
+
+button.jp-Epi-textoutput:hover,
+.jp-Epi-textoutput.jp-mod-active {
+  border-left-color: var(--jp-brand-color1);
+}
+
+/* A long log: its size and one line; a click shows all of it. */
+.jp-Epi-logtile {
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  height: auto;
+  min-height: 54px;
+  max-width: 260px;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.jp-Epi-logtile.jp-mod-stderr {
+  border-left: 2px solid var(--jp-warn-color1);
+}
+
+.jp-Epi-logtile-kind {
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-logtile-size {
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size0);
+  font-variant-numeric: tabular-nums;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-logtile-line {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* It floats over the cell: an opaque, tinted background. */
+.jp-Epi-dropzone {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 1;
+  padding: 8px 12px;
+  border: 2px dashed var(--jp-brand-color1);
+  border-radius: var(--jp-border-radius);
+  background:
+    linear-gradient(var(--epi-brand-tint2), var(--epi-brand-tint2)),
+    var(--jp-layout-color0);
+  color: var(--jp-brand-color1);
+  cursor: pointer;
+}
+
+.jp-Epi-job {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-assumptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-assumptions li {
+  padding: 2px 8px;
+  border-left: 3px solid var(--jp-border-color1);
+  background: var(--jp-layout-color1);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-assumptions li.jp-mod-default {
+  border-left-color: var(--jp-warn-color1);
+}
+
+.jp-Epi-assumptions li.jp-mod-modelling {
+  border-left-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.jp-Epi-followup {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 8px 2px 4px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+  cursor: pointer;
+}
+
+.jp-Epi-followup:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--epi-brand-line);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-strip.jp-mod-error {
+  border-color: var(--jp-error-color1);
+  background: var(--epi-error-tint);
+}
+
+.jp-Epi-strip-row,
+.jp-Epi-parallel-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.jp-Epi-strip-action {
+  font-weight: 600;
+  color: var(--jp-brand-color1);
+  white-space: nowrap;
+}
+
+.jp-Epi-strip-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--jp-ui-font-color1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-strip-stage {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+/* An answer that did not start at the notebook's cost cap waits for the
+   analyst, in the colours of an open choice. */
+.jp-Epi-heldstrip {
+  border-color: var(--epi-warn-line);
+  background: var(--epi-warn-tint);
+}
+
+.jp-Epi-heldstrip .jp-Epi-strip-action {
+  color: var(--jp-ui-font-color1);
+}
+
+/* Why an answer waits, or a run stopped, at a cost cap, and Go on. */
+.jp-Epi-capnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+  line-height: 1.4;
+}
+
+.jp-Epi-capnote-text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.jp-Epi-agentrun .jp-Epi-capnote,
+.jp-Epi-preview .jp-Epi-capnote {
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--epi-warn-line);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-warn-tint);
+}
+
+/* An answer whose cell the analyst deleted while the model wrote it: its
+   strip stays where the cell was, and the answer waits there. */
+.jp-Epi-strip-note {
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-waitstrip .jp-Epi-diff {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.jp-Epi-linear > .jp-Epi-gonestrip {
+  margin: 4px 0;
+}
+
+/* The count of the agents' runs that go on, in the status bar. */
+.jp-Epi-runstatus {
+  cursor: pointer;
+}
+
+/*
+ * An agent's run: a head with the question and Stop, a line per step with
+ * the cells it added, and the answer. It sits in the question's strip, in a
+ * card over the cells it added, or in the lower half of the right panel.
+ */
+.jp-Epi-agentstrip {
+  padding: 0;
+}
+
+.jp-Epi-agentstrip > .jp-Epi-guess {
+  margin: 0 8px 6px;
+}
+
+.jp-Epi-agentpointerwrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jp-Epi-agentrun {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+.jp-Epi-agentrun.jp-mod-card {
+  border: var(--jp-border-width) solid var(--epi-brand-line);
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-agentrun.jp-mod-sidebar {
+  height: 100%;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+/* In the narrow sidebar the question wraps, where the strip cuts it. */
+.jp-Epi-agentrun.jp-mod-sidebar .jp-Epi-agentrun-question {
+  flex-basis: 100%;
+  white-space: normal;
+}
+
+.jp-Epi-agentrun-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.jp-Epi-agentrun-kind {
+  font-weight: 600;
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-agentrun-question {
+  flex: 1;
+  min-width: 120px;
+  overflow: hidden;
+  color: var(--jp-ui-font-color1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-agentrun-status {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-Epi-agentrun-local {
+  padding: 0 6px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: 8px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-Epi-agentrun-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-agentrun-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+/* A dot per step: grey while it runs, the brand colour when done, red when it failed. */
+.jp-Epi-agentrun-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jp-layout-color3);
+}
+
+.jp-Epi-agentrun-steps li.jp-mod-done .jp-Epi-agentrun-mark {
+  background: var(--jp-brand-color1);
+}
+
+.jp-Epi-agentrun-steps li.jp-mod-error .jp-Epi-agentrun-mark {
+  background: var(--jp-error-color1);
+}
+
+.jp-Epi-agentrun-cells {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.jp-Epi-agentrun-cell {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--jp-content-link-color);
+  cursor: pointer;
+}
+
+.jp-Epi-agentrun-cell:hover {
+  text-decoration: underline;
+}
+
+.jp-Epi-agentrun-title {
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-agentrun-why {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-agentrun-error {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-agentrun-answer {
+  padding: 6px 8px;
+  border-left: 3px solid var(--jp-brand-color1);
+  background: var(--jp-layout-color1);
+  color: var(--epi-ai-ink);
+  line-height: 1.45;
+}
+
+.jp-Epi-agentrun-answer .jp-Epi-aitag {
+  margin-left: 6px;
+}
+
+.jp-Epi-agentrun-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jp-Epi-agentrun-followup {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+  cursor: pointer;
+}
+
+.jp-Epi-agentrun-followup:hover {
+  border-color: var(--jp-brand-color1);
+}
+
+/* With runs as cards, a run's cells sit under its card, behind a rule. */
+.jp-Epi-agentgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--jp-brand-color2);
+}
+
+.jp-Epi-parallel-row .jp-Epi-label {
+  width: 44px;
+}
+
+.jp-Epi-parallel-row .jp-Epi-progress {
+  width: 110px;
+}
+
+.jp-Epi-diff {
+  margin: 0;
+  padding: 4px 0;
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  background: var(--jp-cell-editor-background);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  line-height: var(--jp-code-line-height);
+  overflow-x: auto;
+}
+
+.jp-Epi-diff > div {
+  padding: 0 8px;
+}
+
+.jp-Epi-diff .jp-mod-removed {
+  background: var(--epi-error-tint);
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-diff .jp-mod-added {
+  background: var(--epi-success-tint);
+  color: var(--jp-success-color1);
+}
+
+/* A markdown cell's text: dashed, as it holds no code. */
+.jp-Epi-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px 8px;
+  border: var(--jp-border-width) dashed var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  color: var(--jp-content-font-color1);
+}
+
+.jp-Epi-note.jp-mod-asked {
+  border-style: solid;
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-note-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * On the bench, Edit and the questions sit at the top right of a text, and
+ * the text starts beside them.
+ */
+.jp-Epi-note:not(.jp-mod-linear) {
+  display: flow-root;
+}
+
+.jp-Epi-note:not(.jp-mod-linear) .jp-Epi-note-head {
+  float: right;
+  margin-left: 12px;
+}
+
+.jp-Epi-note:not(.jp-mod-linear) .jp-Epi-code,
+.jp-Epi-note:not(.jp-mod-linear) .jp-Epi-strip {
+  clear: both;
+}
+
+/* The numbers a text states, and the outputs that show them. */
+.jp-Epi-claimnumbers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-claimnumbers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-claimnumbers-list li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.jp-Epi-claimnumbers-found {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+.jp-Epi-claimnumbers-value {
+  min-width: 4.5em;
+  font-family: var(--jp-code-font-family);
+  font-variant-numeric: tabular-nums;
+}
+
+.jp-Epi-claimnumbers-list li.jp-mod-missing {
+  color: var(--jp-warn-color0);
+}
+
+/*
+ * The dock holds the minimap at the bottom of the view as the bench
+ * scrolls. It is 0 px tall, so that the minimap adds no height to the bench:
+ * the minimap rises from it, over the last cards.
+ */
+.jp-Epi-minimap-dock {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  align-self: flex-end;
+  height: 0;
+  margin-top: auto;
+}
+
+/*
+ * It floats over the cards: small and faint until pointed at. It is at most
+ * 120 px tall at rest and at most 60% of the view when pointed at: the sizes
+ * of its bars and gaps in each state come from minimap.tsx.
+ */
+.jp-Epi-minimap {
+  --epi-minimap-bar: var(--epi-minimap-rest-bar, 6px);
+  --epi-minimap-gap: var(--epi-minimap-rest-gap, 2px);
+  --epi-minimap-padding: var(--epi-minimap-rest-padding, 2px);
+  --epi-minimap-band-gap: var(--epi-minimap-rest-band-gap, 4px);
+
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--epi-minimap-band-gap);
+  width: 76px;
+  padding: 5px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  box-shadow: var(--jp-elevation-z1);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.jp-Epi-minimap:hover,
+.jp-Epi-minimap:focus-visible {
+  --epi-minimap-bar: var(--epi-minimap-open-bar, 6px);
+  --epi-minimap-gap: var(--epi-minimap-open-gap, 2px);
+  --epi-minimap-padding: var(--epi-minimap-open-padding, 2px);
+  --epi-minimap-band-gap: var(--epi-minimap-open-band-gap, 4px);
+
+  width: 150px;
+  opacity: 1;
+}
+
+.jp-Epi-minimap-title {
+  display: none;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  text-align: left;
+}
+
+.jp-Epi-minimap:hover .jp-Epi-minimap-title,
+.jp-Epi-minimap:focus-visible .jp-Epi-minimap-title {
+  display: block;
+}
+
+.jp-Epi-minimap-band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--epi-minimap-gap);
+  padding: var(--epi-minimap-padding);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+}
+
+/*
+ * A bar has the colour of the type of the question that its cell answers,
+ * as on the cards and in the Exploration panel: muted at rest, so that the
+ * minimap stays quiet over the cards, and full when it is pointed at. A cell
+ * that answers no question is grey.
+ */
+.jp-Epi-minimap-cell {
+  --epi-minimap-color: var(--jp-border-color1);
+
+  height: var(--epi-minimap-bar);
+  border-radius: min(var(--jp-border-radius), var(--epi-minimap-bar));
+  background: color-mix(
+    in srgb,
+    var(--epi-minimap-color) 45%,
+    var(--jp-layout-color2)
+  );
+  transition:
+    height 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+.jp-Epi-minimap:hover .jp-Epi-minimap-cell,
+.jp-Epi-minimap:focus-visible .jp-Epi-minimap-cell {
+  background: var(--epi-minimap-color);
+}
+
+.jp-Epi-minimap-cell[data-type='association'] {
+  --epi-minimap-color: var(--jp-accent-color1);
+}
+
+.jp-Epi-minimap-cell[data-type='causal'] {
+  --epi-minimap-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-minimap-cell[data-type='quality'] {
+  --epi-minimap-color: var(--jp-warn-color0);
+}
+
+.jp-Epi-minimap-cell[data-type='model'] {
+  --epi-minimap-color: var(--jp-layout-color4);
+}
+
+.jp-Epi-minimap-cell[data-type='descriptive'] {
+  --epi-minimap-color: var(--jp-info-color0);
+}
+
+/* A branch: a shorter bar under the cell it branches from. */
+.jp-Epi-minimap-cell.jp-mod-branch {
+  margin-left: 30%;
+}
+
+.jp-Epi-minimap-cell.jp-mod-running {
+  outline: 2px solid var(--jp-brand-color1);
+}
+
+/* Map. */
+
+/*
+ * The map fills the view and moves under a fixed frame. Clipped, the frame
+ * cannot scroll: with overflow: hidden, focus on a control in it scrolls it,
+ * and the map and its controls slide out of sight.
+ */
+.jp-Epi-map {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+  user-select: none;
+}
+
+.jp-Epi-map-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+  background-color: var(--jp-layout-color2);
+  background-image: radial-gradient(
+    circle,
+    var(--jp-border-color1) 1px,
+    transparent 1.5px
+  );
+}
+
+.jp-Epi-map-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.jp-Epi-map-viewport.jp-mod-pan {
+  cursor: grab;
+}
+
+.jp-Epi-map-viewport.jp-mod-panning {
+  cursor: grabbing;
+}
+
+.jp-Epi-map-band {
+  position: absolute;
+  right: 0;
+  left: 0;
+}
+
+/* The line under a band runs past both ends of the map, which moves. */
+.jp-Epi-map-band::after {
+  position: absolute;
+  right: -10000px;
+  bottom: 0;
+  left: -10000px;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color1);
+  content: '';
+}
+
+.jp-Epi-map-band span {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  font-family: var(--jp-content-font-family);
+  font-size: calc(var(--jp-content-font-size1) * 1.2);
+  font-weight: var(--jp-content-heading-font-weight);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-map-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.jp-Epi-map-edges path {
+  fill: none;
+  stroke: var(--jp-brand-color2);
+  stroke-width: 1.5;
+}
+
+.jp-Epi-map-edges path.jp-mod-dashed {
+  stroke-dasharray: 6 5;
+}
+
+.jp-Epi-map-frame {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: 6px;
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  text-align: center;
+  cursor: pointer;
+}
+
+.jp-Epi-map-frame:hover {
+  border-color: var(--jp-brand-color2);
+  box-shadow: var(--jp-elevation-z2);
+}
+
+/* From the last run: the kernel lacks it until its cell runs again. */
+.jp-Epi-map-frame.jp-mod-stale {
+  border-style: dashed;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-map-frame.jp-mod-selected {
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+/* A markdown cell's text on the map: its first lines. */
+.jp-Epi-map-note {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  overflow: hidden;
+  border: var(--jp-border-width) dashed var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+  color: var(--jp-content-font-color1);
+  font-family: var(--jp-content-font-family);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-map-note:hover {
+  box-shadow: var(--jp-elevation-z2);
+}
+
+.jp-Epi-map-note.jp-mod-selected {
+  border: var(--jp-border-width) solid var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-map-note-icon {
+  display: flex;
+  flex: none;
+}
+
+.jp-Epi-map-note-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.jp-Epi-map-cell {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-map-cell:focus-visible {
+  outline: var(--jp-border-width) solid var(--jp-brand-color1);
+  outline-offset: 1px;
+}
+
+/* Show on the bench: on the card's head, while the pointer is on the card. */
+.jp-Epi-map-show {
+  display: flex;
+  flex: none;
+  margin-left: auto;
+  padding: 1px;
+  border: none;
+  border-radius: var(--jp-border-radius);
+  background: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.jp-Epi-map-cell:hover .jp-Epi-map-show,
+.jp-Epi-map-cell.jp-mod-selected .jp-Epi-map-show,
+.jp-Epi-map-show:focus-visible {
+  opacity: 1;
+}
+
+.jp-Epi-map-show:hover {
+  background: var(--jp-layout-color2);
+}
+
+/* As small as the text of the card's head. */
+.jp-Epi-map-show svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* The scroll area of the bench, with the way back to the current cell. */
+.jp-Epi-mainwrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.jp-Epi-mainwrap > .jp-Epi-main {
+  flex: 1;
+}
+
+.jp-Epi-backtocell {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  max-width: min(420px, 80%);
+  padding: 4px 12px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: 14px;
+  background: var(--jp-layout-color0);
+  box-shadow: var(--jp-elevation-z4);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.jp-Epi-backtocell.jp-mod-above {
+  top: 8px;
+}
+
+.jp-Epi-backtocell.jp-mod-below {
+  bottom: 8px;
+}
+
+.jp-Epi-backtocell-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-map-cell:hover {
+  box-shadow: var(--jp-elevation-z2);
+}
+
+.jp-Epi-map-cell.jp-mod-branch {
+  border: var(--jp-border-width) dashed var(--jp-brand-color1);
+}
+
+/* A file from the file browser over a card, as over a card of the bench. */
+.jp-Epi-map-cell.jp-mod-over {
+  background: var(--epi-brand-tint);
+}
+
+/* Selected as JupyterLab selects several notebook cells. */
+.jp-Epi-map-cell.jp-mod-selected {
+  border: var(--jp-border-width) solid var(--jp-brand-color1);
+  background:
+    linear-gradient(
+      var(--jp-notebook-multiselected-color),
+      var(--jp-notebook-multiselected-color)
+    ),
+    var(--jp-layout-color0);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-map-cell-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  width: 100%;
+}
+
+/* Two lines of title, cut after the second: the card is 260 px wide. */
+.jp-Epi-map-cell-title {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/*
+ * The answer to a question about the cell, under the cell: what the AI does
+ * and for how long, what the answer did, or why it failed, in two lines at
+ * most, and a link to its strip on the bench.
+ */
+.jp-Epi-map-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding-top: 4px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.3;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-map-answer.jp-mod-error {
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-map-answer-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.jp-Epi-map-answer-link.jp-Epi-link {
+  align-self: flex-start;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-map-cell-stage {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-marquee {
+  position: absolute;
+  border: var(--jp-border-width) solid var(--jp-brand-color1);
+  background: var(--epi-brand-tint);
+  pointer-events: none;
+}
+
+.jp-Epi-map-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color2);
+}
+
+/* Floats over the map, in the corner, as the zoom of a drawing tool does. */
+.jp-Epi-map-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 2px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 7px;
+  background: var(--jp-layout-color0);
+  box-shadow: var(--jp-elevation-z1);
+}
+
+.jp-Epi-map-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.jp-Epi-map-zoom-button:hover:not(:disabled) {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-map-zoom-button:disabled {
+  color: var(--jp-ui-font-color3);
+  cursor: default;
+}
+
+.jp-Epi-map-zoom-button:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 0;
+}
+
+.jp-Epi-map-zoom-button.jp-mod-level {
+  min-width: 46px;
+  color: var(--jp-ui-font-color2);
+}
+
+/* Two lines at most, so a narrow view keeps its room for the map. */
+.jp-Epi-map-hint-text {
+  display: -webkit-box;
+  flex: 1 1 280px;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.jp-Epi-map-hint-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* The kernel lacks the data a request needs: what to run. */
+.jp-Epi-missing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* The columns of a data node, in its question popover. */
+.jp-Epi-columnfilter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-columnfilter-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 170px;
+  overflow: auto;
+}
+
+/* Cells 1:1: the notebook's cells, laid out as JupyterLab's notebook. */
+
+.jp-Epi-linear {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 20px 40px 4px;
+}
+
+/*
+ * A place for a new cell in the Code view. Between two cells it shows on
+ * hover or with the keyboard focus, over the gap, so the cells keep their
+ * spacing; after the last cell it always shows.
+ */
+.jp-Epi-insert {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  height: 18px;
+  margin: -15px 0 -15px 68px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.jp-Epi-insert::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  border-top: var(--jp-border-width) solid var(--jp-brand-color2);
+  content: '';
+}
+
+.jp-Epi-insert:hover,
+.jp-Epi-insert:focus-within,
+.jp-Epi-insert.jp-mod-last {
+  opacity: 1;
+}
+
+.jp-Epi-insert.jp-mod-last {
+  justify-content: flex-start;
+  margin: 0 0 0 68px;
+}
+
+.jp-Epi-insert.jp-mod-last::before {
+  display: none;
+}
+
+.jp-Epi-insert-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  padding: 0 8px 0 4px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: 9px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  cursor: pointer;
+}
+
+.jp-Epi-insert-button:hover,
+.jp-Epi-insert-button:focus-visible {
+  border-color: var(--jp-brand-color1);
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-insert-button svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+/*
+ * Two columns: the prompt, then the cell. The prompt shares its row with the
+ * code or the text; the title and the chips sit above it.
+ *
+ * A cell far from the window is not laid out or painted, as in JupyterLab's
+ * notebook when its windowing mode is contentVisibility. The browser keeps
+ * the height that a cell had when it was last drawn (auto), so the scroll
+ * bar does not jump; 300 px stands in for a cell not drawn yet.
+ */
+.jp-Epi-linear-cell {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 6px 4px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
+.jp-Epi-linear-cell > * {
+  grid-column: 2;
+}
+
+.jp-Epi-linear-cell > .jp-Epi-linear-prompt {
+  grid-column: 1;
+}
+
+.jp-Epi-linear-prompt {
+  box-sizing: border-box;
+  padding: 5px 6px 0 0;
+  text-align: right;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  color: var(--jp-cell-inprompt-font-color);
+  opacity: var(--jp-cell-prompt-opacity);
+}
+
+.jp-Epi-linear-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+.jp-Epi-linear-cell.jp-mod-branch {
+  border-left: 2px dashed var(--jp-brand-color2);
+}
+
+.jp-Epi-linear-cell.jp-mod-over {
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-linear-cell.jp-mod-target .jp-Epi-editor {
+  border-style: dashed;
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-linear-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jp-Epi-linear-raw {
+  flex: 1;
+  margin: 0;
+  padding: 6px 8px;
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  white-space: pre-wrap;
+}
+
+/*
+ * Text in the 1:1 view reads as a rendered markdown cell. Edit and the
+ * questions show at its top right on hover, and to the keyboard.
+ */
+.jp-Epi-note.jp-mod-linear {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  border: none;
+}
+
+.jp-Epi-note.jp-mod-linear.jp-mod-asked {
+  outline: 1px solid var(--jp-brand-color1);
+}
+
+.jp-Epi-note.jp-mod-linear .jp-Epi-note-head {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  background: var(--jp-layout-color0);
+}
+
+/* The edit of a text shows on hover and to the keyboard, on the bench too. */
+.jp-Epi-note-edit,
+.jp-Epi-note.jp-mod-linear .jp-Epi-note-head {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.jp-Epi-note:hover .jp-Epi-note-edit,
+.jp-Epi-note:focus-within .jp-Epi-note-edit,
+.jp-Epi-note.jp-mod-editing .jp-Epi-note-edit,
+.jp-Epi-note.jp-mod-linear:hover .jp-Epi-note-head,
+.jp-Epi-note.jp-mod-linear:focus-within .jp-Epi-note-head,
+.jp-Epi-note.jp-mod-linear.jp-mod-asked .jp-Epi-note-head,
+.jp-Epi-note.jp-mod-linear.jp-mod-editing .jp-Epi-note-head {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.jp-Epi-note.jp-mod-linear.jp-mod-editing .jp-Epi-note-head {
+  position: static;
+  align-self: flex-end;
+}
+
+/* Popover, as JupyterLab's menus and completer. */
+
+.jp-Epi-popover {
+  position: fixed;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 420px;
+  max-height: calc(100vh - 16px);
+  padding: 10px;
+  overflow: auto;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  box-shadow: var(--jp-elevation-z6);
+}
+
+.jp-Epi-popover-foot {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.jp-Epi-popover-foot .jp-Epi-caption {
+  margin-left: auto;
+}
+
+/* Right panel. */
+
+.jp-Epi-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--jp-layout-color1);
+}
+
+.jp-Epi-right-main {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+/* An answer in the sidebar takes the lower half; each half scrolls. */
+.jp-Epi-right.jp-mod-split {
+  height: 100%;
+  min-height: 0;
+}
+
+.jp-Epi-right.jp-mod-split > .jp-Epi-right-main,
+.jp-Epi-right.jp-mod-split > .jp-Epi-right-answer {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.jp-Epi-right-answer {
+  padding: 8px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-preview-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/* The last line of a model's thinking, while it writes. */
+.jp-Epi-thinking {
+  font-size: var(--jp-ui-font-size0);
+  font-style: italic;
+  color: var(--jp-ui-font-color2);
+  overflow-wrap: anywhere;
+}
+
+.jp-Epi-tabs {
+  display: flex;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-tabs button {
+  flex: 1;
+  padding: 6px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--jp-ui-font-color2);
+  cursor: pointer;
+}
+
+.jp-Epi-tabs button:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-tabs button.jp-mod-active {
+  border-bottom-color: var(--jp-brand-color1);
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-exploration,
+.jp-Epi-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+/* Cell details: the head names the cell in its own case, not in capitals. */
+.jp-Epi-details-head {
+  text-transform: none;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-details-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-details-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: -4px;
+}
+
+.jp-Epi-details-section {
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+  padding-top: 6px;
+}
+
+.jp-Epi-details-toggle {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-details-count {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.jp-Epi-details-body p {
+  margin: 0;
+}
+
+/* A label on its line, and under it the names, wrapped to the panel. */
+.jp-Epi-details-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-details-names > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.jp-Epi-details-names code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The cells around a text, and the names that link a cell to the others:
+ * one a line, from the left.
+ */
+.jp-Epi-details-names > .jp-Epi-details-cells,
+.jp-Epi-details-names > .jp-Epi-details-namelinks {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.jp-Epi-details-cells .jp-Epi-cell-link {
+  text-align: left;
+}
+
+.jp-Epi-details-label {
+  flex: none;
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-details-list {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.jp-Epi-details-code {
+  max-height: 320px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-cell-editor-background);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  white-space: pre;
+}
+
+/* The cell's code, in an editor that cannot change it. */
+.jp-Epi-details-editor {
+  max-height: 320px;
+  overflow: auto;
+  border: var(--jp-border-width) solid var(--jp-cell-editor-border-color);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-cell-editor-background);
+}
+
+.jp-Epi-details-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* An output opened from its miniature, marked for a moment. */
+.jp-Epi-details-output.jp-mod-opened {
+  outline: var(--jp-border-width) solid var(--jp-brand-color1);
+  outline-offset: 3px;
+}
+
+.jp-Epi-notice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--jp-border-radius);
+  background: var(--epi-brand-tint);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-block-head {
+  display: flex;
+  align-items: baseline;
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-block-head > :last-child:not(:first-child) {
+  margin-left: auto;
+  text-transform: none;
+}
+
+.jp-Epi-big {
+  font-size: calc(var(--jp-ui-font-size1) * 1.44);
+  font-weight: 500;
+  color: var(--jp-ui-font-color0);
+}
+
+.jp-Epi-typebar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.jp-Epi-typebar-label {
+  flex-shrink: 0;
+  width: 92px;
+}
+
+.jp-Epi-typebar-track {
+  display: flex;
+  flex: 1;
+  height: 8px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  overflow: hidden;
+}
+
+.jp-Epi-typebar-track span {
+  display: block;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.jp-Epi-typebar-track .jp-mod-association {
+  background: var(--jp-accent-color1);
+}
+
+.jp-Epi-typebar-track .jp-mod-causal {
+  background: var(--jp-brand-color1);
+}
+
+.jp-Epi-typebar-track .jp-mod-quality {
+  background: var(--jp-warn-color0);
+}
+
+.jp-Epi-typebar-track .jp-mod-model {
+  background: var(--jp-layout-color4);
+}
+
+.jp-Epi-typebar-track .jp-mod-descriptive {
+  background: var(--jp-info-color0);
+}
+
+/* Two parts of a bar: questions typed, then questions picked, lighter. */
+.jp-Epi-typebar-track .jp-mod-picked {
+  opacity: 0.45;
+}
+
+.jp-Epi-typebar-count {
+  width: 18px;
+  font-family: var(--jp-code-font-family);
+  text-align: right;
+}
+
+.jp-Epi-coverage {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.jp-Epi-coverage-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.jp-Epi-squares {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.jp-Epi-squares span {
+  height: 8px;
+  border-radius: 1px;
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-squares span.jp-mod-used {
+  background: var(--jp-brand-color1);
+}
+
+/* The Cost section: the total, a meter against the cap, and the cap's field. */
+.jp-Epi-cost-meter {
+  height: 8px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  overflow: hidden;
+}
+
+.jp-Epi-cost-meter span {
+  display: block;
+  height: 100%;
+  background: var(--jp-brand-color1);
+  transition: width 0.4s ease;
+}
+
+.jp-Epi-cost-meter.jp-mod-reached span {
+  background: var(--jp-warn-color1);
+}
+
+.jp-Epi-caption.jp-Epi-cost-reached {
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-cost-cap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+/* The label on a line of its own, so that the field, Set and Remove fit the
+   width of a sidebar on the next. */
+.jp-Epi-cost-cap label {
+  flex-basis: 100%;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-cost-cap .jp-Epi-cost-input {
+  flex: 0 1 90px;
+  min-width: 56px;
+}
+
+.jp-Epi-cost-cap .jp-Epi-cost-input input {
+  width: 100%;
+  font-family: var(--jp-code-font-family);
+}
+
+.jp-Epi-caption.jp-Epi-cost-invalid {
+  color: var(--jp-error-color1);
+}
+
+/* An amount shows short; its exact value is on hover, which a dotted line marks. */
+.jp-Epi-usd {
+  text-decoration: underline dotted
+    color-mix(in srgb, currentcolor 45%, transparent);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.jp-Epi-cost-fold {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  cursor: pointer;
+}
+
+/* What each kind of call cost: in the Exploration panel, and for one cell.
+   The amounts line up on the right, and a long name wraps. */
+.jp-Epi-cost-kinds {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-cost-kinds caption {
+  padding-bottom: 2px;
+  text-align: left;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-cost-kinds th {
+  padding: 1px 10px 1px 0;
+  font-weight: normal;
+  text-align: left;
+}
+
+.jp-Epi-cost-kinds td {
+  padding: 1px 10px 1px 0;
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-Epi-cost-kinds td:last-child {
+  padding-right: 0;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-code-font-family);
+  text-align: right;
+}
+
+.jp-Epi-cost-kinds td.jp-Epi-cost-none {
+  color: var(--jp-ui-font-color2);
+  font-family: inherit;
+  text-align: left;
+}
+
+.jp-Epi-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.jp-Epi-numbers > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-next {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-next-text {
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-next-meta,
+.jp-Epi-next-foot {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.jp-Epi-next-why {
+  flex: 1;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-fullplot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-fullplot-title {
+  font-weight: 500;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-hint {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-rendered {
+  overflow: auto;
+}
+
+/* Plots. The series colours are set in plot.tsx, from the theme. */
+
+.jp-Epi-plot {
+  display: block;
+  font-family: var(--jp-ui-font-family);
+}
+
+.jp-Epi-plot.jp-mod-selectable {
+  cursor: crosshair;
+}
+
+.jp-Epi-axis line {
+  stroke: var(--jp-border-color2);
+}
+
+.jp-Epi-axis text,
+.jp-Epi-legend text {
+  fill: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-axis .jp-Epi-axis-label {
+  fill: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-brush {
+  fill: var(--epi-brand-tint2);
+  stroke: var(--jp-brand-color1);
+  stroke-dasharray: 3 2;
+}
+
+/* A click on a bar's label picks the bar. */
+.jp-Epi-plot.jp-mod-selectable .jp-Epi-bar-label {
+  cursor: pointer;
+}
+
+/* The zero line: a bar below zero is drawn under it. */
+.jp-Epi-plot-zero {
+  stroke: var(--jp-ui-font-color2);
+  stroke-width: 1;
+}
+
+/* A plot that asks is one Tab stop: the arrow keys move between its marks. */
+.jp-Epi-plot.jp-mod-selectable:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 1px;
+}
+
+/* The mark that the arrow keys are on. */
+.jp-Epi-plot-current,
+.jp-Epi-plot-current line,
+.jp-Epi-plot-current circle {
+  fill: none;
+  stroke: var(--jp-brand-color1);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* The line under a plot or a picture that names the mark the keys are on. */
+.jp-Epi-plot-status {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-mimeplot {
+  padding: 4px 0;
+}
+
+/* Status bar. */
+
+.jp-Epi-status {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  height: 100%;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-status-job {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.jp-Epi-status .jp-Epi-link {
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-status-models {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* What a model wrote or chose, and the tag that says so. */
+.jp-Epi-ai {
+  color: var(--epi-ai-ink);
+}
+
+.jp-Epi-aitag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 3px;
+  font-family: var(--jp-ui-font-family);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 13px;
+  letter-spacing: 0.02em;
+  color: var(--epi-ai-ink);
+  border: var(--jp-border-width) solid
+    color-mix(in srgb, var(--epi-ai-ink) 45%, transparent);
+  border-radius: 2px;
+  vertical-align: 1px;
+}
+
+/* A model's summary of a frame, under its columns in Contents. */
+.jp-Epi-framesummary {
+  padding: 6px 2px 2px;
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+}
+
+/* The AI button of the view's toolbar, and its panel of models. */
+.jp-Epi-aibutton {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: var(--jp-border-radius);
+  background: none;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  cursor: pointer;
+}
+
+.jp-Epi-aibutton:hover,
+.jp-Epi-aibutton[aria-expanded='true'] {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-aipanel {
+  position: fixed;
+  z-index: 10000;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  width: 320px;
+  padding: 10px 12px;
+  background: var(--jp-layout-color1);
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  box-shadow: var(--jp-elevation-z6);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+}
+
+/*
+ * The connected model, at the top of the AI models panel (src/ui/connection.tsx):
+ * across both columns, with the providers in groups under it.
+ */
+.jp-Epi-connection {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+/* What the section tells, as against what went wrong (.jp-Epi-aipanel-note). */
+.jp-Epi-connection-note {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jp-Epi-connection-now {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.jp-Epi-connection-now.jp-mod-ready::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--jp-success-color1);
+  vertical-align: middle;
+}
+
+.jp-Epi-connection-choose {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.jp-Epi-connection-group {
+  margin-top: 6px;
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-provider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jp-Epi-provider-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jp-Epi-provider-note {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+/* A saved key that the provider refused: a fault, so in the error colour. */
+.jp-Epi-provider-note.jp-mod-wrong {
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-provider-actions {
+  display: flex;
+  flex: none;
+}
+
+.jp-Epi-devicecode a,
+.jp-Epi-keyform a {
+  color: var(--jp-content-link-color);
+}
+
+.jp-Epi-devicecode a:hover,
+.jp-Epi-keyform a:hover {
+  text-decoration: underline;
+}
+
+.jp-Epi-devicecode code {
+  padding: 1px 4px;
+  font-size: var(--jp-ui-font-size2);
+  letter-spacing: 0.08em;
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-pastecode,
+.jp-Epi-keyform,
+.jp-Epi-ownserver,
+.jp-Epi-modelpicker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-keyform label {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * The panel's fields at the size of its text and the height of its buttons:
+ * JupyterLab draws a styled input at --jp-ui-font-size2 and 28px, larger than
+ * the rows and the model list around it.
+ */
+.jp-Epi-pastecode input.jp-mod-styled,
+.jp-Epi-keyform input.jp-mod-styled,
+.jp-Epi-ownserver input.jp-mod-styled,
+.jp-Epi-modelpicker input.jp-mod-styled {
+  height: 24px;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-ownserver {
+  margin-top: 2px;
+}
+
+.jp-Epi-ownserver-local {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-pastecode .jp-Button,
+.jp-Epi-keyform .jp-Button,
+.jp-Epi-ownserver .jp-Button,
+.jp-Epi-modelpicker .jp-Button {
+  align-self: flex-start;
+}
+
+/* Try again beside Save anyway, or Save without a check, after a check of a key. */
+.jp-Epi-keyform-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* A field locked while the server checks the key typed in it. */
+.jp-Epi-keyform input.jp-mod-styled:read-only,
+.jp-Epi-ownserver input.jp-mod-styled:read-only {
+  color: var(--jp-ui-font-color2);
+  background: var(--jp-layout-color2);
+}
+
+/*
+ * A provider's models open under its row. A line on their left marks them as
+ * the row's, so that the rows after them do not read as models of that
+ * provider.
+ */
+.jp-Epi-modelpicker {
+  margin: 2px 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--jp-border-color1);
+}
+
+.jp-Epi-modelpicker > .jp-Epi-connection-group {
+  margin-top: 0;
+}
+
+/* "Use this model", blue once it can be pressed, at the height of the grey button. */
+.jp-Epi-modelpicker .jp-Button.jp-mod-styled {
+  height: 24px;
+  line-height: 24px;
+  letter-spacing: normal;
+}
+
+.jp-Epi-modellist {
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-modellist button {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 3px 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-modellist button:hover,
+.jp-Epi-modellist button.jp-mod-selected {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-modellist small {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-aipanel-title {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  font-size: var(--jp-ui-font-size0);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * The rows share the panel's two columns: a task's name on one line, and its
+ * choice in the rest of the row, cut if long.
+ */
+.jp-Epi-aipanel-row {
+  display: contents;
+}
+
+.jp-Epi-aipanel-row > .jp-Epi-tasklabel {
+  align-self: center;
+  white-space: nowrap;
+}
+
+/* A task's name and its help icon. */
+.jp-Epi-tasklabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.jp-Epi-help {
+  display: inline-flex;
+  flex: none;
+  padding: 1px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: help;
+}
+
+.jp-Epi-help:hover,
+.jp-Epi-help[aria-expanded='true'] {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-help svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.jp-Epi-help-text {
+  grid-column: 1 / -1;
+  padding: 6px 8px;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.5;
+  color: var(--jp-ui-font-color1);
+  white-space: normal;
+}
+
+.jp-Epi-help-text.jp-mod-field {
+  max-width: 512px;
+}
+
+/*
+ * A select fills its column. Without a width it takes the width of its
+ * longest option, such as "Remote AI model: OpenRouter:
+ * anthropic/claude-sonnet-5", past the column and under its own arrow.
+ */
+.jp-Epi-aipanel-row .jp-HTMLSelect,
+.jp-Epi-modelsfield-task .jp-HTMLSelect {
+  min-width: 0;
+}
+
+.jp-Epi-aipanel-row select,
+.jp-Epi-modelsfield-task select {
+  width: 100%;
+}
+
+/*
+ * A model that cannot run, such as Jev without a key, is greyed in the list,
+ * over JupyterLab's colour for the options of its selects.
+ */
+.jp-Epi-aipanel .jp-HTMLSelect.jp-DefaultStyle select > option:disabled,
+.jp-Epi-modelsfield .jp-HTMLSelect.jp-DefaultStyle select > option:disabled {
+  color: var(--jp-ui-font-color3);
+}
+
+.jp-Epi-aipanel-note {
+  grid-column: 1 / -1;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-error-color1);
+}
+
+/* A task that waits for a connected model: nothing is wrong, so not red. */
+.jp-Epi-aipanel-note.jp-mod-waiting {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-aipanel .jp-Epi-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/*
+ * "Keep data on this machine", with "Zero data retention (OpenRouter)" under
+ * it when OpenRouter is connected, spans the panel above the tasks. A lock by
+ * the server greys a box and says why, in the colour of a note, not an error.
+ */
+.jp-Epi-policies {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-datapolicy,
+.jp-Epi-retention {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-datapolicy label,
+.jp-Epi-retention label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jp-Epi-datapolicy .jp-Epi-aipanel-note,
+.jp-Epi-retention .jp-Epi-aipanel-note {
+  color: var(--jp-ui-font-color2);
+}
+
+/* "Find more defaults with AI" in the settings editor, and what it waits for. */
+.jp-Epi-finddefaultsfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-finddefaultsfield label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jp-Epi-finddefaults-note {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+/*
+ * A replaced setting in JupyterLab's settings editor: its row holds only
+ * the marker of replacedFieldRenderer and the schema's description, and
+ * shows nothing. The child combinators keep the rule off the rows that
+ * contain it, such as the root of the form.
+ */
+.jp-SettingsForm
+  .form-group:has(
+    > .jp-FormGroup-content > .jp-inputFieldWrapper > .jp-Epi-replacedsetting
+  ) {
+  display: none;
+}
+
+/*
+ * An array setting of the view in JupyterLab's settings editor, such as
+ * Custom local models: JupyterLab 4.6 writes its description under its title,
+ * and the field template writes it again under the Add button. The second
+ * copy is hidden. The id keeps the rule on the view's own settings.
+ */
+.jp-SettingsForm
+  .form-group:has(
+    > .jp-FormGroup-content
+      > .jp-arrayFieldWrapper
+      > .field-array
+      > .field-description[id^='jp-SettingsEditor-whybook:plugin_']
+  )
+  > .jp-FormGroup-content
+  > .jp-FormGroup-description {
+  display: none;
+}
+
+/* The model of each task, in JupyterLab's settings editor. */
+.jp-Epi-modelsfield-task {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 320px);
+  gap: 4px 12px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.jp-Epi-modelsfield-label {
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-modelsfield-note {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-modelsfield-note.jp-mod-error {
+  color: var(--jp-error-color1);
+}
+
+/*
+ * The models of the connected provider for one task, under the task's select:
+ * across the panel's two columns, and under the select in the settings editor.
+ */
+.jp-Epi-aipanel .jp-Epi-taskpicker {
+  grid-column: 1 / -1;
+}
+
+.jp-Epi-modelsfield-task .jp-Epi-taskpicker {
+  grid-column: 2;
+}
+
+/* A fast JSON check that failed, so local models use the standard one. */
+.jp-Epi-aipanel-note.jp-mod-warning,
+.jp-Epi-modelsfield-note.jp-mod-warning {
+  max-width: 512px;
+  padding: 4px 6px;
+  color: var(--jp-ui-font-color1);
+  background: var(--epi-warn-tint);
+  border-left: 2px solid var(--jp-warn-color1);
+}
+
+/* In the sidebar, the accordion titles already name the sections. */
+.jp-Epi-sidebar .jp-Epi-head-label,
+.jp-Epi-sidebar .jp-Epi-section-head.jp-mod-empty {
+  display: none;
+}
+
+.jp-Epi-ask-by {
+  margin-left: auto;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--jp-ui-font-color2);
+}
+
+/* The Databases panel: SQLite files, their tables and columns, as a tree
+   with rows the size of the file browser's beside it. */
+
+.jp-Epi-databases-refresh.jp-Button {
+  margin-left: auto;
+  padding: 0;
+}
+
+.jp-Epi-tree,
+.jp-Epi-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-tree ul {
+  padding-left: 14px;
+}
+
+.jp-Epi-tree-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  padding: 0 6px;
+  border: var(--jp-border-width) solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--jp-ui-font-color1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.jp-Epi-tree-row:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-tree-row.jp-mod-table {
+  cursor: grab;
+}
+
+.jp-Epi-tree-row.jp-mod-armed {
+  border-color: var(--jp-brand-color1);
+  background: var(--epi-brand-tint2);
+}
+
+.jp-Epi-tree-row svg {
+  display: block;
+}
+
+.jp-Epi-tree-caret {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.jp-Epi-tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-tree-meta {
+  margin-left: auto;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  white-space: nowrap;
+}
+
+.jp-Epi-tree-columns li {
+  display: flex;
+  gap: 6px;
+  padding: 2px 6px 2px 26px;
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-databases-foot {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.jp-Epi-dropzone.jp-mod-end {
+  position: static;
+  align-self: flex-start;
+}
+
+/* The Databases panel when it finds nothing. */
+
+.jp-Epi-databases-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 24px 12px;
+  line-height: 1.45;
+  color: var(--jp-ui-font-color1);
+  text-align: center;
+}
+
+.jp-Epi-databases-empty p {
+  margin: 0;
+}
+
+.jp-Epi-databases-icon svg {
+  opacity: 0.6;
+}
+
+.jp-Epi-databases-title {
+  font-weight: 600;
+}
+
+/* A file from the file browser over the bench or the map. */
+.jp-Epi-bench.jp-mod-filedrop,
+.jp-Epi-map-viewport.jp-mod-filedrop {
+  outline: 2px dashed var(--jp-brand-color1);
+  outline-offset: -6px;
+  background: var(--epi-brand-tint);
+}
+
+/* Variables from the last run, as the notebook kept them. */
+.jp-Epi-variable.jp-mod-stale .jp-Epi-item-name,
+.jp-Epi-variable.jp-mod-stale .jp-Epi-item-type,
+.jp-Epi-variable.jp-mod-stale .jp-Epi-item-shape {
+  color: var(--jp-ui-font-color3);
+}
+
+.jp-Epi-variable.jp-mod-stale .jp-Epi-item-name {
+  font-style: italic;
+}
+
+.jp-Epi-stale-note {
+  padding: 6px 10px;
+  border-left: 2px solid var(--epi-warn-line);
+  background: var(--epi-warn-tint);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+  color: var(--jp-ui-font-color1);
+}
+
+/* A notebook whose file is still loading: the outline of two cells, and a line that says so. */
+.jp-Epi-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+  margin: 24px auto;
+}
+
+.jp-Epi-loading-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-loading-line {
+  display: block;
+  height: 10px;
+  width: 80%;
+  border-radius: 5px;
+  background: var(--jp-layout-color2);
+  animation: jp-epi-loading-pulse 1.4s ease-in-out infinite;
+}
+
+.jp-Epi-loading-line.jp-mod-title {
+  width: 40%;
+  height: 12px;
+}
+
+.jp-Epi-loading-line.jp-mod-short {
+  width: 55%;
+}
+
+.jp-Epi-loading-note {
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color2);
+  text-align: center;
+}
+
+@keyframes jp-epi-loading-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* A title that a model writes: a pulsing bar stands in for it. */
+.jp-Epi-title-skeleton {
+  display: inline-block;
+  width: 14em;
+  max-width: 100%;
+  height: 0.85em;
+  vertical-align: middle;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color3);
+  animation: jp-epi-loading-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jp-Epi-loading-line,
+  .jp-Epi-title-skeleton {
+    animation: none;
+  }
+
+  .jp-Epi-minimap-cell {
+    transition: none;
+  }
+}
+
+/* A notebook with no code: where an analysis starts from, and a drop target. */
+.jp-Epi-start {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  max-width: 560px;
+  margin: 40px auto 24px;
+  padding: 28px 32px;
+  border: 2px dashed var(--jp-border-color2);
+  border-radius: 12px;
+  background: var(--jp-layout-color0);
+  text-align: center;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-start.jp-mod-over,
+.jp-Epi-bench.jp-mod-filedrop .jp-Epi-start,
+.jp-Epi-map-viewport.jp-mod-filedrop .jp-Epi-start {
+  border-color: var(--jp-brand-color1);
+  background: var(--epi-brand-tint);
+}
+
+.jp-Epi-start-art {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.jp-Epi-start-source svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.jp-Epi-start-view svg {
+  display: block;
+  width: 44px;
+  height: 44px;
+}
+
+/* A dashed line with a head: from a source to the view. */
+.jp-Epi-start-arrow {
+  position: relative;
+  width: 36px;
+  border-top: 2px dashed var(--jp-border-color1);
+}
+
+.jp-Epi-start-arrow::after {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid var(--jp-border-color1);
+  content: '';
+}
+
+.jp-Epi-start-arrow.jp-mod-back::after {
+  right: auto;
+  left: -2px;
+  border-right: 7px solid var(--jp-border-color1);
+  border-left: none;
+}
+
+.jp-Epi-start-title {
+  margin: 0;
+  font-family: var(--jp-content-font-family);
+  font-size: calc(var(--jp-content-font-size1) * 1.44);
+  font-weight: var(--jp-content-heading-font-weight);
+  color: var(--jp-content-font-color1);
+}
+
+.jp-Epi-start-text {
+  max-width: 440px;
+  margin: 0;
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.5;
+}
+
+.jp-Epi-start-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Show files, Show databases. JupyterLab's Button is grey text on a grey
+   ground, and here it read as disabled: these carry the brand colour on a
+   light tint, and fill with the accept colour on hover. */
+.jp-Epi-start-actions .jp-Epi-button.jp-Button {
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 14px 0 11px;
+  border: var(--jp-border-width) solid var(--epi-brand-line);
+  border-radius: 999px;
+  background: var(--epi-brand-tint);
+  color: color-mix(
+    in srgb,
+    var(--jp-brand-color1) 80%,
+    var(--jp-ui-font-color0)
+  );
+  font-size: var(--jp-ui-font-size1);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+.jp-Epi-start-actions .jp-Epi-button .jp-icon3[fill] {
+  fill: currentcolor;
+}
+
+.jp-Epi-start-actions .jp-Epi-button.jp-Button:hover {
+  border-color: var(--jp-accept-color-normal);
+  background: var(--jp-accept-color-normal);
+  color: white;
+  box-shadow: var(--jp-elevation-z2);
+}
+
+.jp-Epi-start-actions .jp-Epi-button.jp-Button:active {
+  background: var(--jp-accept-color-hover);
+  box-shadow: none;
+}
+
+.jp-Epi-start-actions .jp-Epi-button.jp-Button:focus-visible {
+  outline: 2px solid var(--jp-brand-color1);
+  outline-offset: 2px;
+}
+
+.jp-Epi-start-near {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.jp-Epi-start-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* Two classes: JupyterLab's `.jp-ThemedContainer button` gives a button a
+   2px radius, and it wins over one class. */
+.jp-Epi-start-files .jp-Epi-start-file {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 10px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 999px;
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  cursor: pointer;
+}
+
+.jp-Epi-start-file:hover {
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-start-file-icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.jp-Epi-start-file-size {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+/* The same card, over an empty map. */
+.jp-Epi-map-start {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+}
+
+/*
+ * The level of detail of the outputs, in the view's toolbar. A click on the
+ * label or the level moves the slider, and selects no text.
+ */
+.jp-Epi-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 6px;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+  user-select: none;
+}
+
+.jp-Epi-detail input[type='range'] {
+  width: 64px;
+  margin: 0;
+  accent-color: var(--jp-brand-color1);
+}
+
+.jp-Epi-detail-value {
+  min-width: 4.5em;
+  color: var(--jp-ui-font-color2);
+}
+
+/* A cell's outputs on the map: one line of small tiles. */
+.jp-Epi-map-outputs {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.jp-Epi-map-output {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  flex: none;
+  max-width: 96px;
+  padding: 0 4px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  font-family: var(--jp-code-font-family);
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--jp-ui-font-color2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-map-output.jp-mod-error {
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-map-output-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What a plot draws, in the colour of the tile's text. */
+.jp-Epi-glyph {
+  flex: none;
+}
+
+/* At Overview: the bench's tiles, wrapped inside the card. */
+.jp-Epi-map-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.jp-Epi-map-overview > * {
+  max-width: 100%;
+}
+
+.jp-Epi-map-hint-outputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* A guess before a result: one optional click while the cell runs. */
+.jp-Epi-guess {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-guess-option {
+  padding: 1px 8px;
+  border: var(--jp-border-width) solid var(--jp-border-color1);
+  border-radius: 999px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-size: var(--jp-ui-font-size0);
+  cursor: pointer;
+}
+
+.jp-Epi-guess-option:hover,
+.jp-Epi-guess-option:focus-visible {
+  border-color: var(--jp-brand-color1);
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-guess .jp-Epi-help-text {
+  flex-basis: 100%;
+}
+
+.jp-Epi-guess-chip {
+  padding: 0 6px;
+  border: var(--jp-border-width) dashed var(--jp-border-color1);
+  border-radius: 999px;
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+  white-space: nowrap;
+}
+
+/* A column reached only through offered questions: a lighter square. */
+.jp-Epi-squares .jp-mod-used.jp-mod-offered {
+  opacity: 0.45;
+}
+
+/* A plot at Full or Compact: at a readable size, and an image no wider than its place. */
+.jp-Epi-plotout {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.jp-Epi-plotout img {
+  max-width: 100%;
+  height: auto;
+}
+
+.jp-Epi-plotout.jp-mod-compact {
+  flex-basis: auto;
+  width: min(100%, 340px);
+}
+
+/*
+ * A chart in an iframe, as ninejs draws it, is as wide as the view's plots:
+ * the box around it takes the plot's width, which the iframe fills.
+ */
+.jp-Epi-plotout .jp-Epi-copyable:has(iframe) {
+  width: 100%;
+}
+
+.jp-Epi-plotout.jp-mod-full .jp-Epi-copyable:has(iframe) {
+  width: min(100%, 640px);
+}
+
+/* A copy button: selecting asks a question, so copying has a button. */
+.jp-Epi-copy {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px;
+  border: none;
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+  cursor: pointer;
+}
+
+.jp-Epi-copy:hover,
+.jp-Epi-copy:focus-visible {
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-copyable {
+  position: relative;
+  min-width: 0;
+}
+
+/* An output's button sits at the output's corner, not the card's. */
+.jp-Epi-copyable:not(.jp-Epi-textwrap) {
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* Printed text keeps its whole row, as the text alone did. */
+.jp-Epi-textwrap {
+  flex-basis: 100%;
+}
+
+.jp-Epi-copy-corner {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.jp-Epi-copyable:hover > .jp-Epi-copy-corner,
+.jp-Epi-copy-corner:focus-visible,
+.jp-Epi-copy-corner.jp-mod-copied {
+  opacity: 1;
+}
+
+/* The Output panel's head: its cell number is a link, not a heading. */
+.jp-Epi-cell-link {
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: none;
+}
+
+/* A cell that a link points at, outlined for a moment. */
+.jp-mod-flash {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  animation: jp-epi-flash 1.6s ease-out;
+}
+
+@keyframes jp-epi-flash {
+  0%,
+  40% {
+    outline-color: var(--jp-brand-color1);
+  }
+
+  100% {
+    outline-color: transparent;
+  }
+}
+
+/* Cells 1:1: a cell moves by a drag of its prompt, as in the notebook. */
+.jp-Epi-linear-prompt[draggable='true'] {
+  cursor: grab;
+}
+
+.jp-Epi-linear-cell.jp-mod-drop-before {
+  box-shadow: 0 -2px 0 var(--jp-brand-color1);
+}
+
+.jp-Epi-linear-cell.jp-mod-drop-after {
+  box-shadow: 0 2px 0 var(--jp-brand-color1);
+}
+
+/* Heads the questions that need AI, after the ones that run, while no AI
+   model answers. */
+.jp-Epi-needs-line {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--jp-border-color2);
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+/* A count from an earlier run: the cell's code has not run in the current
+   kernel. Greyed as the variables of the last run are. */
+.jp-Epi-label.jp-mod-lastrun {
+  color: var(--jp-ui-font-color3);
+}
+
+/* A label in a text that more than one cell shows: a small mark, the title
+   of the cell it names on hover, and a click that flashes that cell. */
+.jp-Epi-labelref {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.jp-Epi-labelref.jp-mod-unsure {
+  cursor: help;
+}
+
+.jp-Epi-labelref-mark {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--jp-warn-color1);
+  vertical-align: super;
+}

@@ -1,0 +1,361 @@
+home_id,region,floor_area_m2,occupants,built,heating,has_solar,has_ev,tariff,tou_start
+H001,coast,132,5,before 1950,gas boiler,False,False,flat,
+H002,central,97,1,1950 to 1990,gas boiler,False,True,flat,
+H003,coast,92,2,before 1950,heat pump,False,False,flat,
+H004,north,135,4,after 1990,gas boiler,True,False,flat,
+H005,central,192,5,1950 to 1990,gas boiler,False,False,flat,
+H006,coast,90,5,after 1990,heat pump,False,False,flat,
+H007,north,149,1,before 1950,heat pump,True,False,flat,
+H008,north,77,2,after 1990,electric storage,True,False,flat,
+H009,north,75,3,1950 to 1990,gas boiler,False,False,flat,
+H010,south,90,3,1950 to 1990,gas boiler,False,False,time of use,2025-05-26
+H011,south,115,3,after 1990,heat pump,False,True,flat,
+H012,north,91,1,1950 to 1990,gas boiler,False,False,flat,
+H013,coast,51,2,1950 to 1990,gas boiler,False,False,flat,
+H014,central,57,1,before 1950,gas boiler,True,False,flat,
+H015,south,152,1,1950 to 1990,heat pump,False,False,flat,
+H016,south,91,1,after 1990,heat pump,True,True,time of use,2025-06-16
+H017,south,85,1,1950 to 1990,gas boiler,False,True,time of use,2025-03-10
+H018,north,143,2,before 1950,electric storage,False,False,flat,
+H019,central,135,2,1950 to 1990,gas boiler,False,False,flat,
+H020,coast,89,1,after 1990,heat pump,False,False,flat,
+H021,coast,83,5,after 1990,gas boiler,False,False,flat,
+H022,south,115,2,before 1950,gas boiler,True,False,time of use,2025-06-16
+H023,central,50,1,1950 to 1990,gas boiler,False,False,flat,
+H024,central,95,2,before 1950,gas boiler,False,False,flat,
+H025,coast,50,1,1950 to 1990,gas boiler,False,True,time of use,2025-04-22
+H026,north,44,1,1950 to 1990,gas boiler,False,True,time of use,2025-04-03
+H027,south,58,2,after 1990,heat pump,False,False,flat,
+H028,north,121,2,1950 to 1990,gas boiler,False,False,flat,
+H029,central,71,3,before 1950,electric storage,True,False,flat,
+H030,central,79,1,after 1990,electric storage,False,True,time of use,2025-06-03
+H031,coast,125,2,1950 to 1990,gas boiler,False,False,flat,
+H032,central,98,4,after 1990,gas boiler,False,False,flat,
+H033,central,98,2,1950 to 1990,gas boiler,False,True,time of use,2025-04-18
+H034,central,91,2,1950 to 1990,electric storage,True,False,flat,
+H035,south,147,2,1950 to 1990,electric storage,False,False,flat,
+H036,central,102,1,1950 to 1990,gas boiler,False,True,flat,
+H037,central,57,2,1950 to 1990,gas boiler,False,False,flat,
+H038,central,74,3,1950 to 1990,heat pump,False,False,flat,
+H039,north,98,1,1950 to 1990,gas boiler,False,False,flat,
+H040,north,91,3,before 1950,gas boiler,False,True,time of use,2025-03-11
+H041,central,200,4,before 1950,gas boiler,True,False,time of use,2025-06-13
+H042,central,102,4,1950 to 1990,gas boiler,False,False,flat,
+H043,north,81,2,before 1950,heat pump,False,False,flat,
+H044,central,50,1,1950 to 1990,electric storage,False,False,flat,
+H045,central,84,1,1950 to 1990,heat pump,False,False,flat,
+H046,south,74,3,1950 to 1990,heat pump,True,False,flat,
+H047,central,60,2,after 1990,gas boiler,False,False,flat,
+H048,north,78,3,before 1950,gas boiler,False,True,time of use,2025-05-07
+H049,north,106,4,1950 to 1990,electric storage,False,True,time of use,2025-05-25
+H050,coast,81,3,after 1990,heat pump,False,False,flat,
+H051,north,67,1,1950 to 1990,heat pump,True,False,time of use,2025-03-31
+H052,south,62,3,1950 to 1990,electric storage,False,False,flat,
+H053,north,60,2,before 1950,gas boiler,False,False,flat,
+H054,central,87,4,1950 to 1990,gas boiler,False,False,flat,
+H055,south,66,2,1950 to 1990,gas boiler,False,True,time of use,2025-04-28
+H056,north,127,4,1950 to 1990,gas boiler,False,True,time of use,2025-05-28
+H057,central,124,1,after 1990,heat pump,False,False,flat,
+H058,coast,143,1,before 1950,electric storage,True,False,flat,
+H059,central,108,2,after 1990,electric storage,False,False,flat,
+H060,central,167,1,1950 to 1990,gas boiler,True,False,flat,
+H061,north,82,1,before 1950,heat pump,False,False,flat,
+H062,south,72,2,1950 to 1990,gas boiler,False,False,flat,
+H063,south,106,3,1950 to 1990,gas boiler,False,False,flat,
+H064,north,64,5,1950 to 1990,gas boiler,False,False,time of use,2025-05-28
+H065,central,137,1,after 1990,gas boiler,True,False,flat,
+H066,south,53,5,before 1950,gas boiler,False,False,flat,
+H067,central,163,2,1950 to 1990,gas boiler,False,False,flat,
+H068,central,91,5,after 1990,heat pump,False,False,flat,
+H069,south,76,1,before 1950,gas boiler,True,False,flat,
+H070,north,83,4,after 1990,heat pump,False,False,flat,
+H071,central,67,4,after 1990,electric storage,False,False,flat,
+H072,central,83,5,after 1990,gas boiler,False,False,flat,
+H073,south,149,2,before 1950,heat pump,True,False,flat,
+H074,coast,116,1,1950 to 1990,gas boiler,False,False,flat,
+H075,coast,119,2,1950 to 1990,gas boiler,False,True,time of use,2025-04-20
+H076,coast,93,2,before 1950,gas boiler,True,False,time of use,2025-06-29
+H077,north,76,1,after 1990,heat pump,False,False,flat,
+H078,south,84,2,before 1950,gas boiler,False,False,flat,
+H079,south,98,3,before 1950,gas boiler,False,False,flat,
+H080,central,105,2,1950 to 1990,electric storage,False,False,flat,
+H081,central,50,2,1950 to 1990,gas boiler,False,True,flat,
+H082,central,67,3,1950 to 1990,gas boiler,False,True,flat,
+H083,coast,73,4,before 1950,heat pump,True,False,flat,
+H084,central,82,1,before 1950,gas boiler,False,False,flat,
+H085,central,61,4,after 1990,electric storage,False,False,flat,
+H086,coast,90,3,after 1990,gas boiler,False,False,flat,
+H087,south,78,3,1950 to 1990,gas boiler,True,False,flat,
+H088,south,96,3,1950 to 1990,gas boiler,True,False,flat,
+H089,south,188,4,1950 to 1990,gas boiler,False,False,flat,
+H090,south,72,5,before 1950,electric storage,True,False,flat,
+H091,coast,71,2,1950 to 1990,heat pump,False,True,flat,
+H092,north,90,2,1950 to 1990,gas boiler,False,False,time of use,2025-05-03
+H093,central,74,2,after 1990,heat pump,True,False,flat,
+H094,south,91,5,1950 to 1990,gas boiler,True,False,flat,
+H095,south,72,2,1950 to 1990,gas boiler,False,False,flat,
+H096,north,99,2,1950 to 1990,gas boiler,False,False,flat,
+H097,south,75,1,1950 to 1990,electric storage,False,False,flat,
+H098,north,95,3,1950 to 1990,gas boiler,False,False,flat,
+H099,north,188,1,before 1950,heat pump,True,False,flat,
+H100,central,105,1,1950 to 1990,gas boiler,False,False,flat,
+H101,north,73,2,1950 to 1990,electric storage,False,False,flat,
+H102,coast,136,4,before 1950,electric storage,False,True,time of use,2025-04-13
+H103,south,50,1,1950 to 1990,gas boiler,True,False,flat,
+H104,central,85,5,before 1950,heat pump,False,False,flat,
+H105,central,74,1,before 1950,heat pump,False,False,flat,
+H106,north,74,1,1950 to 1990,gas boiler,False,False,flat,
+H107,central,84,5,1950 to 1990,gas boiler,False,False,flat,
+H108,north,104,4,before 1950,gas boiler,False,True,time of use,2025-04-07
+H109,north,54,3,after 1990,gas boiler,False,True,flat,
+H110,central,89,3,after 1990,gas boiler,False,True,time of use,2025-04-14
+H111,south,93,3,1950 to 1990,gas boiler,False,False,flat,
+H112,south,56,1,1950 to 1990,gas boiler,False,False,flat,
+H113,central,80,2,1950 to 1990,gas boiler,False,False,flat,
+H114,south,131,1,after 1990,electric storage,True,False,flat,
+H115,central,62,2,1950 to 1990,gas boiler,False,False,time of use,2025-04-05
+H116,coast,79,5,after 1990,gas boiler,False,True,time of use,2025-06-12
+H117,coast,46,2,1950 to 1990,gas boiler,False,True,time of use,2025-05-25
+H118,central,119,4,1950 to 1990,heat pump,False,False,time of use,2025-04-29
+H119,south,56,3,1950 to 1990,electric storage,False,False,flat,
+H120,north,210,1,1950 to 1990,heat pump,False,True,time of use,2025-03-19
+H121,north,68,3,1950 to 1990,heat pump,False,False,flat,
+H122,central,86,1,before 1950,electric storage,False,False,flat,
+H123,north,80,1,after 1990,gas boiler,True,False,flat,
+H124,coast,65,2,1950 to 1990,electric storage,False,False,flat,
+H125,north,82,1,1950 to 1990,heat pump,False,False,flat,
+H126,north,65,1,after 1990,heat pump,True,False,flat,
+H127,central,114,2,1950 to 1990,gas boiler,False,False,flat,
+H128,coast,147,1,before 1950,gas boiler,False,True,time of use,2025-05-30
+H129,south,156,3,before 1950,gas boiler,False,True,time of use,2025-05-23
+H130,north,57,3,1950 to 1990,gas boiler,False,False,flat,
+H131,south,163,3,after 1990,heat pump,False,True,flat,
+H132,north,162,2,1950 to 1990,gas boiler,True,False,flat,
+H133,north,112,1,before 1950,gas boiler,True,False,flat,
+H134,north,87,3,after 1990,gas boiler,False,True,flat,
+H135,north,92,3,1950 to 1990,gas boiler,False,False,time of use,2025-06-19
+H136,central,118,1,1950 to 1990,gas boiler,False,False,flat,
+H137,central,95,1,1950 to 1990,gas boiler,False,False,flat,
+H138,south,81,2,before 1950,gas boiler,False,True,time of use,2025-04-25
+H139,central,106,2,1950 to 1990,gas boiler,True,False,flat,
+H140,coast,63,3,1950 to 1990,electric storage,False,False,flat,
+H141,central,57,3,1950 to 1990,heat pump,False,True,flat,
+H142,north,57,2,1950 to 1990,gas boiler,False,False,time of use,2025-06-29
+H143,central,130,2,1950 to 1990,electric storage,False,False,flat,
+H144,south,116,2,1950 to 1990,heat pump,False,False,time of use,2025-04-26
+H145,central,66,1,after 1990,heat pump,False,True,time of use,2025-04-23
+H146,north,153,4,1950 to 1990,gas boiler,True,True,time of use,2025-04-07
+H147,south,83,1,before 1950,gas boiler,False,False,flat,
+H148,south,131,4,before 1950,gas boiler,True,True,flat,
+H149,central,98,4,before 1950,heat pump,False,False,flat,
+H150,north,85,4,1950 to 1990,gas boiler,False,True,flat,
+H151,north,75,1,1950 to 1990,heat pump,True,False,flat,
+H152,central,94,1,after 1990,heat pump,False,False,flat,
+H153,coast,96,1,after 1990,heat pump,False,True,flat,
+H154,north,139,2,1950 to 1990,heat pump,False,False,flat,
+H155,coast,65,1,1950 to 1990,gas boiler,True,True,time of use,2025-03-07
+H156,central,91,3,after 1990,electric storage,False,False,flat,
+H157,coast,78,3,before 1950,electric storage,False,False,flat,
+H158,north,52,3,before 1950,gas boiler,True,True,time of use,2025-03-11
+H159,central,109,2,before 1950,gas boiler,False,True,flat,
+H160,north,103,1,after 1990,gas boiler,False,True,flat,
+H161,central,110,1,1950 to 1990,gas boiler,True,True,time of use,2025-04-06
+H162,south,98,2,1950 to 1990,electric storage,False,False,flat,
+H163,central,68,2,after 1990,gas boiler,False,False,time of use,2025-04-29
+H164,central,81,1,before 1950,heat pump,True,False,time of use,2025-06-01
+H165,central,66,1,after 1990,heat pump,True,False,time of use,2025-03-29
+H166,north,150,2,before 1950,gas boiler,False,False,flat,
+H167,north,129,1,1950 to 1990,gas boiler,True,False,flat,
+H168,central,73,1,before 1950,gas boiler,False,False,flat,
+H169,south,138,1,before 1950,gas boiler,True,False,time of use,2025-04-02
+H170,south,79,5,after 1990,heat pump,False,False,flat,
+H171,coast,117,2,1950 to 1990,electric storage,False,False,flat,
+H172,central,102,2,1950 to 1990,electric storage,False,False,flat,
+H173,north,97,1,1950 to 1990,gas boiler,False,False,flat,
+H174,north,127,2,before 1950,gas boiler,False,False,flat,
+H175,north,116,3,after 1990,electric storage,True,False,flat,
+H176,north,117,2,after 1990,heat pump,False,False,flat,
+H177,south,91,4,after 1990,heat pump,False,True,flat,
+H178,south,108,3,1950 to 1990,gas boiler,False,False,time of use,2025-03-19
+H179,north,72,1,before 1950,gas boiler,False,True,time of use,2025-04-01
+H180,south,54,4,after 1990,heat pump,False,False,time of use,2025-03-01
+H181,north,98,2,1950 to 1990,heat pump,False,True,time of use,2025-04-08
+H182,coast,78,4,before 1950,heat pump,True,True,flat,
+H183,north,98,1,before 1950,gas boiler,False,True,flat,
+H184,central,95,2,1950 to 1990,electric storage,False,True,time of use,2025-05-19
+H185,coast,96,2,after 1990,gas boiler,True,False,flat,
+H186,north,47,5,1950 to 1990,gas boiler,True,False,flat,
+H187,south,88,4,before 1950,gas boiler,False,True,time of use,2025-06-30
+H188,central,65,2,before 1950,gas boiler,False,False,flat,
+H189,south,90,4,after 1990,heat pump,False,False,flat,
+H190,south,102,1,1950 to 1990,gas boiler,False,False,flat,
+H191,coast,118,1,1950 to 1990,gas boiler,False,False,flat,
+H192,south,58,3,before 1950,heat pump,False,False,flat,
+H193,coast,79,1,1950 to 1990,gas boiler,False,False,flat,
+H194,north,73,2,1950 to 1990,gas boiler,False,False,flat,
+H195,central,89,4,before 1950,gas boiler,False,False,flat,
+H196,coast,80,2,after 1990,heat pump,True,False,flat,
+H197,south,82,2,after 1990,gas boiler,True,False,time of use,2025-03-19
+H198,central,139,2,after 1990,electric storage,False,False,flat,
+H199,north,86,3,before 1950,gas boiler,False,True,time of use,2025-03-20
+H200,central,102,5,1950 to 1990,electric storage,True,False,time of use,2025-06-30
+H201,central,86,2,1950 to 1990,gas boiler,False,True,time of use,2025-04-11
+H202,north,118,1,1950 to 1990,heat pump,True,True,time of use,2025-03-08
+H203,central,126,2,before 1950,heat pump,False,False,flat,
+H204,south,130,1,after 1990,gas boiler,True,False,flat,
+H205,north,91,1,1950 to 1990,gas boiler,True,False,time of use,2025-04-02
+H206,coast,66,4,1950 to 1990,gas boiler,False,False,flat,
+H207,south,66,4,after 1990,gas boiler,False,False,flat,
+H208,coast,63,1,1950 to 1990,electric storage,False,False,flat,
+H209,central,88,3,before 1950,gas boiler,True,True,time of use,2025-03-24
+H210,coast,61,1,1950 to 1990,gas boiler,True,False,flat,
+H211,coast,53,1,before 1950,gas boiler,False,False,flat,
+H212,north,132,4,1950 to 1990,gas boiler,True,False,flat,
+H213,north,75,4,after 1990,heat pump,False,False,flat,
+H214,central,59,2,1950 to 1990,gas boiler,False,True,flat,
+H215,north,140,2,after 1990,heat pump,False,False,flat,
+H216,central,38,4,1950 to 1990,electric storage,False,False,flat,
+H217,north,106,2,after 1990,heat pump,False,True,flat,
+H218,central,53,1,before 1950,gas boiler,False,True,time of use,2025-04-24
+H219,north,192,4,1950 to 1990,electric storage,False,True,flat,
+H220,south,77,1,1950 to 1990,gas boiler,False,False,flat,
+H221,south,70,3,after 1990,gas boiler,False,False,flat,
+H222,north,144,4,before 1950,gas boiler,False,False,flat,
+H223,north,66,5,1950 to 1990,heat pump,False,True,flat,
+H224,central,77,2,after 1990,heat pump,False,True,time of use,2025-03-29
+H225,central,85,1,1950 to 1990,electric storage,False,False,flat,
+H226,central,103,3,before 1950,heat pump,False,True,time of use,2025-05-06
+H227,north,76,2,1950 to 1990,gas boiler,False,False,flat,
+H228,north,111,1,after 1990,gas boiler,False,False,time of use,2025-04-21
+H229,south,89,2,before 1950,heat pump,False,False,time of use,2025-03-03
+H230,central,126,2,1950 to 1990,gas boiler,False,True,flat,
+H231,north,84,4,after 1990,gas boiler,True,False,time of use,2025-06-29
+H232,central,93,2,after 1990,gas boiler,True,False,time of use,2025-06-07
+H233,central,84,4,before 1950,gas boiler,False,False,flat,
+H234,south,117,4,after 1990,heat pump,False,True,flat,
+H235,south,94,3,before 1950,gas boiler,False,False,time of use,2025-03-16
+H236,south,69,4,before 1950,electric storage,False,False,flat,
+H237,south,84,2,1950 to 1990,gas boiler,False,True,flat,
+H238,central,112,3,after 1990,heat pump,False,False,flat,
+H239,north,94,3,after 1990,heat pump,False,True,flat,
+H240,central,59,5,1950 to 1990,heat pump,False,False,flat,
+H241,north,117,2,1950 to 1990,heat pump,False,False,flat,
+H242,south,94,4,1950 to 1990,gas boiler,False,False,flat,
+H243,north,83,2,after 1990,heat pump,False,True,flat,
+H244,central,106,2,1950 to 1990,gas boiler,False,True,time of use,2025-05-24
+H245,north,77,3,after 1990,heat pump,False,False,flat,
+H246,coast,113,2,1950 to 1990,gas boiler,False,False,flat,
+H247,north,122,4,1950 to 1990,heat pump,False,False,flat,
+H248,south,115,4,1950 to 1990,electric storage,True,False,time of use,2025-06-05
+H249,coast,103,4,1950 to 1990,electric storage,False,False,time of use,2025-03-13
+H250,south,131,1,1950 to 1990,gas boiler,False,False,flat,
+H251,north,70,2,1950 to 1990,gas boiler,True,False,flat,
+H252,central,129,1,before 1950,electric storage,False,False,flat,
+H253,central,75,4,1950 to 1990,electric storage,True,True,time of use,2025-05-17
+H254,north,48,1,1950 to 1990,gas boiler,True,True,flat,
+H255,south,64,5,1950 to 1990,gas boiler,False,False,flat,
+H256,coast,78,1,1950 to 1990,electric storage,False,False,time of use,2025-03-21
+H257,central,104,2,1950 to 1990,electric storage,False,True,time of use,2025-03-21
+H258,central,146,1,before 1950,gas boiler,False,False,flat,
+H259,south,61,5,after 1990,heat pump,False,False,flat,
+H260,north,78,3,before 1950,gas boiler,False,True,time of use,2025-04-01
+H261,south,87,1,before 1950,gas boiler,False,False,flat,
+H262,coast,123,1,after 1990,heat pump,False,False,flat,
+H263,north,97,1,after 1990,electric storage,False,True,time of use,2025-04-08
+H264,central,83,3,1950 to 1990,gas boiler,False,False,flat,
+H265,south,104,1,before 1950,gas boiler,False,False,flat,
+H266,north,115,2,1950 to 1990,gas boiler,False,False,flat,
+H267,north,163,5,before 1950,gas boiler,False,False,flat,
+H268,coast,76,4,before 1950,gas boiler,False,False,flat,
+H269,coast,94,2,1950 to 1990,gas boiler,False,False,flat,
+H270,north,85,2,1950 to 1990,gas boiler,False,False,flat,
+H271,central,61,4,after 1990,heat pump,False,False,flat,
+H272,south,100,2,after 1990,gas boiler,False,True,flat,
+H273,central,113,1,1950 to 1990,electric storage,False,False,flat,
+H274,north,55,5,after 1990,gas boiler,False,True,time of use,2025-04-04
+H275,coast,81,1,after 1990,electric storage,False,True,time of use,2025-03-19
+H276,south,110,1,1950 to 1990,electric storage,False,False,time of use,2025-05-16
+H277,south,135,4,1950 to 1990,gas boiler,False,False,flat,
+H278,north,84,4,after 1990,electric storage,False,False,flat,
+H279,north,84,2,before 1950,electric storage,False,True,time of use,2025-04-17
+H280,south,39,3,after 1990,gas boiler,False,True,time of use,2025-03-21
+H281,north,64,1,1950 to 1990,heat pump,False,False,flat,
+H282,north,77,4,before 1950,electric storage,False,False,flat,
+H283,north,73,2,before 1950,heat pump,True,False,flat,
+H284,central,160,1,1950 to 1990,gas boiler,False,False,flat,
+H285,south,88,1,1950 to 1990,gas boiler,False,False,flat,
+H286,north,89,3,before 1950,gas boiler,False,True,time of use,2025-06-15
+H287,north,83,1,1950 to 1990,gas boiler,False,False,flat,
+H288,north,71,2,before 1950,gas boiler,False,False,flat,
+H289,coast,83,3,after 1990,heat pump,False,False,flat,
+H290,north,166,1,1950 to 1990,gas boiler,False,False,flat,
+H291,north,105,2,after 1990,gas boiler,False,False,flat,
+H292,north,107,2,1950 to 1990,gas boiler,False,True,flat,
+H293,coast,78,2,1950 to 1990,electric storage,False,True,time of use,2025-03-02
+H294,coast,111,4,1950 to 1990,gas boiler,False,False,flat,
+H295,south,39,4,before 1950,electric storage,False,False,time of use,2025-06-20
+H296,central,69,4,1950 to 1990,gas boiler,False,False,flat,
+H297,south,77,2,before 1950,gas boiler,False,False,flat,
+H298,north,85,1,before 1950,heat pump,False,False,flat,
+H299,coast,138,3,after 1990,heat pump,False,False,flat,
+H300,central,45,2,before 1950,gas boiler,True,False,flat,
+H301,south,91,3,1950 to 1990,heat pump,False,True,time of use,2025-04-14
+H302,south,78,1,before 1950,gas boiler,False,False,flat,
+H303,south,88,5,1950 to 1990,gas boiler,True,False,flat,
+H304,central,66,2,after 1990,heat pump,False,False,flat,
+H305,central,58,2,before 1950,gas boiler,True,False,flat,
+H306,south,120,2,1950 to 1990,electric storage,False,False,flat,
+H307,north,117,2,1950 to 1990,gas boiler,False,True,time of use,2025-05-09
+H308,south,69,2,1950 to 1990,heat pump,True,False,flat,
+H309,central,56,3,1950 to 1990,gas boiler,False,False,time of use,2025-05-10
+H310,central,126,2,after 1990,gas boiler,False,False,flat,
+H311,south,73,4,after 1990,gas boiler,False,False,flat,
+H312,north,138,2,1950 to 1990,gas boiler,False,True,time of use,2025-05-06
+H313,central,86,2,1950 to 1990,gas boiler,False,False,flat,
+H314,south,79,5,before 1950,gas boiler,True,False,flat,
+H315,north,70,1,before 1950,gas boiler,True,True,flat,
+H316,south,97,2,after 1990,heat pump,False,False,flat,
+H317,north,105,4,1950 to 1990,heat pump,False,False,flat,
+H318,central,78,5,1950 to 1990,gas boiler,True,False,time of use,2025-04-08
+H319,coast,70,4,1950 to 1990,gas boiler,False,True,flat,
+H320,central,103,2,after 1990,gas boiler,True,False,flat,
+H321,central,104,1,before 1950,electric storage,False,False,flat,
+H322,south,80,1,after 1990,gas boiler,True,True,time of use,2025-03-15
+H323,south,54,4,1950 to 1990,gas boiler,True,False,flat,
+H324,south,79,2,after 1990,heat pump,True,False,flat,
+H325,central,128,2,1950 to 1990,gas boiler,False,False,time of use,2025-05-28
+H326,south,78,1,before 1950,electric storage,False,False,flat,
+H327,coast,117,2,after 1990,gas boiler,False,False,time of use,2025-06-19
+H328,north,93,2,after 1990,heat pump,False,False,flat,
+H329,central,140,5,after 1990,heat pump,False,False,flat,
+H330,north,102,2,1950 to 1990,gas boiler,False,False,flat,
+H331,south,109,4,1950 to 1990,gas boiler,True,False,time of use,2025-04-11
+H332,north,79,1,before 1950,heat pump,False,False,flat,
+H333,south,56,3,1950 to 1990,gas boiler,False,False,flat,
+H334,south,86,2,before 1950,electric storage,False,False,flat,
+H335,south,83,1,after 1990,electric storage,True,False,flat,
+H336,south,118,1,before 1950,electric storage,False,False,flat,
+H337,south,47,1,1950 to 1990,electric storage,False,False,flat,
+H338,central,65,1,after 1990,gas boiler,False,False,flat,
+H339,north,124,3,after 1990,gas boiler,False,True,time of use,2025-03-23
+H340,north,67,3,1950 to 1990,gas boiler,False,True,flat,
+H341,south,175,2,before 1950,gas boiler,False,False,flat,
+H342,north,96,3,before 1950,gas boiler,False,False,flat,
+H343,central,81,3,after 1990,gas boiler,True,False,flat,
+H344,north,173,3,before 1950,heat pump,False,False,flat,
+H345,south,89,2,1950 to 1990,electric storage,True,False,flat,
+H346,north,66,2,before 1950,gas boiler,False,False,flat,
+H347,coast,202,1,1950 to 1990,gas boiler,False,False,time of use,2025-05-09
+H348,south,113,1,after 1990,heat pump,True,False,flat,
+H349,central,106,2,1950 to 1990,gas boiler,False,False,flat,
+H350,central,115,3,before 1950,electric storage,False,True,time of use,2025-03-12
+H351,north,94,3,1950 to 1990,gas boiler,False,False,time of use,2025-03-29
+H352,central,106,4,before 1950,gas boiler,False,False,flat,
+H353,north,67,2,1950 to 1990,gas boiler,False,False,time of use,2025-04-19
+H354,north,86,4,after 1990,gas boiler,False,False,flat,
+H355,central,155,2,1950 to 1990,gas boiler,True,False,flat,
+H356,coast,54,1,before 1950,electric storage,False,False,flat,
+H357,south,85,4,1950 to 1990,gas boiler,False,True,flat,
+H358,north,91,3,1950 to 1990,gas boiler,False,False,flat,
+H359,coast,106,3,1950 to 1990,gas boiler,False,False,flat,
+H360,central,76,5,1950 to 1990,heat pump,False,False,flat,

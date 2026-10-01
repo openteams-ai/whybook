@@ -1,0 +1,16 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.6.5
+_src_path: https://github.com/jupyterlab/extension-template
+advanced: false
+author_email: ''
+author_name: Michal Krassowski
+has_ai_rules: false
+has_binder: false
+has_settings: true
+kind: frontend-and-server
+labextension_name: future
+project_short_description: A future of data analysis
+python_name: future
+repository: ''
+test: true
+

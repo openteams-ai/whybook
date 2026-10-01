@@ -1,0 +1,37 @@
+const jestJupyterLab = require('@jupyterlab/testutils/lib/jest-config');
+
+// JupyterLab's own list, with @jupyterlab/: the tests of the view model load
+// @jupyterlab/notebook, whose widgets load the web components.
+const esModules = [
+  '@codemirror',
+  '@marijn',
+  '@microsoft',
+  '@jupyter/react-components',
+  '@jupyter/web-components',
+  '@jupyter/ydoc',
+  '@jupyterlab/',
+  'color',
+  'exenv-es6',
+  'lib0',
+  'marked',
+  'nanoid',
+  'vscode-ws-jsonrpc',
+  'y-protocols',
+  'y-websocket',
+  'yjs'
+].join('|');
+
+const baseConfig = jestJupyterLab(__dirname);
+
+module.exports = {
+  ...baseConfig,
+  automock: false,
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/.ipynb_checkpoints/*'
+  ],
+  coverageReporters: ['lcov', 'text'],
+  testRegex: 'src/.*/.*.spec.ts[x]?$',
+  transformIgnorePatterns: [`/node_modules/(?!${esModules}).+`]
+};

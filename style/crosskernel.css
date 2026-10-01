@@ -1,0 +1,50 @@
+/*
+ * An agent that works in another notebook (design iteration 1.69), and the
+ * menu of the kernel's name (1.68, B1).
+ */
+
+/*
+ * A text that an agent wrote, such as the comparison that a run in another
+ * notebook brings back: the colour of what a model wrote, at its left edge,
+ * and the AI tag in its head.
+ */
+.jp-Epi-note.jp-mod-ai {
+  border-left: 3px solid var(--epi-ai-ink);
+}
+
+.jp-Epi-note.jp-mod-linear.jp-mod-ai {
+  padding-left: 8px;
+}
+
+.jp-Epi-note-by {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--epi-ai-ink);
+}
+
+/* The numbers of the comparison line up. */
+.jp-Epi-note.jp-mod-ai td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A cell of another notebook of the run: its language, then its label, "R [2]". */
+.jp-Epi-agentrun-cell.jp-mod-elsewhere {
+  white-space: nowrap;
+}
+
+/* The menu under the kernel's name: as wide as its longest kernel. */
+.jp-Epi-kernelmenu {
+  min-width: 220px;
+}
+
+/*
+ * An agent's text can hold a wide table, as the comparison does: its head
+ * takes a line of its own, where a text of the analyst's starts beside it.
+ */
+.jp-Epi-note.jp-mod-ai:not(.jp-mod-linear) .jp-Epi-note-head {
+  float: none;
+  justify-content: space-between;
+  margin-left: 0;
+}

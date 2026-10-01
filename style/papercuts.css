@@ -1,0 +1,101 @@
+/*
+ * The paper cuts that the first pass of dogfooding found in the view
+ * (design iteration 1.77).
+ */
+
+/* While something is picked, the head of a card picks the card. */
+.jp-Epi-cell.jp-mod-target > .jp-Epi-cell-head {
+  cursor: pointer;
+}
+
+.jp-Epi-cell.jp-mod-target > .jp-Epi-cell-head:hover .jp-Epi-title {
+  color: var(--jp-brand-color1);
+}
+
+/* In Click mode, Pick in the head of Contents picks the whole variable. */
+.jp-Epi-contents-pick {
+  margin-left: auto;
+  font-weight: 400;
+  text-transform: none;
+}
+
+/*
+ * A file from the file browser over a card: the card is outlined as a
+ * target, and a note in its corner says where the drop goes. The note
+ * takes no pointer, so a drop on it goes to the card under it.
+ */
+.jp-Epi-cell.jp-mod-filedrop {
+  border-style: dashed;
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+.jp-Epi-filedrop-note {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 1;
+  padding: 8px 12px;
+  border: 2px dashed var(--jp-brand-color1);
+  border-radius: var(--jp-border-radius);
+  background:
+    linear-gradient(var(--epi-brand-tint2), var(--epi-brand-tint2)),
+    var(--jp-layout-color0);
+  color: var(--jp-brand-color1);
+  pointer-events: none;
+}
+
+/*
+ * A wide bench keeps a column of its own for the minimap, at the right of
+ * the cards, so that the minimap covers no line of a card. The column is
+ * the minimap's width at rest and a gap; the minimap still widens over the
+ * cards while it is pointed at.
+ */
+.jp-Epi-bench.jp-mod-gutter {
+  --epi-minimap-gutter: 88px;
+
+  padding-right: calc(18px + var(--epi-minimap-gutter));
+}
+
+.jp-Epi-bench.jp-mod-gutter > .jp-Epi-minimap-dock {
+  margin-right: calc(-1 * var(--epi-minimap-gutter));
+}
+
+/*
+ * The warnings that a fit printed before it tried again and converged:
+ * one line, grey, which a click opens.
+ */
+.jp-Epi-foldwrap {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jp-Epi-foldedwarnings {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: 0;
+  border-left: 3px solid var(--jp-border-color1);
+  background: transparent;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color2);
+  cursor: pointer;
+}
+
+.jp-Epi-foldedwarnings:hover {
+  border-left-color: var(--jp-brand-color1);
+  color: var(--jp-ui-font-color1);
+}
+
+/* An answer in the sidebar, as a quick look, opens under the tabs. */
+.jp-Epi-right-preview {
+  padding: 8px;
+  border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-contents-pick[aria-pressed='true'] {
+  font-weight: 600;
+}

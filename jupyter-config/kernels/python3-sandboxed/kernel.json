@@ -1,0 +1,11 @@
+{
+  "argv": ["python", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+  "display_name": "Python 3 (sandboxed)",
+  "language": "python",
+  "interrupt_mode": "message",
+  "metadata": {
+    "kernel_provisioner": {
+      "provisioner_name": "whybook-sandbox"
+    }
+  }
+}

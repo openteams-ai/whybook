@@ -1,0 +1,39 @@
+{
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook",
+  "title": "Whybook check-up",
+  "description": "Questions about the notebook itself, for about once a week: a prototype.",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "title": "Questions about the notebook",
+      "description": "A prototype: a Check-up at the end of the Exploration panel finds, with rules, what would stop a run from the top, slow cells and gaps. It calls an AI model only when you ask it to.",
+      "type": "boolean",
+      "default": false
+    },
+    "tabQuestion": {
+      "title": "The Check-up's icon on tabs",
+      "description": "Point at a notebook's tab to see the Check-up's icon, and click the icon to open the Check-up. It shows only while \"Questions about the notebook\" is on.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "off",
+          "title": "Off",
+          "description": "No icon on tabs"
+        },
+        {
+          "const": "whybook",
+          "title": "Whybook views",
+          "description": "On the tabs of Whybook views"
+        },
+        {
+          "const": "notebooks",
+          "title": "Every notebook",
+          "description": "On the tabs of every notebook"
+        }
+      ],
+      "default": "whybook"
+    }
+  },
+  "additionalProperties": false
+}

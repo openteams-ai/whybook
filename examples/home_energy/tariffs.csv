@@ -1,0 +1,6 @@
+tariff,period,starts,ends,eur_per_kwh,standing_eur_per_day
+flat,all day,00:00,24:00,0.3,0.5
+time of use,night,00:00,07:00,0.15,0.55
+time of use,day,07:00,16:00,0.28,0.55
+time of use,peak,16:00,19:00,0.45,0.55
+time of use,evening,19:00,24:00,0.28,0.55
