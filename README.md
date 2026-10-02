@@ -1,7 +1,7 @@
 # Whybook
 
 > [!WARNING]
-> **Research prototype.** Whybook is a research prototype for the future of Jupyter interfaces, and the text below is its pitch. Its features, settings and notebook metadata can change between releases without deprecation.
+> **Research prototype.** Whybook is a research prototype for the future of Jupyter interfaces: [whybook.dev](https://whybook.dev) describes the idea. Its features, settings and notebook metadata can change between releases without deprecation.
 
 ## You ask the questions. Agents write the code.
 
@@ -11,34 +11,35 @@ Whybook is a view of a Jupyter notebook for data analysis with AI. It has no cha
 - The first question offered usually runs from a template, with no model call.
 - Branches run in parallel in kernel subshells.
 
-![The Whybook view of the demo notebook in JupyterLab after Run all. Cell [4] carries the chips MIN_DAYS 14, inner join, ci bootstrap and n_boot 1000, and the Exploration panel counts the questions asked by type.](screenshots/bench.png)
+![The Whybook view of the demo notebook in JupyterLab after Run all. Cell [4] carries the chips MIN_DAYS 14, inner join, ci bootstrap and n_boot 1000, and the Exploration panel counts the questions asked by type.](https://raw.githubusercontent.com/openteams-ai/whybook/main/screenshots/bench.png)
 
 ## A notebook view built around questions
 
 Whybook opens any `.ipynb` file as a second view, next to the classic notebook. Both views share one notebook model and one kernel, so an edit in one shows in the other. Agents do most of the work, under one rule: the result is an ordinary notebook, and the questions, choices and assumptions go into its metadata. The analyst chooses how deep to go on each cell: its question, the choices on its chips, or its code.
 
-- **Ask by pointing at the data.** Anything in the Variables and Contents panels can be dragged onto a cell, a variable or a column, and so can files and database tables. The view lists up to eight ranked questions of five types, each with a place in the notebook. Most questions run code from a template at once, with no model call. For those marked needs AI, an AI writes the code.
+- **Ask by pointing at the data.** Anything in the Variables and Contents panels can be dragged onto a cell, a variable or a column, and so can files and database tables. The view lists up to 12 ranked questions of five types (the setting "Offered questions per request"), each with a place in the notebook. Most questions run code from a template at once, with no model call. For those marked needs AI, an AI writes the code.
 - **Every choice in plain sight.** After a cell runs, the view reads its code against the live kernel and lists the values that the result depends on. Each value becomes a short chip, its name and its value, such as `MIN_DAYS 14`, or `inner join ×2` for two merges that keep pandas' default. Constants defined in imported files are shown on the cell that uses them.
 - **Question the result.** Every mark of a plot drawn by the view's helpers maps to rows of its data frame. The view counts the rows behind a selection, reports what differs there and offers questions about it.
 - **Branch in parallel, keep one line of cells.** Shift+drop turns any question into a branch, and Alt+drop starts several branches at once. Each branch runs in its own kernel subshell (JEP 91, ipykernel 7), so branches run in parallel on the same data without copying it. The notebook stays a single list of cells, and there is no reactive execution.
 - **One question, as many cells as it needs.** When a question needs AI, an agent answers it in the notebook. It adds and runs the cells that the question needs, and it ends with an answer of a few sentences that links the cells that show it. Each cell is marked as written by AI, and one click removes the cells of a run.
 
-![A selection of weeks 14 to 24 on the plot of cell [4]. The view counts 2,050 rows and 262 patients behind it, reports that A minus B is +1.86 there and +1.33 elsewhere, and offers three questions, each with its place in the notebook.](screenshots/plot-selection.png)
+![A selection of weeks 14 to 24 on the plot of cell [4]. The view counts 2,050 rows and 262 patients behind it, reports that A minus B is +1.86 there and +1.33 elsewhere, and offers three questions, each with its place in the notebook.](https://raw.githubusercontent.com/openteams-ai/whybook/main/screenshots/plot-selection.png)
 
 The data in the screenshots is synthetic: the demo cohort of `examples/pain_diary`.
 
 ## Requirements
 
+- Python 3.10 or later.
 - JupyterLab 4.4 or later, in the 4.x series. On 4.6 and later, the sections of the Whybook panel can also move to the file browser.
 
 ## Install
 
 ```bash
-pip install "whybook[claude,kernel,demo,local,models,speach]"
+pip install "whybook[claude,kernel,demo,local,models]"
 jupyter lab
 ```
 
-`local` builds llama-cpp-python for the local models, with the system's C++ compiler, in about 4 minutes: without a compiler, leave it out of the list. To open a notebook in the view, right-click it in the file browser and choose Open With, Whybook. The demo notebook, `pain_diary_demo.ipynb`, is in this repository, with its data in `examples/pain_diary/`.
+`local` builds llama-cpp-python for the local models, with the system's C++ compiler, in about 4 minutes: without a compiler, leave it out of the list. Add `speech` for spoken questions transcribed by Moonshine in the Jupyter server, on Linux x86_64 or macOS 15 on Apple silicon. To open a notebook in the view, right-click it in the file browser and choose Open With, Whybook. To try the demo, clone this repository and open `pain_diary_demo.ipynb` from its root: the notebook imports its helpers and data from `examples/pain_diary/`.
 
 Once you connect a remote AI model, the view sends it each table that it shows as a tile, to get a label, and asks it for more questions at each drop or click. With the setting "Keep data on this machine", no values, tables or pictures leave the machine.
 
@@ -49,7 +50,7 @@ The extension is one Python package, `whybook`: the helpers a notebook imports (
 From a clone of this repository:
 
 ```bash
-pip install --editable ".[dev,test,claude,kernel,demo, speach]"
+pip install --editable ".[dev,test,claude,kernel,demo,speech]"
 jupyter-builder develop . --overwrite
 jupyter server extension enable whybook
 jlpm build
