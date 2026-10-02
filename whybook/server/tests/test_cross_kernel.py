@@ -249,10 +249,13 @@ def shell(tmp_path, monkeypatch):
     config = Config()
     config.HistoryManager.hist_file = ":memory:"
     shell = InteractiveShell.instance(config=config)
-    before = set(shell.user_ns)
+    # The shell is IPython's one instance, which the demo's state of
+    # conftest.py also runs in: a test that sets a name the demo has, such as
+    # patients, would change the demo for the tests after it.
+    before = dict(shell.user_ns)
     yield shell
-    for name in set(shell.user_ns) - before:
-        del shell.user_ns[name]
+    shell.user_ns.clear()
+    shell.user_ns.update(before)
 
 
 def program(shell, name, args):
