@@ -681,6 +681,8 @@ def test_the_command_of_a_kernel_that_is_not_python(folders, tmp_path, monkeypat
     assert not private.exists()
 
 
+# The provisioner looks for bubblewrap before the kernel's program.
+@needs_sandbox
 @linux
 def test_a_kernel_that_is_not_on_the_path_says_so(folders, tmp_path):
     spec_dir = tmp_path / "kernels" / "gone"

@@ -985,7 +985,7 @@ export function Outputs(props: {
                   />
                 </div>
               ) : PLOT_KINDS.has(kind) && detail !== 'overview' ? (
-                // Full and Compact draw a plot at a readable size, and an epi
+                // Full and Compact draw a plot at a readable size, and a Whybook
                 // plot or a Plotly chart can be brushed where it is.
                 <div className={`jp-Epi-plotout jp-mod-${detail}`}>
                   <FullOutput

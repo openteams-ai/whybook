@@ -31,11 +31,11 @@ describe('plotlyPayload', () => {
     expect(payload?.title).toBe('pain by week');
   });
 
-  it('takes the frame and the columns from layout.meta.epi', () => {
+  it('takes the frame and the columns from layout.meta.whybook', () => {
     const payload = plotlyPayload(
       graph({
         layout: {
-          meta: { epi: { frame: 'diary', x: 'week', y: 'pain_score' } },
+          meta: { whybook: { frame: 'diary', x: 'week', y: 'pain_score' } },
           title: { text: 'Pain over time' }
         }
       })

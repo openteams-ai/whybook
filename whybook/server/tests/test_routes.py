@@ -44,6 +44,8 @@ async def test_status_says_why_the_remote_model_cannot_answer(jp_fetch, monkeypa
     from whybook.server import claude
 
     # Neither the CLI nor its credential is looked for by a call to the model.
+    # The SDK counts as installed, as with the claude extra: the reason is then the CLI's.
+    monkeypatch.setattr(claude, "is_installed", lambda: True)
     monkeypatch.setattr(claude, "credential", lambda environ=None: None)
     payload = json.loads((await jp_fetch("whybook", "status")).body)
     assert payload["claude_available"] is False

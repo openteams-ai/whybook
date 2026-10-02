@@ -196,7 +196,7 @@ async function pickOf(
 /**
  * A picture in an output that answers a click and a drag. A figure whose
  * Axes the kernel's hook described (src/model/axes.ts) maps them to ranges
- * of the columns its axes show, and asks the region questions of an epi
+ * of the columns its axes show, and asks the region questions of a Whybook
  * scatter plot. Any other picture, and a figure's Axes that name no column,
  * ask about the point or the area of the picture instead, with the AI.
  *

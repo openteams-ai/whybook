@@ -339,7 +339,7 @@ export interface IFollowUp {
 }
 
 /**
- * What the view keeps in `cell.metadata.whybook` (`epi` before the rename).
+ * What the view keeps in `cell.metadata.whybook`.
  */
 export interface IEpiCellMeta {
   title?: string;
@@ -701,27 +701,22 @@ export type StreamEvent = IProgressEvent | IErrorEvent | IResultEvent;
 
 /** The key of the view's metadata in a notebook and in its cells. */
 export const METADATA_KEY = 'whybook';
-/** The key before the rename of 25 September 2026: read, and moved on write. */
-export const LEGACY_METADATA_KEY = 'epi';
 
 export const RESULT_MIME = 'application/vnd.whybook.result+json';
 export const PLOT_MIME = 'application/vnd.whybook.plot+json';
 export const PROGRESS_MIME = 'application/vnd.whybook.progress+json';
-/** The types of outputs saved before the rename, which the view still reads. */
-export const LEGACY_PLOT_MIME = 'application/vnd.epi.plot+json';
-export const LEGACY_PROGRESS_MIME = 'application/vnd.epi.progress+json';
 
 /** The payload of a plot of the view's helpers, in an output's data. */
 export function plotPayload(
   data: Record<string, unknown>
 ): IPlotPayload | null {
-  return ((data[PLOT_MIME] ?? data[LEGACY_PLOT_MIME]) as IPlotPayload) ?? null;
+  return (data[PLOT_MIME] as IPlotPayload) ?? null;
 }
 
-export const ITEM_MIME = 'application/x-epi-item';
+export const ITEM_MIME = 'application/x-whybook-item';
 
 /**
- * An axis of an epi plot: the column it shows. A date axis holds each date
+ * An axis of a Whybook plot: the column it shows. A date axis holds each date
  * as the milliseconds since 1970 of its time on the frame's clock.
  */
 export interface IPlotAxis {
@@ -736,7 +731,7 @@ export interface IPlotAxis {
 }
 
 /**
- * The payload of an epi plot, as the epi Python helpers display it.
+ * The payload of a Whybook plot, as the whybook Python helpers display it.
  */
 export interface IPlotPayload {
   version: number;

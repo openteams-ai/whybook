@@ -49,7 +49,7 @@ def _whybook_inspect_variables(args):
         ("seaborn", "seaborn"),
         ("altair", "altair"),
         ("plotly", "plotly"),
-        ("whybook", "epi"),
+        ("whybook", "whybook"),
     )
     cwd = os.path.realpath(os.getcwd())
 
@@ -274,17 +274,17 @@ def _whybook_inspect_variables(args):
 
     def frame_metadata(value, columns):
         attrs = getattr(value, "attrs", None)
-        epi = (attrs.get("whybook") or attrs.get("epi")) if isinstance(attrs, dict) else None
-        if not isinstance(epi, dict):
+        meta = attrs.get("whybook") if isinstance(attrs, dict) else None
+        if not isinstance(meta, dict):
             return None, None, None
         present = set(map(str, columns))
         groups = []
-        for label, names in (epi.get("groups") or {}).items():
+        for label, names in (meta.get("groups") or {}).items():
             kept = [str(n) for n in names if str(n) in present]
             if kept:
                 groups.append({"label": str(label), "columns": kept})
-        selection = epi.get("selection")
-        return groups or None, epi.get("grouped_by"), selection if isinstance(selection, dict) else None
+        selection = meta.get("selection")
+        return groups or None, meta.get("grouped_by"), selection if isinstance(selection, dict) else None
 
     def missing_counts(value, frame):
         """The missing values of each column, as bytes, over at most 16 million cells at a time."""

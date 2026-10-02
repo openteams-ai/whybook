@@ -43,7 +43,7 @@ jupyter lab
 
 Once you connect a remote AI model, the view sends it each table that it shows as a tile, to get a label, and asks it for more questions at each drop or click. With the setting "Keep data on this machine", no values, tables or pictures leave the machine.
 
-The extension is one Python package, `whybook`: the helpers a notebook imports (`import whybook`), the server extension (`whybook.server`) and the frontend extension of the same name. The view still reads the `epi` metadata and output types of notebooks from before 25 September 2026.
+The extension is one Python package, `whybook`: the helpers a notebook imports (`import whybook`), the server extension (`whybook.server`) and the frontend extension of the same name.
 
 ## Development
 

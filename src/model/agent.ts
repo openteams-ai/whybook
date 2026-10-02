@@ -7,7 +7,7 @@ import type {
   IWrittenBy,
   StreamEvent
 } from '../tokens';
-import { LEGACY_PLOT_MIME, PLOT_MIME } from '../tokens';
+import { PLOT_MIME } from '../tokens';
 import { axesOf } from './axes';
 import type { IComparison } from './crosskernel';
 import { readHtml } from './frametable';
@@ -437,8 +437,7 @@ export function cellOutputText(outputs: IOutputModel[]): string {
     }
     if (kind === 'plot') {
       // A plot of the view's own holds the numbers it draws.
-      const payload = (output.data[PLOT_MIME] ??
-        output.data[LEGACY_PLOT_MIME]) as IPlotPayload | undefined;
+      const payload = output.data[PLOT_MIME] as IPlotPayload | undefined;
       if (payload) {
         parts.push(plotNumbers(payload));
       }

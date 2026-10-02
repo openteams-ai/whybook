@@ -759,7 +759,7 @@ function BarPlot(props: IPlotProps): JSX.Element {
 }
 
 /**
- * An epi plot as SVG. Every mark keeps its link to the rows behind it, so a
+ * A Whybook plot as SVG. Every mark keeps its link to the rows behind it, so a
  * brushed range of x selects rows.
  */
 export function EpiPlot(props: IPlotProps): JSX.Element {

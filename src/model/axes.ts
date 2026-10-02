@@ -13,8 +13,6 @@ import type { IPlotPayload } from '../tokens';
 
 /** The MIME type the matplotlib hook adds to a figure's display bundle. */
 export const AXES_MIME = 'application/vnd.whybook.axes+json';
-/** The type before the rename, in outputs saved then. */
-const LEGACY_AXES_MIME = 'application/vnd.epi.axes+json';
 
 export interface IAxis {
   /** The value at the left (or bottom) edge, then at the right (or top). */
@@ -107,8 +105,7 @@ function isAxesInfo(value: unknown): value is IAxesInfo {
  * payload is missing, from another version, or has no usable Axes.
  */
 export function axesOf(data: Record<string, unknown>): IAxesPayload | null {
-  const payload = (data[AXES_MIME] ?? data[LEGACY_AXES_MIME]) as
-    IRawAxesPayload | null | undefined;
+  const payload = data[AXES_MIME] as IRawAxesPayload | null | undefined;
   if (
     !payload ||
     payload.version !== 1 ||
@@ -251,8 +248,8 @@ export function rangesBox(
 }
 
 /**
- * The epi plot payload of an Axes whose x axis names a column, so that a
- * box on it asks the region questions of an epi scatter plot; null when the
+ * The Whybook plot payload of an Axes whose x axis names a column, so that a
+ * box on it asks the region questions of a Whybook scatter plot; null when the
  * x axis names no column. The frame is null when the kernel could not tell
  * it, and the view then looks for the frame with these columns.
  */

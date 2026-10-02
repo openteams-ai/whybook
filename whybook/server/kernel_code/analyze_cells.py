@@ -126,7 +126,6 @@ def _whybook_analyze_cells(args):
             "C": ("1.0", "L2 regularisation is on by default"),
         },
         "whybook.plots.ribbon": {"ci": ("'normal'", "t interval of the mean, with n - 1 degrees of freedom: assumes normal values at each x")},
-        "epi.plots.ribbon": {"ci": ("'normal'", "t interval of the mean, with n - 1 degrees of freedom: assumes normal values at each x")},
     }
     # Keyword arguments that name data rather than choose how to analyse it,
     # and those that keep the books: inplace and copy say where the result
@@ -227,9 +226,9 @@ def _whybook_analyze_cells(args):
     known_names = set(ns) | set(dir(builtins))
 
     def is_user_code(func):
-        # whybook, or epi as it was called, is the view's own helper library, even when the notebook sits next to it.
+        # whybook is the view's own helper library, even when the notebook sits next to it.
         module = getattr(inspect.getmodule(func), "__name__", None) or ""
-        if module.split(".")[0] in ("whybook", "epi"):
+        if module.split(".")[0] == "whybook":
             return None
         try:
             path = inspect.getsourcefile(func)

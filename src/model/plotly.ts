@@ -29,7 +29,7 @@ interface IPlotlyLayout {
   yaxis?: IPlotlyPart;
   legend?: IPlotlyPart;
   dragmode?: unknown;
-  meta?: { whybook?: IPlotlyMeta; epi?: IPlotlyMeta };
+  meta?: { whybook?: IPlotlyMeta };
 }
 
 /** The event of a selection on a Plotly chart: a box gives its ranges. */
@@ -65,10 +65,10 @@ function titleOf(item: { title?: PlotlyTitle } | undefined): string | null {
 const ROW_TRACES = ['scatter', 'scattergl'];
 
 /**
- * The epi plot payload for a Plotly figure, so that a selection on it asks
- * the same questions as a selection on an epi plot. Plotly Express names the
+ * The Whybook plot payload for a Plotly figure, so that a selection on it asks
+ * the same questions as a selection on a Whybook plot. Plotly Express names the
  * columns in the axis titles and the column of the colours in the legend
- * title. The frame is named only when `layout.meta.whybook` (`epi` before the rename) holds it; otherwise
+ * title. The frame is named only when `layout.meta.whybook` holds it; otherwise
  * the view looks for the frame with these columns. A chart of bins, bars or
  * boxes gives no payload: its marks are not rows.
  */
@@ -83,7 +83,7 @@ export function plotlyPayload(graph: IPlotlyGraph): IPlotPayload | null {
   if (full.xaxis?.type && full.xaxis.type !== 'linear') {
     return null;
   }
-  const meta = layout.meta?.whybook ?? layout.meta?.epi ?? {};
+  const meta = layout.meta?.whybook ?? {};
   const x: string | null = meta.x ?? titleOf(full.xaxis);
   if (!x) {
     return null;

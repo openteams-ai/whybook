@@ -15,7 +15,7 @@ pip install build twine hatch
 ```
 
 Bump the version using `hatch`. By default this will create a tag.
-See the docs on [hatch-nodejs-version](https://github.com/agoose77/hatch-nodejs-version#semver) for details.
+See the docs on [hatch-nodejs-version](https://github.com/jupyterlab/hatch-nodejs-version#semver) for details.
 
 ```bash
 hatch version <new-version>

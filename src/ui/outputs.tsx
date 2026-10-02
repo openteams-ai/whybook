@@ -368,7 +368,7 @@ function fitFrames(host: HTMLElement): () => void {
 }
 
 /**
- * An output in full: an interactive plot for epi plots, the registry otherwise.
+ * An output in full: an interactive plot for Whybook plots, the registry otherwise.
  */
 export function FullOutput(props: {
   output: OutputLike;

@@ -164,6 +164,9 @@ def clean_environment(monkeypatch, home):
 
 def test_the_status_checks_the_cli_and_a_credential_without_a_call(tmp_path, monkeypatch):
     clean_environment(monkeypatch, tmp_path)
+    # The SDK comes first in the status: without the claude extra, as on CI,
+    # the status would name it and not the CLI.
+    monkeypatch.setattr(claude, "is_installed", lambda: True)
     config = Whybook(claude_cli_path=str(tmp_path / "missing" / "claude"))
     missing = claude.readiness(config)
     assert missing["available"] is False

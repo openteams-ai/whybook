@@ -6,20 +6,10 @@ import type { PartialJSONObject } from '@lumino/coreutils';
 import type { IEpiCellMeta, IEpiNotebookMeta } from '../tokens';
 import { codeKey } from './handedit';
 import type { ILanguage } from './languages';
-import {
-  LEGACY_METADATA_KEY,
-  LEGACY_PLOT_MIME,
-  LEGACY_PROGRESS_MIME,
-  METADATA_KEY,
-  PLOT_MIME,
-  PROGRESS_MIME
-} from '../tokens';
+import { METADATA_KEY, PLOT_MIME, PROGRESS_MIME } from '../tokens';
 
 export function cellMeta(cell: ICellModel): IEpiCellMeta {
-  return (
-    ((cell.getMetadata(METADATA_KEY) ??
-      cell.getMetadata(LEGACY_METADATA_KEY)) as IEpiCellMeta) ?? {}
-  );
+  return (cell.getMetadata(METADATA_KEY) as IEpiCellMeta | undefined) ?? {};
 }
 
 export function setCellMeta(
@@ -33,10 +23,6 @@ export function setCellMeta(
     }
   }
   cell.setMetadata(METADATA_KEY, next);
-  // The metadata moves from its key before the rename on the first write.
-  if (cell.getMetadata(LEGACY_METADATA_KEY) !== undefined) {
-    cell.deleteMetadata(LEGACY_METADATA_KEY);
-  }
 }
 
 /**
@@ -90,8 +76,7 @@ export function editMeta(
 
 export function notebookMeta(model: INotebookModel): IEpiNotebookMeta {
   return (
-    ((model.getMetadata(METADATA_KEY) ??
-      model.getMetadata(LEGACY_METADATA_KEY)) as IEpiNotebookMeta) ?? {}
+    (model.getMetadata(METADATA_KEY) as IEpiNotebookMeta | undefined) ?? {}
   );
 }
 
@@ -107,9 +92,6 @@ export function setNotebookMeta(
     }
   }
   model.setMetadata(METADATA_KEY, next);
-  if (model.getMetadata(LEGACY_METADATA_KEY) !== undefined) {
-    model.deleteMetadata(LEGACY_METADATA_KEY);
-  }
 }
 
 export function cellsOf(model: INotebookModel): ICellModel[] {
@@ -193,10 +175,10 @@ export function outputKind(output: IOutputModel): OutputKind {
     return 'error';
   }
   const data = output.data;
-  if (data[PROGRESS_MIME] || data[LEGACY_PROGRESS_MIME]) {
+  if (data[PROGRESS_MIME]) {
     return 'progress';
   }
-  if (data[PLOT_MIME] || data[LEGACY_PLOT_MIME]) {
+  if (data[PLOT_MIME]) {
     return 'plot';
   }
   if (data[WIDGET_MIME]) {

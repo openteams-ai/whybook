@@ -18,12 +18,7 @@ import { EpiModel } from './model/epimodel';
 import type { AgentRuns } from './model/runs';
 import { aiSummary, modelName, TASKS } from './model/models';
 import type { IPlotPayload } from './tokens';
-import {
-  LEGACY_PLOT_MIME,
-  LEGACY_PROGRESS_MIME,
-  PLOT_MIME,
-  PROGRESS_MIME
-} from './tokens';
+import { PLOT_MIME, PROGRESS_MIME } from './tokens';
 import { PARALLEL_HELP, ProgressBar, useModel } from './ui/common';
 import {
   DocumentView,
@@ -435,7 +430,7 @@ export class AIStatusWidget extends ReactWidget {
 }
 
 /**
- * Renders epi plots and progress reports in classic notebook views.
+ * Renders Whybook plots and progress reports in classic notebook views.
  */
 class PlotRenderer extends ReactWidget implements IRenderMime.IRenderer {
   constructor(private _mimeType: string) {
@@ -454,7 +449,7 @@ class PlotRenderer extends ReactWidget implements IRenderMime.IRenderer {
     if (!data) {
       return null;
     }
-    if (this._mimeType === PLOT_MIME || this._mimeType === LEGACY_PLOT_MIME) {
+    if (this._mimeType === PLOT_MIME) {
       const payload = data as IPlotPayload;
       return (
         <div>
@@ -485,7 +480,7 @@ class PlotRenderer extends ReactWidget implements IRenderMime.IRenderer {
 
 export const plotRendererFactory: IRenderMime.IRendererFactory = {
   safe: true,
-  mimeTypes: [PLOT_MIME, LEGACY_PLOT_MIME, PROGRESS_MIME, LEGACY_PROGRESS_MIME],
+  mimeTypes: [PLOT_MIME, PROGRESS_MIME],
   defaultRank: 40,
   createRenderer: options => new PlotRenderer(options.mimeType)
 };

@@ -58,7 +58,7 @@ describe('outputTile', () => {
       title: 'An error: KeyError'
     });
     const progress = output('display_data', {
-      'application/vnd.epi.progress+json': { fraction: 0.5 }
+      'application/vnd.whybook.progress+json': { fraction: 0.5 }
     });
     expect(outputTile(progress)).toBeNull();
   });
