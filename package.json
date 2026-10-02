@@ -7,9 +7,9 @@
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "https://github.com/krassowski/whybook",
+    "homepage": "https://github.com/openteams-ai/whybook",
     "bugs": {
-        "url": "https://github.com/krassowski/whybook/issues"
+        "url": "https://github.com/openteams-ai/whybook/issues"
     },
     "license": "Apache-2.0",
     "author": "Michal Krassowski",
@@ -24,7 +24,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/krassowski/whybook.git"
+        "url": "https://github.com/openteams-ai/whybook.git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",
