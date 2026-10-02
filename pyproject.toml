@@ -83,10 +83,17 @@ speech = [
 dev = [
     "jupyter-builder>=1.2.0",
 ]
+# What the tests import, the demo notebook's libraries included: the demo's
+# state (whybook/server/tests/demo_state.py) runs its cells.
 test = [
     "coverage",
+    "matplotlib",
     "narwhals>=2",
+    "numpy",
     "pandas",
+    "pillow",
+    "pyarrow",
+    "statsmodels",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",

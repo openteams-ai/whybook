@@ -184,6 +184,8 @@ def test_the_recording_is_read_from_a_wav_file():
         (sine_wav(seconds=0), 400, "empty"),
         (sine_wav(seconds=61, rate=8000), 413, "longer than 60 s"),
     ],
+    # The recordings are bytes: each case's id names what is wrong with it.
+    ids=["not a WAV file", "two channels", "8-bit", "96 kHz", "empty", "61 s"],
 )
 def test_a_recording_that_is_not_mono_16_bit_pcm_is_refused(data, status, message):
     with pytest.raises(speech.SpeechError, match=message) as error:
@@ -295,6 +297,8 @@ async def test_the_route_writes_a_recording_as_text(jp_fetch, fake):
         ("moonshine-medium", b"not a recording", 400, "must be a WAV file"),
         ("moonshine-small", sine_wav(), 409, "Moonshine Small is not downloaded"),
     ],
+    # The recordings are bytes: each case's id names the engine and what is refused.
+    ids=["unknown engine", "not a WAV file", "model not downloaded"],
 )
 async def test_the_route_refuses_what_it_cannot_write(jp_fetch, fake, engine, body, code, message):
     put_model(fake.cache, MEDIUM)
