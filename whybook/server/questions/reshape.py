@@ -133,10 +133,13 @@ def lines(source: str, name: str, reshape: Reshape) -> list[str]:
         time = codegen.literal(reshape.time)
         out.append(f"{name}[{codegen.literal(reshape.running)}] = ({name}[{time}] - {name}[{time}].min()) * {reshape.per} + {name}[{step}] - {reshape.first - 1}")
     order = [reshape.keys[0], reshape.running] if reshape.running else [*reshape.keys, reshape.step]
+    # Outside the f-string below: Python before 3.12 reads no quote of the
+    # f-string inside its braces.
+    left_out = codegen.literal(f"without any value of {words(list(reshape.stubs), 'or')}, left out.")
     out += [
         f"{logged} = {name}[{stubs}].notna().any(axis=1)",
         # The words stay out of the f-string, where a brace in a name would run.
-        f"print(f\"{{len({name}):,}} {reshape.step}s,\", f\"{{(~{logged}).sum():,}}\", {codegen.literal(f'without any value of {words(list(reshape.stubs), "or")}, left out.')})",
+        f"print(f\"{{len({name}):,}} {reshape.step}s,\", f\"{{(~{logged}).sum():,}}\", {left_out})",
         f"{name} = {name}[{logged}].sort_values({codegen.literals(order)}).reset_index(drop=True)",
         f"del {logged}",
         f"{name}.head()",
