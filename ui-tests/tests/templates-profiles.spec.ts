@@ -320,6 +320,8 @@ test('counts two attributes of the homes once per home with a chi-square test, a
   );
 
   await showColumns(page, 'readings', 'home_id');
+  // readings_homes has every column of readings: wait until its list is gone.
+  await expect(column(page, 'tariff')).toHaveCount(0);
   await drag(page, column(page, 'home_id'), column(page, 'home_id'));
   await option(page, 'Summarise home_id: rows per home').click();
   const preview = page.locator('.jp-Epi-preview');
