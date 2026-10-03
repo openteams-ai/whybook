@@ -3,7 +3,7 @@
  * R's own parser (whybook/server/kernel_code/r/analyze_cells.R), so an R cell
  * shows the chips of a Python cell: a constant that it assigns, an argument
  * that it passes, and a default of a known R function that changes the
- * result. "Find more defaults with AI", on by default since 1 October 2026,
+ * result. "Find more defaults with AI", on by default,
  * sends the formals of the R functions that a cell calls, with their
  * language.
  *

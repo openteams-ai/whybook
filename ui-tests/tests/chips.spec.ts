@@ -1,7 +1,7 @@
 /**
  * Chips, their popover and their tooltip (design iteration 1.86).
  *
- * The owner, on 1 October 2026: a click on a chip opened the questions to
+ * The owner: a click on a chip opened the questions to
  * the right of it and they jumped; the browser's tooltip on a chip came late
  * and in its own style; a library default of a model showed an AI tag and
  * its facts in the tooltip, where the popover should hold them; `drop True`
@@ -187,7 +187,7 @@ test('opens the questions of a chip under the chip, left-aligned and inside the 
   await expect(chip).toHaveText('inner join', { timeout: 60000 });
   const chipBox = (await chip.boundingBox())!;
   // The popover is drawn while its questions load and again as they come:
-  // it kept moving from above the chip to beside its cell (before 1 October 2026).
+  // it moved from above the chip to beside its cell before.
   const sampled = boxesFor(page, 2500);
   await chip.click();
   await expect(

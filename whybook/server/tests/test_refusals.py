@@ -1,8 +1,8 @@
 """What the view says when a provider refuses a call with HTTP 429 or 403: the provider's own words.
 
 The words come from the error that Pydantic AI raises, as the server log
-holds it; the messages below are copied from the log of the model spike of
-1 October 2026, or written in each company's documented format. A FunctionModel
+holds it; the messages below are copied from the log of the model spike, or
+written in each company's documented format. A FunctionModel
 stands in for the model: no request leaves the process.
 """
 

@@ -69,12 +69,13 @@ describe('supports', () => {
     }
   });
 
-  it('gives R its variables and the analysis of its cells', () => {
+  it('gives R its variables, the analysis of its cells and questions', () => {
     expect(supports(R, 'variables')).toBe(true);
-    // Since 1 October 2026 (design iteration 1.79).
+    // Design iteration 1.79.
     expect(supports(R, 'analysis')).toBe(true);
     expect(supports(R, 'plots')).toBe(false);
-    expect(supports(R, 'questions')).toBe(false);
+    // A model writes the cells in R.
+    expect(supports(R, 'questions')).toBe(true);
   });
 
   it('gives a language without an adapter no feature', () => {
@@ -101,8 +102,9 @@ describe('unsupported', () => {
 
   it('says why a feature is off in R, and names the kernel', () => {
     expect(unsupported('variables', 'R')).toBeNull();
-    expect(unsupported('questions', 'R')).toBe(
-      'Questions need a Python kernel for now: their code, and the cells that AI writes, are Python. This kernel runs R.'
+    expect(unsupported('questions', 'R')).toBeNull();
+    expect(unsupported('plots', 'R')).toBe(
+      'Questions about a plot need a Python kernel. This kernel runs R.'
     );
     expect(unsupported('analysis', 'R')).toBeNull();
     expect(unsupported('analysis', 'julia')).toBe(
@@ -243,8 +245,9 @@ describe('the SAS adapter', () => {
     expect(unsupported('variables', 'sas')).toBe(
       'Variables are listed in a Python or R kernel. This kernel runs SAS.'
     );
+    // Questions ask about the variables, which the view cannot list in SAS.
     expect(unsupported('questions', 'sas')).toBe(
-      'Questions need a Python kernel for now: their code, and the cells that AI writes, are Python. This kernel runs SAS.'
+      "Questions ask about the kernel's variables, which the view lists in a Python or R kernel. This kernel runs SAS."
     );
   });
 

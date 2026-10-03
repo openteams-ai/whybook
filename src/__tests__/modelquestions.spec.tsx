@@ -296,7 +296,7 @@ describe('a value that a template wrote', () => {
       generated_by: { agent: 'openrouter', model: 'fake-model' }
     };
     expect(attributed([how], byModel)[0].provenance).toBe('agent');
-    // A cell of the view from before 28 September 2026 does not say which wrote it.
+    // A cell of the view from an earlier version does not say which wrote it.
     expect(attributed([how], { written_by: 'agent' })[0].provenance).toBe(
       'agent'
     );

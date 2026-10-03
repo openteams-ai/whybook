@@ -203,7 +203,7 @@ describe('what the notebook keeps of a run', () => {
     ]);
   });
 
-  it('draws a record from before 30 September 2026 as one step of its cells, with no answer', () => {
+  it('draws a record of an earlier version as one step of its cells, with no answer', () => {
     const run = pastRun('old', {
       question: QUESTION,
       provider: 'claude',

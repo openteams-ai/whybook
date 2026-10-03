@@ -1051,9 +1051,17 @@ export class EpiModel implements IDisposable {
    * Before the kernel answers, the notebook's kernelspec names the language.
    */
   unsupported(feature: Feature): string | null {
+    return unsupportedIn(feature, this.languageName());
+  }
+
+  /**
+   * The kernel's `language_info.name`, or before the kernel answers the
+   * language that the notebook's kernelspec names; null when neither does.
+   */
+  languageName(): string | null {
     const language: string | undefined =
       this.notebook.getMetadata('kernelspec')?.language;
-    return unsupportedIn(feature, this.bridge.languageName ?? language ?? null);
+    return this.bridge.languageName ?? language ?? null;
   }
 
   /** Why the kernel's language cannot answer a request, or null. */
@@ -2153,7 +2161,10 @@ export class EpiModel implements IDisposable {
         ...question,
         text: this.questionText(question)
       })),
-      cells: this.codeCells().map(cell => `${cell.label} ${cell.title}`)
+      cells: this.codeCells().map(cell => `${cell.label} ${cell.title}`),
+      // The templates' code is Python: in another language the server sends
+      // their questions without code, and a model writes the cells.
+      language: (this.languageName() ?? 'python').toLowerCase()
     };
   }
 
@@ -5516,6 +5527,8 @@ export class EpiModel implements IDisposable {
             : null;
     return {
       question: { text: option.text, type: option.type },
+      // The model writes the cell in the kernel's language.
+      language: (this.languageName() ?? 'python').toLowerCase(),
       selection: selection?.source ? selection : null,
       about,
       // A point or an area of a picture: the AI reads the picture itself.

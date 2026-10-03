@@ -63,7 +63,7 @@ describe('readSettings', () => {
     ).toBe('no-template');
   });
 
-  it('reads "Find more defaults with AI" as on unless it is turned off, since 1 October 2026', () => {
+  it('reads "Find more defaults with AI" as on unless it is turned off', () => {
     expect(read('{}').findDefaults).toBe(true);
     expect(read('{"findDefaults": true}').findDefaults).toBe(true);
     expect(read('{"findDefaults": false}').findDefaults).toBe(false);

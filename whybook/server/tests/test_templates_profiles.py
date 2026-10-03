@@ -1,7 +1,7 @@
 """The templates of profiles, splits by a level and wide frames (design iteration 1.85).
 
 Two testers played first-time analysts on the home energy data and on the
-pain diary again on 1 October 2026, after the fixes of the first pass. Each
+pain diary again, after the fixes of the first pass. Each
 test below is one of their issues: the share between patients computed on a
 leftover frame of an agent, the profile by hour of day offered for the date
 a home switched tariff, a month panel drawn from two months, a cross table

@@ -152,7 +152,7 @@ TOKEN = "hf_" + "Q" * 34
 
 
 def test_a_token_in_a_variable_goes_to_no_model():
-    # As a view kept it before 29 September 2026, when the kernel listed a token with its value.
+    # As a view of an earlier version kept it, when the kernel listed a token with its value.
     token = {"name": "HF_TOKEN", "label": "HF_TOKEN", "kind": "constant", "type": "builtins.str", "value": repr(TOKEN)}
     gateway = {"name": "gateway", "label": "gateway", "kind": "constant", "type": "builtins.str", "value": repr("sk-company-gateway-2f9K1mQ7")}
     # As the kernel lists a secret now.

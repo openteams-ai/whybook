@@ -7,7 +7,7 @@
  * anova, the defaults of the analyst's own file, and the defaults that a
  * model finds in a function's formals.
  *
- * The analyses below are what the R kernel sent on 1 October 2026 for cells
+ * The analyses below are what the R kernel sent for cells
  * of research/sas_kernel/sgf2019_gaines/jupyterReport.R.ipynb (in the
  * repository around whybook) and of small frames.
  */
@@ -358,12 +358,13 @@ describe('an R notebook in the view', () => {
     };
   }
 
-  it('reads the columns that each cell uses in an R kernel', () => {
+  it('reads the columns that each cell uses in an R kernel, and asks questions there', () => {
     const { model } = benchModel(rNotebook());
-    // Until 1 October 2026: "The columns each cell uses are read in a
-    // Python kernel. This kernel runs R."
     expect(model.unsupported('analysis')).toBeNull();
-    expect(model.unsupported('questions')).toContain('need a Python kernel');
+    expect(model.unsupported('questions')).toBeNull();
+    // The server writes the templates in Python: it sends their questions
+    // without code, and a model writes the cells in R.
+    expect(model.serverContext().language).toBe('r');
     model.dispose();
   });
 

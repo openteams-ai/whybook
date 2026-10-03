@@ -1,4 +1,4 @@
-"""A model whose price genai-prices lacks, such as Gemini 3.8 Flash through OpenRouter on 1 October 2026.
+"""A model whose price genai-prices lacks, such as Gemini 3.8 Flash through OpenRouter.
 
 Its answers cost their tokens at OpenRouter's list price, which the list of
 models carries, and its calls stop at the tokens that the cap pays for: before,

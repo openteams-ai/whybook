@@ -1,4 +1,5 @@
 import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
+import { galata } from '@jupyterlab/galata';
 import type { Locator } from '@playwright/test';
 
 import { expect, test } from './fixtures';
@@ -130,7 +131,7 @@ function rNotebook(kernel: string) {
   };
 }
 
-test('an R notebook runs, lists its variables and says what needs Python', async ({
+test('an R notebook runs, lists its variables and offers questions', async ({
   page,
   tmpPath
 }) => {
@@ -197,29 +198,117 @@ test('an R notebook runs, lists its variables and says what needs Python', async
     contents.locator('.jp-Epi-column', { hasText: 'arm' })
   ).toContainText('A / B');
 
-  // Questions are Python: a drop says so instead of offering them.
+  // A drop offers questions, each for a model to write in R: the server
+  // sends the templates' questions without their Python code.
   await drag(page, variable('visits'), cell('adults'));
-  const note = page.locator('.jp-Epi-popover .jp-Epi-unsupported');
-  await expect(note).toHaveText(
-    'Questions need a Python kernel for now: their code, and the cells that AI writes, are Python. This kernel runs R.'
-  );
+  const popover = page.locator('.jp-Epi-popover');
+  await expect(popover.locator('.jp-Epi-option').first()).toBeVisible({
+    timeout: 30000
+  });
+  await expect(popover.locator('.jp-Epi-unsupported')).toHaveCount(0);
   await page.keyboard.press('Escape');
   const exploration = page.locator('#epi-exploration');
-  // Since 1 October 2026 the R kernel reads the columns that each cell uses
-  // (design iteration 1.79): visits$age, of the four columns besides the id.
+  // The R kernel reads the columns that each cell uses (design iteration
+  // 1.79): visits$age, of the four columns besides the id.
   await expect(
     exploration.locator('.jp-Epi-coverage', { hasText: 'visits' })
   ).toContainText('1 / 4');
   await expect(exploration).not.toContainText('read in a Python kernel');
-  await expect(exploration.locator('.jp-Epi-unsupported')).toContainText(
-    'Questions need a Python kernel'
-  );
+  await expect(exploration).not.toContainText('Questions need');
 
   // The map and the Code view show the same cells.
   await page.locator('.jp-Epi-views [data-value="map"]').click();
   await expect(page.locator('.jp-Epi-map-cell')).toHaveCount(5);
   await page.locator('.jp-Epi-views [data-value="linear"]').click();
   await expect(page.locator('.jp-Epi-linear')).toContainText('Mean age: 46');
+});
+
+test.describe('With answers of one cell', () => {
+  test.use({
+    mockSettings: {
+      ...galata.DEFAULT_SETTINGS,
+      'whybook:plugin': { answers: 'cell' }
+    }
+  });
+
+  test('answers a question in an R notebook with a cell in R, which the R kernel runs', async ({
+    page,
+    tmpPath
+  }) => {
+    const kernel = await rKernel(page);
+    test.skip(!kernel, 'No R kernel: see TESTING.md');
+    // A model is connected, and the route of the answer stands in for it.
+    await page.route(/\/whybook\/status/, async route => {
+      const response = await route.fetch();
+      const status = await response.json();
+      await route.fulfill({
+        response,
+        json: {
+          ...status,
+          claude_available: true,
+          claude: {
+            ...status.claude,
+            available: true,
+            provider: 'openrouter',
+            label: 'OpenRouter: fake/model',
+            reason: null,
+            setup: null,
+            priced: true
+          }
+        }
+      });
+    });
+    const asked: any[] = [];
+    await page.route(/\/whybook\/solve(\?|$)/, async route => {
+      asked.push(route.request().postDataJSON());
+      const result = {
+        type: 'result',
+        elapsed: 0.4,
+        model: 'fake/model',
+        cell: {
+          code: 'per_arm <- table(adults$arm)\ncat("Arms:", length(per_arm), "\\n")',
+          summary: 'Counts the adults in each arm.',
+          assumptions: [],
+          follow_up: []
+        }
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/x-ndjson',
+        body: JSON.stringify(result) + '\n'
+      });
+    });
+    const file = `${tmpPath}/answer.ipynb`;
+    await page.contents.uploadContent(
+      JSON.stringify(rNotebook(kernel!)),
+      'text',
+      file
+    );
+    await openInWhybook(page, file);
+    await kernelIdle(page);
+    await page.locator('.jp-Epi-runall').click();
+    const cell = (id: string) =>
+      page.locator(`.jp-Epi-bench .jp-Epi-cell[data-cell-id="${id}"]`);
+    await expect(cell('adults')).toContainText('Mean age: 46', {
+      timeout: 120000
+    });
+
+    // A question typed after a drop: the model writes the cell, in R.
+    await drag(
+      page,
+      page.locator('.jp-Epi-variable[data-variable="adults"]'),
+      cell('arms')
+    );
+    const own = page.locator('.jp-Epi-popover .jp-Epi-own input');
+    await expect(own).toBeEnabled({ timeout: 30000 });
+    await own.fill('How many arms do the adults have?');
+    await own.press('Enter');
+    await expect(page.locator('.jp-Epi-bench')).toContainText('Arms: 2', {
+      timeout: 60000
+    });
+    expect(asked).toHaveLength(1);
+    expect(asked[0].language).toBe('r');
+  });
 });
 
 /**

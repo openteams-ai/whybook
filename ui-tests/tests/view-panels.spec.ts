@@ -1,7 +1,7 @@
 /**
  * Popovers, the panels and an agent's run in the view (design iteration
  * 1.83), in the browser against the built extension. Each item names its
- * issue in the testers' report of 1 October 2026 (research/dogfood.md):
+ * issue in the testers' report (research/dogfood.md):
  *
  * - The popover of a request's questions stays inside the window, below
  *   the menu bar, and is placed again when the model's questions make it

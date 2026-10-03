@@ -153,6 +153,11 @@ class StatusHandler(BaseHandler):
         }
 
 
+def for_kernel(result: dict[str, Any], context: Context) -> dict[str, Any]:
+    """The options of a drop, without the templates' code in a kernel of another language than Python."""
+    return {**result, "options": context.for_kernel(result.get("options") or [])}
+
+
 class DropHandler(BaseHandler):
     """Options for a drop, or for a click on a source and then a target."""
 
@@ -164,17 +169,19 @@ class DropHandler(BaseHandler):
             root = getattr(self.contents_manager, "root_dir", None)
             if kind == "file":
                 # A file from the file browser: its path is in the server's contents.
-                self.finish(json.dumps(file_options(FileDrop.from_json(body), root)))
+                file = FileDrop.from_json(body)
+                self.finish(json.dumps(for_kernel(file_options(file, root), file.context)))
                 return
             if kind == "table":
                 # A table from the Databases panel; reading its schema blocks.
-                result = await asyncio.to_thread(table_options, TableDrop.from_json(body), root)
-                self.finish(json.dumps(result))
+                table = TableDrop.from_json(body)
+                result = await asyncio.to_thread(table_options, table, root)
+                self.finish(json.dumps(for_kernel(result, table.context)))
                 return
             request = DropRequest.from_json(body)
         except InvalidRequest as error:
             raise HTTPError(400, str(error)) from error
-        self.finish(json.dumps(drop_options(request)))
+        self.finish(json.dumps(for_kernel(drop_options(request), request.context)))
 
 
 class DatabasesHandler(BaseHandler):
@@ -353,7 +360,7 @@ class CellQuestionsHandler(BaseHandler):
         if not cells:
             raise HTTPError(400, "select at least one cell")
         questions = cell_questions(cells, context)
-        self.finish(json.dumps({"questions": [question.to_json() for question in questions]}))
+        self.finish(json.dumps({"questions": context.for_kernel([question.to_json() for question in questions])}))
 
 
 class DecisionHandler(BaseHandler):
@@ -476,7 +483,7 @@ class NextStepsHandler(BaseHandler):
         groups = body.get("groups") or {}
         dismissed = set(body.get("dismissed") or [])
         steps = next_steps(cells, context, groups, dismissed)
-        self.finish(json.dumps({"questions": [step.to_json() for step in steps[:6]]}))
+        self.finish(json.dumps({"questions": context.for_kernel([step.to_json() for step in steps[:6]])}))
 
 
 class ClaudeQuestionsHandler(BaseHandler):

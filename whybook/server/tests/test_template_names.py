@@ -4,8 +4,8 @@ A name goes into code as a Python string, and into a formula as a
 ``Q("...")`` term inside a string, so a column named "sleep hours" or
 'sleep "hours"' gives code that parses and runs, and a name made to close
 the quote stays a string. A name in a comment stays on the comment's line.
-Until 29 September 2026 the templates wrote a name between double quotes as
-it was: ``smf.ols("pain ~ Q("sleep hours")", ...)`` did not parse.
+A name written between double quotes as it was gave
+``smf.ols("pain ~ Q("sleep hours")", ...)``, which does not parse.
 """
 
 import ast

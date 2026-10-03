@@ -1,6 +1,6 @@
 /**
  * "Find more defaults with AI" (design iteration 1.53), a setting that is on
- * by default since 1 October 2026, and the head of Contents with a variable
+ * by default, and the head of Contents with a variable
  * selected (1.11).
  *
  * With the setting on, the kernel reads the signature of each library
@@ -204,7 +204,7 @@ test('shows the defaults that a model picks from the signatures as chips, with t
   });
   const file = `${tmpPath}/defaults.ipynb`;
   await newNotebook(page, file, CELLS);
-  // On by default since 1 October 2026: once the kernel has read the
+  // On by default: once the kernel has read the
   // signatures, the server is asked for the answers it kept, then the model.
   const lookup = page.waitForResponse(/\/whybook\/defaults(\?|$)/);
   await openAndRun(page, file);
@@ -344,7 +344,7 @@ test('says in the settings editor that the setting waits for a connected model',
   if (!(await box.isVisible())) {
     await entry.click();
   }
-  // On by default since 1 October 2026.
+  // On by default.
   await expect(box).toBeChecked({ timeout: 30000 });
   const field = page.locator('.jp-Epi-finddefaultsfield');
   await expect(field.locator('.jp-Epi-finddefaults-note')).toHaveText(

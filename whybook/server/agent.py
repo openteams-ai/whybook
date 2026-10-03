@@ -50,7 +50,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Awaitable, Callable
 
-from . import claude, privacy
+from . import claude, languages, privacy
 from .config import Whybook
 from .questions.models import InvalidRequest
 from .solve import SolveRequest
@@ -284,7 +284,7 @@ TOOLS: dict[str, dict[str, Any]] = {
 
 SYSTEM_PROMPT = """\
 You answer an analyst's question in a Jupyter notebook by adding cells and running them.
-The kernel holds "variables", and the analyst sees every cell you add, as it runs.
+The {language} kernel holds "variables", and the analyst sees every cell you add, as it runs.
 
 How to work:
 - Use as few cells as the question needs. When one cell answers it, run that cell and finish.
@@ -301,7 +301,7 @@ How to work:
 - Write a module with write_file only when a cell would pass 30 lines, or when several cells
   call the same functions; the analysis stays in cells. Put the constants that the results
   depend on at the module's top, in upper case: the view shows them on the cells that use
-  them. After you change a module that the notebook imported, reload it with importlib.reload.
+  them.{reload}
 - Add at most {max_cells} cells in all, branches included.
 - End with finish: the answer in at most 3 sentences, citing the cells that show it by
   label, such as [7].
@@ -323,7 +323,7 @@ Rules for the code:
 - Do not change existing variables: work on copies. Give the frame or the value that answers
   the question a plain name that says what it holds, such as diary_long. Start the name of a
   helper that only one cell needs with an underscore, such as _per_home.
-- Import every module a cell uses at its top.
+- Load every module or package a cell uses at its top{load}.
 - Keep each cell short, at most 30 lines, and end it with the object to show: a figure, a
   table with named columns, or values printed with a label each. Round every number shown, in
   a describe() too, and never show a bare tuple or scientific notation.
@@ -543,7 +543,14 @@ class AgentRequest:
         return json.dumps(body, indent=1)
 
     def system_prompt(self) -> str:
-        return SYSTEM_PROMPT.format(max_cells=self.max_cells, privacy=PRIVACY_PROMPT if self.keep_local else "")
+        found = languages.language(self.solve.language)
+        return SYSTEM_PROMPT.format(
+            max_cells=self.max_cells,
+            privacy=PRIVACY_PROMPT if self.keep_local else "",
+            language=found.name,
+            reload=f" {found.reload}" if found.reload else "",
+            load=f", {found.load}" if found.load else "",
+        )
 
     def frames(self) -> tuple[str, ...]:
         """The names of the data frames in the kernel when the run starts, as "variables" lists them."""

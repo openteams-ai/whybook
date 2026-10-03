@@ -30,8 +30,10 @@ export type Snippet = string;
  *   analyze_cells;
  * - plots: questions about the rows behind a region of a plot, from
  *   region_summary;
- * - questions: offered questions, whose code is Python, and the cells that
- *   AI writes, in Python.
+ * - questions: offered and typed questions, which ask about the variables
+ *   that inspect_variables lists. The templates' code is Python: in a kernel
+ *   of another language the server sends their questions without code, and a
+ *   model writes the cells in the kernel's language.
  */
 export type Feature = 'variables' | 'analysis' | 'plots' | 'questions';
 
@@ -49,8 +51,6 @@ export interface ILanguage {
   call(name: Snippet, args: unknown): string | null;
   /** Code that evaluates to a column of a frame: `df['age']` in Python. */
   column(frame: string, label: string): string;
-  /** Whether the code of the offered questions, and of the AI, runs in it. */
-  questions: boolean;
   /**
    * Whether the view runs code in the kernel's subshells, when the kernel
    * lists them. A kernel written as a subclass of ipykernel's Kernel lists
@@ -87,15 +87,14 @@ export const PYTHON: ILanguage = {
     return `${code}\ntry:\n    ${fn}(__import__("json").loads(${payload}))\nfinally:\n    del ${fn}\n`;
   },
   column: (frame, label) => `${frame}[${pythonString(label)}]`,
-  questions: true,
   subshells: true,
   commentText: hashComment
 };
 
 /**
  * R kernels, such as xeus-r and IRkernel: the variables, and the analysis of
- * cells with their chips since 1 October 2026 (design iteration 1.79). The
- * questions' code is Python.
+ * cells with their chips since 1 October 2026 (design iteration 1.79), and
+ * questions, whose code a model writes in R.
  */
 export const R: ILanguage = {
   names: ['r'],
@@ -124,7 +123,6 @@ export const R: ILanguage = {
   },
   column: (frame, label) =>
     `${frame}[["${label.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]]`,
-  questions: false,
   // No R kernel lists subshells yet; one that does implements them itself.
   subshells: true,
   commentText: hashComment
@@ -172,7 +170,6 @@ export const SAS: ILanguage = {
   call: () => null,
   // PROC SQL names a column of a data set visits.age.
   column: (frame, label) => `${frame}.${sasName(label)}`,
-  questions: false,
   subshells: false,
   commentText: sasComment
 };
@@ -201,7 +198,7 @@ export function supports(
     case 'plots':
       return !!language.snippets.region_summary;
     case 'questions':
-      return language.questions;
+      return !!language.snippets.inspect_variables;
   }
 }
 
@@ -234,7 +231,7 @@ export function unsupported(
     case 'plots':
       return `Questions about a plot need a ${needs} kernel. ${runs}`;
     case 'questions':
-      return `Questions need a ${needs} kernel for now: their code, and the cells that AI writes, are ${needs}. ${runs}`;
+      return `Questions ask about the kernel's variables, which the view lists in a ${needs} kernel. ${runs}`;
   }
 }
 

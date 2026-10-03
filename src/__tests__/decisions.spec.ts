@@ -411,7 +411,7 @@ describe('where a default comes from', () => {
     expect(libraryOf(merge)).toBe('pandas 3.0.6');
     expect(libraryOf(found)).toBe('pandas 3.0.6');
     expect(libraryOf({ ...merge, version: null })).toBe('pandas');
-    // A decision that a notebook kept before 1 October 2026 has neither.
+    // A decision that a notebook of an earlier version kept has neither.
     expect(libraryOf(DAILY[1])).toBeNull();
   });
 

@@ -1,6 +1,6 @@
 """The rules of the agent's prompt (design iterations 1.76 and 1.84).
 
-Each rule names what a tester met in an agent's cells on 1 October 2026.
+Each rule names what a tester met in an agent's cells.
 The first pass: raw tuples and a describe() in scientific notation (pain 27,
 energy 24), prices typed as constants next to the frame that held them
 (energy 18), a check for impossible values that missed the zeros (energy
@@ -62,8 +62,9 @@ def test_the_prompt_has_the_rule(rule):
 def test_the_rules_keep_the_prompt_short():
     # Without the privacy part: 4,387 characters before these rules, 5,022 with those of
     # the first pass, and 5,083 with those of the second, which said the tools, the
-    # branches and the modules in fewer words.
-    assert len(request().system_prompt()) < 5100
+    # branches and the modules in fewer words; 5,112 with the kernel's language
+    # and how it loads a package (languages.py).
+    assert len(request().system_prompt()) < 5150
 
 
 async def test_the_rules_reach_the_model_through_the_claude_agent_sdk(monkeypatch):

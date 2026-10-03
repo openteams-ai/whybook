@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any, AsyncIterator
 
-from . import claude, codegen, connection, databases, privacy
+from . import claude, codegen, connection, databases, languages, privacy
 from .config import Whybook
 from .questions import files, tables
 from .questions.models import TYPES, InvalidRequest, Selection, Variable
@@ -33,23 +33,24 @@ MAX_CODE_CHARS = 4000
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 IMAGE_TYPES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 
-SYSTEM_PROMPT = """\
-You write one Python cell for a Jupyter notebook. The cell answers the analyst's question
+# The system prompt, with what languages.py says of the kernel's language.
+SYSTEM_TEMPLATE = """\
+You write one {language} cell for a Jupyter notebook. The cell answers the analyst's question
 with the variables that already exist in the kernel. The analyst looks at the output of
 the cell, and reads the code only to check it.
 
 Rules for the code:
 - Use only the variables in "variables" and the packages in "packages".
-- Write the code in the library of the data frames it uses: a variable's "type" names it,
-  such as polars.dataframe.frame.DataFrame for polars. Do not convert a frame to another library.
+- Write the code in the library of the data frames it uses: a variable's "type" names it{frames}.
+  Do not convert a frame to another library.
 - A file or a database table in "selected" is not in the kernel yet: load it first, with the
-  code in its "load" field.
+  code in its "load" field when it has one.
 - Do not change existing variables. Work on copies.
 - Keep the kernel namespace clean: the analyst sees every variable the cell leaves behind.
   Leave at most one new variable, named after what it holds, and delete the other
-  intermediate values at the end of the cell.
-- Import every module the cell uses at its top, even when an earlier cell imports it, so the
-  cell also runs in a notebook that never did.
+  intermediate values at the end of the cell{remove}.
+- Load every module or package the cell uses at its top{load}, even when an earlier cell
+  does, so the cell also runs in a notebook that never did.
 - Keep the cell short: at most 30 lines, and no functions or classes unless the question needs them.
 - End the cell with the object to show: a figure, a table, or a short printed result.
 - If "previous_attempt" is present, that code failed with the given error. Fix it.
@@ -81,12 +82,24 @@ If "mode" is present, it is how the analyst works, and it shapes the cell:
 - wonder: answer the question, and give exactly 2 follow_up questions that open directions
   the notebook has not taken, such as another variable, an interaction or a cause.
 
-If "packages" lists whybook, import it (import whybook) and use its helpers: whybook.ribbon(data, x, y, by), whybook.scatter(data, x, y),
-whybook.hist(data, x) and whybook.bars(data, x, y) draw plots whose regions map back to rows, and
-whybook.progress(fraction, stage) shows a progress bar during a long loop.
-
-Answer once, with one JSON object that has exactly these four keys: "summary" (a string),
+{helpers}Answer once, with one JSON object that has exactly these four keys: "summary" (a string),
 "code" (a string), "assumptions" (a list of strings) and "follow_up" (a list of strings)."""
+
+
+def system_prompt(name: str | None = None) -> str:
+    """The system prompt for a kernel of this language_info.name."""
+    found = languages.language(name)
+    return SYSTEM_TEMPLATE.format(
+        language=found.name,
+        frames=f", {found.frames}" if found.frames else "",
+        remove=f", {found.remove}" if found.remove else "",
+        load=f", {found.load}" if found.load else "",
+        helpers=f"{found.helpers}\n\n" if found.helpers else "",
+    )
+
+
+# Python's, which the tests read.
+SYSTEM_PROMPT = system_prompt("python")
 
 PLACEMENT_PROMPTS = {
     "edit": "Rewrite the cell in \"cell\" so that it also does what the question asks. Return the full new source of the cell. Keep what the cell already does.",
@@ -96,8 +109,7 @@ PLACEMENT_PROMPTS = {
         "It runs at the same time as the original and as other branches, and they all share one namespace. "
         "Give every name that the branch assigns, intermediate values included, a sensible name that says what it holds "
         "and is unique to this branch, made from its change: lmm_fit_with_il6 and _model_data_with_il6 for a branch that adds IL6. "
-        "Never assign or delete a name that the notebook or another branch defines. "
-        "Report progress with whybook.progress in loops."
+        "Never assign or delete a name that the notebook or another branch defines."
     ),
     "new": "Write a new cell that goes after the cell in \"cell\".",
     "preview": "Write a short cell whose output shows the answer. It is shown in a sidebar and not saved in the notebook.",
@@ -255,6 +267,8 @@ class SolveRequest:
     image: dict[str, Any] | None = None
     # The data stays on this machine: the selection goes as names, kinds and sizes (privacy.py).
     keep_local: bool = False
+    # The kernel's language_info.name, in lower case: the cell is written in it.
+    language: str = "python"
 
     @classmethod
     def from_json(cls, data: Any) -> SolveRequest:
@@ -308,6 +322,7 @@ class SolveRequest:
             about=str(data["about"])[:500] if data.get("about") else None,
             mode=mode,
             image=_image(data.get("image")),
+            language=str(data.get("language") or "python").strip().lower() or "python",
         )
 
     def with_sources(self, root: str | None) -> SolveRequest:
@@ -315,7 +330,7 @@ class SolveRequest:
         if self.selection is None:
             return self
         found = {
-            item.name: describe_source(item, root)
+            item.name: describe_source(item, root, self.language)
             for item in (self.selection.source, self.selection.target)
             if item is not None and item.kind in ("file", "table")
         }
@@ -331,13 +346,18 @@ class SolveRequest:
             if self.keep_local:
                 selected = [privacy.local_variable(item) for item in selected]
         about_text = self.cell is not None and self.cell["kind"] == "markdown" and self.placement == "new"
+        task = NOTE_TASK if about_text else PLACEMENT_PROMPTS[self.placement]
+        branch = languages.language(self.language).branch
+        if self.placement == "branch" and branch and not about_text:
+            task = f"{task} {branch}"
         body: dict[str, Any] = {
-            "task": NOTE_TASK if about_text else PLACEMENT_PROMPTS[self.placement],
+            "task": task,
             "question": self.question,
             "selected": selected,
             "variables": self.variables,
             "packages": self.packages,
             "analysis_so_far": self.cells,
+            "language": self.language,
         }
         if self.cell:
             body["cell"] = self.cell
@@ -357,12 +377,17 @@ class SolveRequest:
         return [{"media_type": self.image["mime"], "data": self.image["data"]}] if self.image else []
 
 
-def describe_source(item: Variable, root: str | None) -> dict[str, Any]:
-    """The code that loads a dragged file or table in the kernel, and its columns."""
+def describe_source(item: Variable, root: str | None, language: str = "python") -> dict[str, Any]:
+    """The code that loads a dragged file or table in the kernel, and its columns.
+
+    The code is Python's: in a kernel of another language the model writes it.
+    """
+    python = languages.language(language).templates
     kernel_path = item.kernel_path or item.path or item.name
     described: dict[str, Any] = {}
     if item.kind == "table" and item.table:
-        described["load"] = "\n".join(tables.read_lines(kernel_path, f"SELECT * FROM {databases.quote(item.table)}"))
+        if python:
+            described["load"] = "\n".join(tables.read_lines(kernel_path, f"SELECT * FROM {databases.quote(item.table)}"))
         try:
             found = databases.describe(root, item.path) if root and item.path else None
         except (databases.OutsideRoot, ValueError, sqlite3.Error):
@@ -375,7 +400,7 @@ def describe_source(item: Variable, root: str | None) -> dict[str, Any]:
     elif item.kind == "file":
         suffix = PurePosixPath(item.path or kernel_path).suffix.lower()
         reader = files.READERS.get(suffix)
-        if reader is not None:
+        if reader is not None and python:
             described["load"] = f"import pandas as pd\n\n_frame = {reader.format(path=codegen.literal(kernel_path))}"
         header = files.header(root, item.path, suffix) if item.path else None
         if header:
@@ -388,20 +413,20 @@ async def solve(request: SolveRequest, config: Whybook) -> AsyncIterator[claude.
     async for event in connection.structured_call(
         request.prompt(),
         schema=SCHEMA,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt(request.language),
         config=config,
         effort=config.solve_effort,
         images=request.images(),
     ):
         if event["type"] == "result":
-            event["cell"] = complete_cell(event.pop("output"), request.defined)
+            event["cell"] = complete_cell(event.pop("output"), request.defined, request.language)
         yield event
 
 
-def complete_cell(cell: dict[str, Any], defined: frozenset[str] = frozenset()) -> dict[str, Any]:
-    """Add the imports that the model's code needs and the notebook does not have, and turn
+def complete_cell(cell: dict[str, Any], defined: frozenset[str] = frozenset(), language: str = "python") -> dict[str, Any]:
+    """Add the imports that the model's Python code needs and the notebook does not have, and turn
     its assumptions and follow-up questions into the objects the view keeps."""
-    if isinstance(cell.get("code"), str):
+    if isinstance(cell.get("code"), str) and languages.language(language).templates:
         cell = {**cell, "code": codegen.add_missing_imports(cell["code"], defined)}
     assumptions = (_labelled(item, ASSUMPTION_KINDS, "modelling", "kind") for item in cell.get("assumptions") or [])
     follow_up = (_labelled(item, tuple(TYPES), "descriptive", "type") for item in cell.get("follow_up") or [])

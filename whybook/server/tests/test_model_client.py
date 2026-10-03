@@ -339,7 +339,7 @@ async def test_more_questions_from_a_model_that_writes_a_word_for_the_priority_e
     monkeypatch.setattr(connection, "load", lambda config=None: OLLAMA)
     monkeypatch.setattr(model_client, "build_model", lambda chosen, key: replies(*[answer] * 10))
     selection = Selection.from_json({"source": {"name": "arm", "kind": "categorical", "parent": "visits"}, "target": {"name": "pain", "kind": "numeric", "parent": "visits"}})
-    # Until 29 September 2026 the stream raised ValueError after its progress events, and the view got neither a result nor an error.
+    # The stream once raised ValueError after its progress events, and the view got neither a result nor an error.
     events = [event async for event in claude_questions.generate(selection, Context(), [], Whybook())]
     assert events[-1]["type"] == "error"
     assert "priority is not a number" in events[-1]["message"]

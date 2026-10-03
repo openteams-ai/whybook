@@ -511,7 +511,7 @@ def test_the_r_version_of_the_real_sas_notebook_gets_its_chips(r):
     for source in cells:
         r.run(source)
     analysis = r.analyse(cells)
-    # The header of both reads is a chip since 1 October 2026, and a cell shows six: the family comes last.
+    # The header of both reads is a chip, and a cell shows six: the family comes last.
     assert [(provenance, name, value) for provenance, name, value, _, _ in chips(analysis["c0"])] == [
         ("library_default", "header", "TRUE"),
         ("library_default", "na.strings", '"NA"'),

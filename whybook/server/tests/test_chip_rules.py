@@ -1,6 +1,6 @@
 """The chips of library defaults and keyword arguments (design iteration 1.86).
 
-The owner, on 1 October 2026: a chip "drop True" for ``reset_index`` says
+The owner: a chip "drop True" for ``reset_index`` says
 nothing about a result, and the header of ``read_csv`` should come from a
 rule, not from a model that picks it and a popover that says "No rule knows
 what kind of value header is". The analysis of a cell runs in an in-process

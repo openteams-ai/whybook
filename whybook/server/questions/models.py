@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .. import privacy
+from .. import languages, privacy
 
 KINDS = (
     "numeric",
@@ -225,6 +225,21 @@ class Context:
     # first of each.
     outcomes: tuple[str, ...] = ()
     units: tuple[str, ...] = ()
+    # The kernel's language_info.name, in lower case. In a kernel whose
+    # language the templates do not write (languages.py), their questions go
+    # without code, and a model writes the cell in that language.
+    language: str = "python"
+
+    @property
+    def templates(self) -> bool:
+        """Whether the templates' code runs in the kernel."""
+        return languages.language(self.language).templates
+
+    def for_kernel(self, options: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The options as JSON, without the templates' code in a kernel of another language."""
+        if self.templates:
+            return options
+        return [{**option, "code": None} for option in options]
 
     def outcome_in(self, frame: str | None) -> str | None:
         """The first outcome that ``frame`` holds: an analysis of that frame explains it."""
@@ -295,6 +310,7 @@ class Context:
             frame_rows=rows,
             outcomes=tuple(dict.fromkeys(outcomes)),
             units=tuple(dict.fromkeys(units)),
+            language=str(data.get("language") or "python").strip().lower() or "python",
         )
 
 

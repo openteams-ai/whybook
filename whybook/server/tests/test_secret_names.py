@@ -41,7 +41,7 @@ def kernel(name, namespace, args, monkeypatch):
 
 @pytest.mark.parametrize("case", CASES, ids=case_id)
 def test_the_server_reads_a_secret_by_the_shared_rule(case):
-    # The value as the kernel lists it, and as a notebook kept it before 29 September 2026.
+    # The value as the kernel lists it, and as a notebook of an earlier version kept it.
     assert privacy.looks_secret(case["name"], repr(case["value"])) is case["secret"]
 
 

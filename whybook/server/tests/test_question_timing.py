@@ -1,6 +1,6 @@
 """When the columns of the frames are set, as the model of questions reads it (design iteration 1.84).
 
-On 1 October 2026 the pain tester of the second pass met these causal slips
+The pain tester of the second pass met these causal slips
 among the model's questions: "Does analgesic_use confound the week-pain
 relationship?" (step 9), with nothing that causes the week, and "Does
 analgesic_use differ by treatment_arm, confounding pain comparisons?" (step

@@ -558,8 +558,7 @@ describe('the view with "Find more defaults with AI"', () => {
         .find(cell => cell.id === 'g')!
         .decisions.map(decision => chipText(decision));
     expect(chips()).toEqual([]);
-    // On by default since 1 October 2026: the kernel reads the signatures
-    // with the analysis.
+    // On by default: the kernel reads the signatures with the analysis.
     expect(model.settings.findDefaults).toBe(true);
     expect(model.bridge.signatures).toBe(true);
     // The kernel's analysis came: the view finds the answers.

@@ -1,6 +1,6 @@
 """Questions to start with, and frames that meet (design iteration 1.87).
 
-The owner, on 1 October 2026: the first file dropped on an empty notebook got
+The owner: the first file dropped on an empty notebook got
 "What could sites add to this analysis?", which needs a model, and a table
 dropped on the cell that loads another frame got "What could visits add to
 this analysis?" where "How many visits per site?" would do. Each test builds

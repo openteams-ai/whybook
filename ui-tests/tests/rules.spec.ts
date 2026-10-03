@@ -1,6 +1,6 @@
 /**
- * Rules first, and a model when the rules cannot tell: the owner's rule of
- * 30 September 2026 (design iterations 1.18 and "rules-then-model").
+ * Rules first, and a model when the rules cannot tell (design iterations
+ * 1.18 and "rules-then-model").
  *
  * - The values offered from a constant's chip follow the kind of the
  *   constant: a count of days takes common lengths of time, a significance

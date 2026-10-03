@@ -771,7 +771,7 @@ async def test_two_requests_on_two_local_models_load_each_model_once(fake, monke
     labelled, titled = await asyncio.gather(labels(), titles())
     assert [event["type"] for event in labelled] == ["progress"] * 3 + ["result"]
     assert [event["type"] for event in titled] == ["progress"] * 3 + ["result"]
-    # Until 29 September 2026 each item took the lock on its own, and the two models took turns: 6 loads of 2 to 3 GB.
+    # When each item took the lock on its own, the two models took turns: 6 loads of 2 to 3 GB.
     assert sorted(llm.model_path.rsplit("/", 1)[-1] for llm in FakeLlama.made) == sorted([GEMMA.file, QWEN.file])
 
 

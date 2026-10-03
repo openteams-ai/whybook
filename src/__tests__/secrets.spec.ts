@@ -21,7 +21,7 @@ import { fakeModel } from './fakes/model-fake';
 
 const TOKEN = 'hf_' + 'Q'.repeat(34);
 
-/** The token as the kernel listed it before 29 September 2026, and as kept. */
+/** The token as an earlier version of the kernel code listed it, and as kept. */
 const oldToken: IVariable & IStoredVariable = {
   name: 'HF_TOKEN',
   label: 'HF_TOKEN',

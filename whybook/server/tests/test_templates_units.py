@@ -1,7 +1,7 @@
 """The templates of a unit's id, a time index and dates (design iteration 1.75).
 
 Two testers played first-time analysts on the pain diary and the home energy
-data on 1 October 2026 (research/dogfood.md). Each test below is one of their
+data (research/dogfood.md). Each test below is one of their
 issues: a unit's id or a time index offered as a cause, a column of dates
 compared over its 672 levels, no line per patient over the weeks, quick looks
 without numbers, a describe() of 318 patients for a yes-or-no question, dates

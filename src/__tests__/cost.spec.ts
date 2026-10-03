@@ -267,7 +267,7 @@ describe('the words', () => {
     expect(writer({ written_by: 'agent', template: true })).toEqual([
       'Written from a template, with no model call.'
     ]);
-    // A cell of the view with no mark may be a model's from before 27 September 2026.
+    // A cell of the view with no mark may be a model's, from an earlier version.
     expect(writer({ written_by: 'agent' })).toEqual([
       'The view wrote this code, from a template or with a model; the notebook does not record which.'
     ]);

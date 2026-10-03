@@ -366,7 +366,11 @@ def decision_options(
     With ``calls``, the values go into those calls of the decision alone, and
     each question says where: "What if how were "left" in the merge with
     weather?".
+
+    The code is written for Python. In a kernel of another language, such as
+    R, the same questions go without code, and a model writes the branch.
     """
+    python = context.templates
     branch = Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel")
     where = f"{decision.source_file}:{decision.source_line}" if decision.source_file and decision.source_line else decision.source_file
     place = where_text(decision, calls)
@@ -375,10 +379,13 @@ def decision_options(
     found = None
     if value is not None:
         value = value.strip()
-        try:
-            ast.parse(value, mode="eval")
-        except SyntaxError as error:
-            raise InvalidRequest(f"{value} is not a Python value") from error
+        if python:
+            try:
+                ast.parse(value, mode="eval")
+            except SyntaxError as error:
+                raise InvalidRequest(f"{value} is not a Python value") from error
+        elif not value:
+            raise InvalidRequest("type a value")
         tried = [values.Value(value, "")]
     elif suggested is not None:
         tried = [item for item in suggested if values.value_key(item.text) != values.value_key(decision.value)]
@@ -386,25 +393,25 @@ def decision_options(
         found = suggestion(decision, cell.source)
         tried = list(found.values)
     for other in tried:
-        code = what_if_code(cell, decision, other.text, calls)
-        if code is not None:
+        code = what_if_code(cell, decision, other.text, calls) if python else None
+        if code is not None or not python:
             effect = _changed(decision.value, other.text) + (f" · {other.why}" if other.why else "")
             option = _question(f"What if {decision.name} were {other.text}{within}?", "model", 0.6, branch, code, effect, cell.id, decision.name)
             option.template = "what_if_value"
             options.append(option)
     if value is None:
         swept = sweep_list(decision, cell.source, [other.text for other in tried])
-        sweep = sweep_code(cell, decision, context, calls, swept) if decision.provenance == "defaulted" and swept else None
-        if sweep is not None:
+        sweep = sweep_code(cell, decision, context, calls, swept) if python and decision.provenance == "defaulted" and swept else None
+        if sweep is not None or (not python and decision.provenance == "defaulted" and swept):
             option = _question(f"Compare {decision.name} = {', '.join(swept)}{within} in one table", "model", 0.55, branch, sweep, f"Re-runs {cell.label} with each value", cell.id, decision.name)
             option.template = "what_if_sweep"
             options.append(option)
         function = decision.short_function
         if decision.is_open and function and decision.param:
-            explicit = codegen.add_keyword(cell.source, function, decision.param, decision.name, decision.sites(calls))
-            if explicit is not None:
+            explicit = codegen.add_keyword(cell.source, function, decision.param, decision.name, decision.sites(calls)) if python else None
+            if explicit is not None or not python:
                 origin = f" in {where}" if where else f" of {decision.function}"
-                code = f"{decision.name} = {decision.value}  {codegen.comment(f'chosen here; was the default{origin}')}\n{explicit}"
+                code = f"{decision.name} = {decision.value}  {codegen.comment(f'chosen here; was the default{origin}')}\n{explicit}" if python else None
                 edit = Placement("edit", cell.id, f"edit {cell.label} in place")
                 option = _question(f"Choose {decision.name} in {cell.label}{f', in {place}' if place else ''}", "model", 0.5, edit, code, "An explicit choice in the cell, to change there", cell.id, decision.name)
                 option.template = "what_if_choice"

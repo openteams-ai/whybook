@@ -4,7 +4,7 @@ The view keeps a question of the model only when it uses one of the items
 dropped or clicked, names no column that the frames of the request lack,
 and does not repeat a question offered, asked or added before it. The
 model reads what agents found in the notebook, unless the data stays on
-this machine. The questions come from the testers' logs of 1 October 2026
+this machine. The questions come from the testers' logs
 (``~/.cache/future-work/dogfood/pass1``). No test calls a model.
 """
 

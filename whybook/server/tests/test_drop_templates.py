@@ -1,7 +1,7 @@
 """Template answers that must fit the data: the kinds of two columns, and a cell whose frame lacks the outcome.
 
-On the demo, 88 of the 192 first answers that ran from a template failed
-until 26 September 2026 (research/local_predictors/usability.py): a
+On the demo, 88 of the 192 first answers that ran from a template once
+failed (research/local_predictors/usability.py): a
 correlation of two categories, a model of the outcome fitted on the raw
 diary before its reshape, and a screen of a frame that holds the outcome.
 Each test runs the code it gets, on small frames.
