@@ -10,7 +10,7 @@ research/local-predictors-2.md measured the local models on 120 typed
 questions. With the keywords first, Gemma 4 E2B types 69% right and Qwen3.5
 0.8B 49%, where the keywords alone type 45%. No local model placed a cell
 better than the rules, which are right for 84%, so a local model gives only
-the type. Jev has not run: there was no TypeSafe account when this was written.
+the type. Jev has not run on these questions: there is no TypeSafe account.
 """
 
 from __future__ import annotations

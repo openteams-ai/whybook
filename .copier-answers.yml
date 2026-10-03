@@ -5,7 +5,7 @@ advanced: false
 author_email: ''
 author_name: Michal Krassowski
 has_ai_rules: false
-has_binder: false
+has_binder: true
 has_settings: true
 kind: frontend-and-server
 labextension_name: future

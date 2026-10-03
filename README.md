@@ -1,5 +1,7 @@
 # Whybook
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/pain_diary_demo.ipynb)
+
 > [!WARNING]
 > **Research prototype.** Whybook is a research prototype for the future of Jupyter interfaces: [whybook.dev](https://whybook.dev) describes the idea. Its features, settings and notebook metadata can change between releases without deprecation.
 

@@ -4,8 +4,8 @@
 The kernelspec "Python 3 (sandboxed)" names it, and so do the copies of other
 kernelspecs that `python -m whybook.sandbox <kernel name>` writes
 (`kernelspec.py`), such as "R 4.4.3 (xr, sandboxed)". It runs the kernel under
-bubblewrap on Linux (`bwrap.py`) and under Seatbelt on macOS (`seatbelt.py`,
-not run yet). `policy.py` holds what both enforce. research/kernel-sandbox.md
+bubblewrap on Linux (`bwrap.py`) and under Seatbelt on macOS (`seatbelt.py`).
+`policy.py` holds what both enforce. research/kernel-sandbox.md
 has the research behind it, and architecture/code-map.md the overview.
 """
 
