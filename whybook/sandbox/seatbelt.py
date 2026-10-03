@@ -12,6 +12,12 @@ reach Unix sockets in the private folder only. No rule allows the network, so
 the kernel reaches no address, 127.0.0.1 included. Seatbelt applies the last
 rule that matches, so the denies come after the allows.
 
+Codex's rule for /System/Volumes/Data/Users lists two filters, and a rule
+applies when any of its filters matches: it allows the metadata of every
+directory. So the kernel can tell that a folder such as ~/.ssh exists, and
+cannot list it or read a file in it. A deny of that metadata in the home
+folder stopped the kernel from starting on macOS.
+
 Paths go into the profile as parameters (`-DNAME=path`), as Codex passes them,
 so that no path needs quoting in the profile's language.
 """
@@ -106,14 +112,9 @@ def profile(policy: Policy) -> tuple[str, dict[str, str]]:
         unmovable.update(parent for parent in path.parents if root in parent.parents)
 
     private = param("PRIVATE", policy.private)
-    home = param("ANCESTOR", policy.home)
     sections = [(CODEX / name).read_text() for name in CODEX_PROFILES]
     sections += [
         "; Whybook: the kernel's sandbox, from whybook/sandbox/seatbelt.py.",
-        "; Codex's rule for /System/Volumes/Data/Users lists two filters, and a rule",
-        "; applies when any of its filters matches: it allows the metadata of every",
-        "; directory. Nothing in the home folder: the rules below allow what the kernel needs.",
-        f"(deny file-read-metadata file-test-existence (subpath {home}))",
         "; The system.",
         _rule("allow file-read* file-test-existence", [f'(subpath "{path}")' for path in SYSTEM_READ]),
         _rule("allow file-map-executable", [f'(subpath "{path}")' for path in SYSTEM_EXEC]),

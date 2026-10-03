@@ -252,10 +252,25 @@ def test_sees_no_other_part_of_the_home_folder(kernel, folders):
     kernel.run(attempt(f"open({str(secret)!r}, 'a').write('changed')"))
     assert not (folders.root / "beside.txt").exists()
     assert secret.read_text() == "not for the kernel"
-    # Folders that hold keys, when this home folder has them.
+    # Folders and files that hold keys, when this home folder has them: the
+    # kernel cannot list or read them. On Linux it does not see them at all; on
+    # macOS it can tell that a folder exists (seatbelt.py).
     private = [name for name in (".ssh", ".claude", ".gnupg", ".config", ".bash_history") if (Path.home() / name).exists()]
-    seen = kernel.json(f"import json, os\nprint(json.dumps([os.path.exists(os.path.expanduser('~/' + n)) for n in {private!r}]))")
-    assert not any(seen)
+    probe = (
+        "import json, os\n"
+        "def opened(path):\n"
+        "    try:\n"
+        "        os.listdir(path) if os.path.isdir(path) else open(path).read(1)\n"
+        "        return True\n"
+        "    except OSError:\n"
+        "        return False\n"
+        f"names = {private!r}\n"
+        "print(json.dumps({'seen': [os.path.exists(os.path.expanduser('~/' + n)) for n in names], 'opened': [opened(os.path.expanduser('~/' + n)) for n in names]}))"
+    )
+    found = kernel.json(probe)
+    assert not any(found["opened"])
+    if sys.platform.startswith("linux"):
+        assert not any(found["seen"])
 
 
 @needs_sandbox
@@ -563,10 +578,6 @@ def test_seatbelt_profile(tmp_path):
     # The home folder is never readable itself: only its metadata, as a folder on the way.
     home = tmp_path / "home"
     assert [key.split("_")[0] for key, value in params.items() if value == str(home)] == ["ANCESTOR"]
-    # Codex's rules let the kernel see every directory's metadata: none in the
-    # home folder, before the rules that allow the folders the kernel needs.
-    hidden = text.index(f'(deny file-read-metadata file-test-existence (subpath (param "{named(home, "ANCESTOR_")}")))')
-    assert hidden < text.index(f'(subpath (param "{write}"))') and hidden > text.index("/System/Volumes/Data/Users")
     # The link on the way to the notebook's folder can be read.
     assert f'(literal (param "{named(home / "link", "LINK_")}"))' in text
     argv = seatbelt.command(seatbelt.SANDBOX_EXEC, rules)

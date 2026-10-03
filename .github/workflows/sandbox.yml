@@ -44,3 +44,7 @@ jobs:
     - name: Test the sandboxed kernel
       # --noconftest: the suite needs only whybook.sandbox, not the server's fixtures.
       run: python -m pytest -v -r ap --noconftest whybook/sandbox/tests
+
+    - name: Show what Seatbelt denied
+      if: failure() && runner.os == 'macOS'
+      run: log show --style compact --last 20m --predicate 'sender == "Sandbox"' | tail -200
