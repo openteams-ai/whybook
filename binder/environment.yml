@@ -12,8 +12,9 @@ channels:
 dependencies:
   # runtime dependencies
   - python >=3.14,<3.15
-  - jupyterlab >=4.4.0,<5
-  # labextension build dependencies
-  - nodejs >=22,<23
+  - jupyterlab >=4.6.0,<5
   - pip
-  - wheel
+  - pip:
+      # The release from PyPI, not a build of this checkout: no Node.js, and a
+      # faster build each time a new commit invalidates the image.
+      - whybook[demo,kernel,plots]
