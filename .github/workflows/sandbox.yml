@@ -1,0 +1,46 @@
+name: Sandbox
+
+on:
+  push:
+    branches: main
+  pull_request:
+    paths:
+      - 'whybook/sandbox/**'
+      - 'jupyter-config/kernels/python3-sandboxed/**'
+      - '.github/workflows/sandbox.yml'
+  workflow_dispatch:
+
+jobs:
+  sandbox:
+    name: Sandboxed kernel on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Linux runs the kernel under bubblewrap, macOS under Seatbelt.
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install bubblewrap
+      if: runner.os == 'Linux'
+      run: |
+        set -eux
+        sudo apt-get update
+        sudo apt-get install -y bubblewrap
+        # Ubuntu 24.04 lets AppArmor refuse unprivileged user namespaces, which bwrap needs.
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+    - name: Install the test dependencies
+      run: python -m pip install pytest ipykernel jupyter_client
+
+    - name: Test the sandboxed kernel
+      # --noconftest: the suite needs only whybook.sandbox, not the server's fixtures.
+      run: python -m pytest -v -r ap --noconftest whybook/sandbox/tests
