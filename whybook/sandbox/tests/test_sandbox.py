@@ -294,6 +294,8 @@ def test_has_none_of_the_servers_variables(kernel, folders):
     kept |= {"MPLCONFIGDIR", "XDG_CACHE_HOME", "TMPDIR", "PWD"}  # PWD from bubblewrap
     # What ipykernel sets itself.
     kept |= {"CLICOLOR", "CLICOLOR_FORCE", "FORCE_COLOR", "GIT_PAGER", "MPLBACKEND", "PAGER", "PYDEVD_USE_FRAME_EVAL", "TERM"}
+    # What macOS's CoreFoundation sets in its processes: the user's id and text encoding.
+    kept |= {"__CF_USER_TEXT_ENCODING"}
     assert set(env) - kept - {key for key in env if key.startswith("LC_")} == set()
 
 
@@ -343,7 +345,8 @@ def test_a_restart_keeps_the_sandbox_and_a_shutdown_removes_its_folder(folders):
     try:
         connection = started.km.connection_file
         private = Path(connection).parent
-        assert private.parent == folders.runtime / "whybook-sandbox"
+        # On macOS /var is a link to /private/var, which the provisioner resolves.
+        assert private.parent.resolve() == (folders.runtime / "whybook-sandbox").resolve()
         assert started.run("x = 1")["status"] == "ok"
         started.km.restart_kernel(now=True)
         started.kc.wait_for_ready(timeout=60)
@@ -531,7 +534,7 @@ def test_seatbelt_profile(tmp_path):
     base = (seatbelt.CODEX / "seatbelt_base_policy.sbpl").read_text()
     assert text.startswith(base)
     assert "(deny default)" in text
-    # Nobody has run this profile: at least its parentheses and strings close,
+    # Its parentheses and strings close,
     # and each form is a rule. Every parameter it names is passed.
     heads = top_level_forms(text)
     assert heads[0] == "version" and set(heads[1:]) == {"allow", "deny"}
@@ -560,6 +563,10 @@ def test_seatbelt_profile(tmp_path):
     # The home folder is never readable itself: only its metadata, as a folder on the way.
     home = tmp_path / "home"
     assert [key.split("_")[0] for key, value in params.items() if value == str(home)] == ["ANCESTOR"]
+    # Codex's rules let the kernel see every directory's metadata: none in the
+    # home folder, before the rules that allow the folders the kernel needs.
+    hidden = text.index(f'(deny file-read-metadata file-test-existence (subpath (param "{named(home, "ANCESTOR_")}")))')
+    assert hidden < text.index(f'(subpath (param "{write}"))') and hidden > text.index("/System/Volumes/Data/Users")
     # The link on the way to the notebook's folder can be read.
     assert f'(literal (param "{named(home / "link", "LINK_")}"))' in text
     argv = seatbelt.command(seatbelt.SANDBOX_EXEC, rules)

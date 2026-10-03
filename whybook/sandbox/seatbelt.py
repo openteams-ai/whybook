@@ -1,7 +1,7 @@
 """The kernel under Seatbelt, on macOS, through /usr/bin/sandbox-exec.
 
-Nobody has run this path yet: it was written on Linux, from Codex's profiles
-and research/kernel-sandbox.md, and its tests skip on other systems.
+It was written from Codex's profiles and research/kernel-sandbox.md; its
+tests run on macOS in .github/workflows/sandbox.yml.
 
 The profile is Codex's base profile and its read-only platform defaults
 (codex/, Apache-2.0, at a pinned commit): everything is denied, then the
@@ -106,9 +106,14 @@ def profile(policy: Policy) -> tuple[str, dict[str, str]]:
         unmovable.update(parent for parent in path.parents if root in parent.parents)
 
     private = param("PRIVATE", policy.private)
+    home = param("ANCESTOR", policy.home)
     sections = [(CODEX / name).read_text() for name in CODEX_PROFILES]
     sections += [
         "; Whybook: the kernel's sandbox, from whybook/sandbox/seatbelt.py.",
+        "; Codex's rule for /System/Volumes/Data/Users lists two filters, and a rule",
+        "; applies when any of its filters matches: it allows the metadata of every",
+        "; directory. Nothing in the home folder: the rules below allow what the kernel needs.",
+        f"(deny file-read-metadata file-test-existence (subpath {home}))",
         "; The system.",
         _rule("allow file-read* file-test-existence", [f'(subpath "{path}")' for path in SYSTEM_READ]),
         _rule("allow file-map-executable", [f'(subpath "{path}")' for path in SYSTEM_EXEC]),
