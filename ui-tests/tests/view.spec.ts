@@ -4429,11 +4429,11 @@ test('waits for a branch before a cell that uses what it makes', async ({
   tmpPath
 }) => {
   // The branch runs in a subshell; the cell after it needs its result.
-  const cell = (id: string, source: string, epi?: object) => ({
+  const cell = (id: string, source: string, whybook?: object) => ({
     cell_type: 'code',
     execution_count: null,
     id,
-    metadata: epi ? { epi } : {},
+    metadata: whybook ? { whybook } : {},
     outputs: [],
     source
   });

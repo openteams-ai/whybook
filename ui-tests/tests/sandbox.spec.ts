@@ -93,12 +93,12 @@ async function kernelIdle(page: IJupyterLabPageFixture): Promise<void> {
   );
 }
 
-function code(id: string, source: string[], epi?: Record<string, unknown>) {
+function code(id: string, source: string[], whybook?: Record<string, unknown>) {
   return {
     cell_type: 'code',
     execution_count: null,
     id,
-    metadata: epi ? { epi } : {},
+    metadata: whybook ? { whybook } : {},
     outputs: [],
     source: source.join('\n')
   };
