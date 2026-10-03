@@ -129,7 +129,10 @@ jobs:
     - name: Install the extension
       run: |
         set -eux
-        python -m pip install "jupyterlab>=4.0.0,<5" whybook*.whl
+        # The kernel of the tests' notebooks: the demo's libraries, narwhals for
+        # the variables, the outputs that the view draws, and the libraries that
+        # single tests import.
+        python -m pip install "jupyterlab>=4.0.0,<5" "$(ls whybook*.whl)[demo,kernel,plots]" matplotlib scikit-learn polars
 
     - name: Install dependencies
       working-directory: ui-tests
@@ -175,4 +178,5 @@ jobs:
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1
         with:
           # INFORMS answers 403 to scripts; its DOIs open in a browser.
-          ignore_links: 'https://doi.org/10.1287/.*'
+          # Cloudflare's bot protection answers 403 to the runner at whybook.dev.
+          ignore_links: 'https://doi.org/10.1287/.* https://whybook.dev.*'
