@@ -17,6 +17,7 @@ import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import type { Locator, Route } from '@playwright/test';
 
 import { expect, test } from './fixtures';
+import { tooltipLines } from './tooltips';
 
 /** Write a notebook with these code cells. */
 async function newNotebook(
@@ -169,8 +170,9 @@ test('offers the values of a count of days and of a significance level by their 
   // Until 30 September: half below and above, 15 and 45.
   await expect(texts.first()).toHaveText('What if WINDOW_DAYS were 21?');
   await expect(texts.nth(1)).toHaveText('What if WINDOW_DAYS were 60?');
+  // The line above the values is short (design iteration 1.86).
   await expect(box.locator('.jp-Epi-valuekind')).toHaveText(
-    'WINDOW_DAYS reads as a count of days, so the values are common lengths of time.'
+    'A count of days: common lengths of time.'
   );
   await expect(box.locator('.jp-Epi-option-effect').first()).toContainText(
     '21 instead of 30 (−9) · three weeks'
@@ -187,7 +189,7 @@ test('offers the values of a count of days and of a significance level by their 
     'What if ALPHA were 0.1?'
   ]);
   await expect(box.locator('.jp-Epi-valuekind')).toHaveText(
-    'ALPHA reads as a significance level, so the values are the conventional levels next to it.'
+    'A significance level: the conventional levels next to it.'
   );
 });
 
@@ -225,9 +227,7 @@ test('asks the model for the values of a constant that no rule knows, once, and 
   const box = popover(page);
   const kind = box.locator('.jp-Epi-valuekind');
   // While the model works, a bar shows, and the half and double wait.
-  await expect(kind).toContainText(
-    'No rule knows what kind of value BASE_TEMP_C is: an AI model suggests values.'
-  );
+  await expect(kind).toContainText('Analysing…');
   await expect(kind.locator('.jp-Epi-progress')).toBeVisible();
   await expect.poll(() => model.requests.length).toBe(1);
   // The default of More questions: the fast model of the connected provider.
@@ -244,9 +244,9 @@ test('asks the model for the values of a constant that no rule knows, once, and 
     'What if BASE_TEMP_C were 12.0?AI',
     'What if BASE_TEMP_C were 18.3?AI'
   ]);
-  await expect(kind).toHaveText(
-    'No rule knows what kind of value BASE_TEMP_C is. The AI model reads it as a base temperature of heating degree days. AI'
-  );
+  // After the model answered, the line is gone: the AI tag on each value
+  // says who chose it, and its tooltip has the kind.
+  await expect(kind).toHaveCount(0);
   await expect(box.locator('.jp-Epi-option-effect').nth(1)).toContainText(
     '65 °F, the base of US degree days'
   );
@@ -273,10 +273,14 @@ test('asks the model for the values of a constant that no rule knows, once, and 
   const yours = branch.locator('.jp-Epi-chip', {
     hasText: 'BASE_TEMP_C_if_12_0 12.0'
   });
-  await expect(yours).toHaveAttribute('title', /^Chosen by you\./, {
-    timeout: 60000
-  });
+  // The analyst's value is a plain chip: no AI tag, not the colour of a
+  // value that nobody chose, and no line of who chose it in its tooltip.
+  await expect(yours).toBeVisible({ timeout: 60000 });
   await expect(yours.locator('.jp-Epi-aitag')).toHaveCount(0);
+  await expect(yours).not.toHaveClass(/jp-mod-open/);
+  expect(
+    (await tooltipLines(page, yours)).some(line => line.startsWith('Chosen by'))
+  ).toBe(false);
 });
 
 test('keeps half and double without a model, and says that a model would suggest values', async ({
@@ -300,8 +304,14 @@ test('keeps half and double without a model, and says that a model would suggest
     'What if BASE_TEMP_C were 7.75?',
     'What if BASE_TEMP_C were 31.0?'
   ]);
-  await expect(box.locator('.jp-Epi-valuekind')).toHaveText(
-    /^No rule knows what kind of value BASE_TEMP_C is, so the values are half and double its value\. A model would suggest values that fit it, and none answers: .+\.$/
+  const kind = box.locator('.jp-Epi-valuekind');
+  await expect(kind).toHaveText(
+    'Half and double the value: no AI model answers.'
+  );
+  // Why no model answers is the line's tooltip.
+  await expect(kind).toHaveAttribute(
+    'title',
+    /^A model would suggest values that fit it, and none answers: .+\.$/
   );
   expect(asked).toEqual([]);
 });

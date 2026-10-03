@@ -32,6 +32,8 @@ jlpm build:prod
 2. Install test dependencies (needed only once):
 
 ```sh
+pip install -e ".[demo,kernel,plots]"
+pip install --group ui-tests
 cd ./ui-tests
 jlpm install
 jlpm playwright install

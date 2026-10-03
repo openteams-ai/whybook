@@ -4,6 +4,7 @@ import type { Locator } from '@playwright/test';
 import * as path from 'path';
 
 import { expect, test } from './fixtures';
+import { tooltipLines } from './tooltips';
 
 const DEMO = path.resolve(__dirname, '..', '..', 'examples', 'pain_diary');
 
@@ -1364,7 +1365,8 @@ test("labels a table tile with Claude's words and keeps them in the cell", async
     {
       description: 'wide sample',
       headline: '3 significant',
-      by: { choice: 'remote', model: 'claude-opus-5-5' }
+      // The default of labels: the fastest model of the connected provider.
+      by: { choice: 'remote:fastest', model: 'claude-opus-5-5' }
     }
   ]);
 
@@ -1398,8 +1400,9 @@ test("labels a table tile with Claude's words and keeps them in the cell", async
   ).toHaveAttribute('title', /^Written by Gemma 4 E2B, a local model on /);
   expect(requests).toHaveLength(2);
   expect(requests[1].model).toBe('gemma-4-e2b');
-  // Back to the remote model: its labels were kept, so none is asked for.
-  await labelsModel('remote');
+  // Back to the default, the fastest remote model: its labels were kept, so
+  // none is asked for.
+  await labelsModel('remote:fastest');
   await expect(tile.locator('.jp-Epi-tabletile-description')).toHaveText(
     'wide sample'
   );
@@ -1588,7 +1591,9 @@ test('greys the questions that need AI when no model answers, says how to set on
   tmpPath
 }) => {
   // The test server's CLI does not exist, so its status reports, without a
-  // call to the model, that the remote model cannot answer, and why.
+  // call to the model, that the remote model cannot answer, and why. The
+  // reason depends on the server: without the claude extra it names the
+  // missing SDK, with it the CLI. The view shows the one the status gives.
   const file = `${tmpPath}/noai.ipynb`;
   const notebook = {
     cells: [
@@ -1621,15 +1626,16 @@ test('greys the questions that need AI when no model answers, says how to set on
   };
   await page.contents.uploadContent(JSON.stringify(notebook), 'text', file);
   await openInWhybook(page, file);
-  const reason =
-    'the Claude Code CLI is not at /nonexistent/whybook-tests-never-call-claude, where c.Whybook.claude_cli_path points';
+  const status = await (await page.request.get('/whybook/status')).json();
+  const { reason, setup } = status.claude as { reason: string; setup: string };
+  expect(reason).toBeTruthy();
   await page
     .locator('[data-cell-id="note"]')
     .getByRole('button', { name: 'Question this text' })
     .click();
   const box = popover(page);
   await expect(box.locator('.jp-Epi-aioff')).toHaveText(
-    `Questions marked needs AI and your own questions are off: ${reason}. Point c.Whybook.claude_cli_path at the claude command, or leave it unset to use the one that comes with claude-agent-sdk, and restart the server.`
+    `Questions marked needs AI and your own questions are off: ${reason}. ${setup}`
   );
   // Every question about a text needs AI: they stay, greyed, and do nothing.
   const option = box.locator('.jp-Epi-option').first();
@@ -1652,9 +1658,7 @@ test('greys the questions that need AI when no model answers, says how to set on
         has: page.locator('#jp-Epi-quick-cells')
       })
       .locator('.jp-Epi-aipanel-note')
-  ).toHaveText(
-    `Cannot run: ${reason}. Point c.Whybook.claude_cli_path at the claude command, or leave it unset to use the one that comes with claude-agent-sdk, and restart the server.`
-  );
+  ).toHaveText(`Cannot run: ${reason}. ${setup}`);
   await page.keyboard.press('Escape');
 
   // The cards of the map are 260 px wide, and a long title takes two lines.
@@ -2470,7 +2474,7 @@ test('shows on the map how an answer asked there goes, and counts a question onc
   ).toContainText('Added [3] after [2]');
 });
 
-test('offers other values of a constant above its chip, and tries a typed one', async ({
+test('offers other values of a constant under its chip, and tries a typed one', async ({
   page,
   tmpPath
 }) => {
@@ -2496,10 +2500,10 @@ test('offers other values of a constant above its chip, and tries a typed one', 
     'What if ALPHA were 0.01?',
     'What if ALPHA were 0.1?'
   ]);
-  // The questions open above the chip: the code under it stays in sight.
+  // The questions open under the chip (design iteration 1.86, chips.spec.ts).
   const chipBox = (await chip.boundingBox())!;
   const boxBox = (await box.boundingBox())!;
-  expect(boxBox.y + boxBox.height).toBeLessThanOrEqual(chipBox.y + 1);
+  expect(boxBox.y).toBeGreaterThanOrEqual(chipBox.y + chipBox.height - 1);
 
   // A value typed as in Python runs in a branch of the cell.
   await box.locator('.jp-Epi-valuebox input').fill('0.3');
@@ -2511,12 +2515,9 @@ test('offers other values of a constant above its chip, and tries a typed one', 
     timeout: 60000
   });
   // A template wrote the branch, and the value is the analyst's: its chip
-  // is plain, without the AI tag, and its tooltip says who chose it.
+  // is plain, without the AI tag.
   const typed = branch.locator('.jp-Epi-chip', { hasText: 'ALPHA_if_0_3 0.3' });
-  await expect(typed).toHaveAttribute('title', /^Chosen by you\./, {
-    timeout: 60000
-  });
-  await expect(typed).toHaveText('ALPHA_if_0_3 0.3');
+  await expect(typed).toHaveText('ALPHA_if_0_3 0.3', { timeout: 60000 });
   await expect(typed.locator('.jp-Epi-aitag')).toHaveCount(0);
   await expect(typed).not.toHaveClass(/jp-mod-open/);
   // So does the question about it, where the AI's value says "The agent chose it".
@@ -2558,9 +2559,8 @@ test('shows one chip for two merges that leave how, and tries a value in one mer
   const chip = cell.locator('.jp-Epi-chip', { hasText: 'inner join' });
   await expect(chip).toHaveText('inner join ×2', { timeout: 60000 });
   await expect(chip).toHaveClass(/jp-mod-open/);
-  await expect(chip).toHaveAttribute(
-    'title',
-    /In both merges: the merge with patients \(line 1\) and the merge with labs \(line 1\)\./
+  expect(await tooltipLines(page, chip)).toContain(
+    'In both merges: the merge with patients (line 1) and the merge with labs (line 1).'
   );
 
   // Its what-if asks where the value goes.
@@ -2618,7 +2618,7 @@ test('shows one chip for two merges that leave how, and tries a value in one mer
   );
   await expect(chips.nth(0)).toHaveClass(/jp-mod-open/);
   await expect(chips.nth(1)).not.toHaveClass(/jp-mod-open/);
-  await expect(chips.nth(1)).toHaveAttribute('title', /^Chosen by you\./);
+  await expect(chips.nth(1).locator('.jp-Epi-aitag')).toHaveCount(0);
 });
 
 test('says what an answer did, and closes its strip with its × or after work on another cell', async ({
@@ -4607,7 +4607,7 @@ test('offers to run the cells that a cell uses before its questions edit it', as
   ).toContainText('y ~ x + z');
 });
 
-test('starts a new Whybook from the launcher and the data next to it, and says why nothing is worth asking next yet', async ({
+test('starts a new Whybook from the launcher and the data next to it, and offers the choice its load left open', async ({
   page,
   tmpPath
 }) => {
@@ -4654,9 +4654,8 @@ test('starts a new Whybook from the launcher and the data next to it, and says w
   ).toBeVisible();
   // The analyst chose the file: the chip of its path is theirs, with no AI tag.
   const fileChip = page.locator('.jp-Epi-chip', { hasText: 'visits.csv' });
-  await expect(fileChip.first()).toHaveAttribute('title', /^Chosen by you\./, {
-    timeout: 30000
-  });
+  await expect(fileChip.first()).toBeVisible({ timeout: 30000 });
+  await expect(fileChip.first()).not.toHaveClass(/jp-mod-open/);
   await expect(fileChip.first().locator('.jp-Epi-ai')).toHaveCount(0);
   // The first cell took the place of the new notebook's empty one.
   const cells = await page.evaluate(
@@ -4664,16 +4663,16 @@ test('starts a new Whybook from the launcher and the data next to it, and says w
       (window as any).jupyterapp.shell.currentWidget.context.model.cells.length
   );
   expect(cells).toBe(1);
-  // The kernel has data now: Worth asking next says why it suggests
-  // nothing, where it said "Suggestions appear once the kernel has data."
+  // The kernel has data now: Worth asking next offers the choice that the
+  // load left open, the header that read_csv takes by default, where it said
+  // "Suggestions appear once the kernel has data."
   await expect(
     page.locator('.jp-Epi-exploration .jp-Epi-block', {
       hasText: 'Worth asking next'
     })
-  ).toContainText(
-    'No suggestions yet: no cell leaves a choice open, and the view does not know which column this analysis explains.',
-    { timeout: 30000 }
-  );
+  ).toContainText("Does header = 'infer' change the result of [1]?", {
+    timeout: 30000
+  });
 });
 
 test('opens the later demo with its map, panels and labels before a run', async ({

@@ -673,9 +673,9 @@ test('says under an agent’s answer which of its cells the analyst changed sinc
   tmpPath
 }) => {
   const agents =
-    'long = diary_raw.melt(id_vars=["patient_id"])\nlong = long.reset_index()';
+    'long = diary_raw.melt(id_vars=["patient_id"])\nlong = long.dropna()';
   const edited =
-    'diary = diary_raw.melt(id_vars=["patient_id"])\ndiary = diary.reset_index(drop=True)';
+    'diary = diary_raw.melt(id_vars=["patient_id"])\ndiary = diary.dropna(thresh=2)';
   const file = `${tmpPath}/handedit.ipynb`;
   await writeNotebook(
     page,
@@ -685,7 +685,7 @@ test('says under an agent’s answer which of its cells the analyst changed sinc
         'load',
         'import pandas as pd\ndiary_raw = pd.DataFrame({"patient_id": ["P1", "P2"], "pain_1": [3, 5], "pain_2": [4, 6]})'
       ),
-      // The analyst renamed the agent's frame and added drop=True, by hand.
+      // The analyst renamed the agent's frame and added thresh=2, by hand.
       code('melt', edited, {
         written_by: 'agent',
         generated_by: { agent: 'openrouter', model: 'fake/model' },
@@ -718,13 +718,13 @@ test('says under an agent’s answer which of its cells the analyst changed sinc
     }
   );
   await openAndRun(page, file, 2);
-  const drop = card(page, 'melt').locator('.jp-Epi-chip', {
-    hasText: 'drop True'
+  // The value the analyst typed is theirs: a plain chip, with no AI tag.
+  const thresh = card(page, 'melt').locator('.jp-Epi-chip', {
+    hasText: 'thresh 2'
   });
-  await expect(drop).toHaveAttribute('title', /^Chosen by you\.\n/, {
-    timeout: 60000
-  });
-  await expect(drop.locator('.jp-Epi-aitag')).toHaveCount(0);
+  await expect(thresh).toBeVisible({ timeout: 60000 });
+  await expect(thresh).not.toHaveClass(/jp-mod-open/);
+  await expect(thresh.locator('.jp-Epi-aitag')).toHaveCount(0);
   // The run's strip, drawn again from the notebook's record of it.
   await page.sidebar.openTab('epi-exploration');
   await page.locator('.jp-Epi-runhistory-head').click();

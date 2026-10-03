@@ -129,10 +129,19 @@ jobs:
     - name: Install the extension
       run: |
         set -eux
-        # The kernel of the tests' notebooks: the demo's libraries, narwhals for
-        # the variables, the outputs that the view draws, and the libraries that
-        # single tests import.
-        python -m pip install "jupyterlab>=4.0.0,<5" "$(ls whybook*.whl)[demo,kernel,plots]" matplotlib scikit-learn polars
+        # --group needs pip 25.1.
+        python -m pip install -U "pip>=25.1"
+        python -m pip install "jupyterlab>=4.0.0,<5" "$(ls whybook*.whl)[demo,kernel,plots]"
+        python -m pip install --group ui-tests
+
+    - name: Install bubblewrap for the sandboxed kernel
+      run: |
+        set -eux
+        # The later demo is saved with "Python 3 (sandboxed)". Ubuntu 24.04
+        # lets AppArmor refuse unprivileged user namespaces, which bwrap needs.
+        sudo apt-get update
+        sudo apt-get install -y bubblewrap
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
     - name: Install dependencies
       working-directory: ui-tests

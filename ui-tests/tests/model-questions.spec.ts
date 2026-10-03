@@ -18,6 +18,7 @@ import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import type { Locator, Route } from '@playwright/test';
 
 import { expect, test } from './fixtures';
+import { tooltipLines } from './tooltips';
 
 // Each test runs the cells of its notebook in a kernel first.
 test.describe.configure({ timeout: 180000 });
@@ -190,15 +191,14 @@ test('a value that a template wrote is chosen by the template, and a value of a 
     hasText: 'left join'
   });
   await expect(left).toBeVisible({ timeout: 60000 });
-  await expect(left).toHaveAttribute(
-    'title',
-    /^Chosen by the template you picked\.\n/
+  expect(await tooltipLines(page, left)).toContain(
+    'Chosen by the template you picked.'
   );
   await expect(left.locator('.jp-Epi-aitag')).toHaveCount(0);
   const normalize = card(page, 'share').locator('.jp-Epi-chip', {
     hasText: 'normalize index'
   });
-  await expect(normalize).toHaveAttribute('title', /^Chosen by AI\.\n/);
+  expect(await tooltipLines(page, normalize)).toContain('Chosen by AI.');
   await expect(normalize.locator('.jp-Epi-aitag')).toHaveCount(1);
 
   // The questions of the chip say who chose the value.

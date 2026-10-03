@@ -100,6 +100,16 @@ test = [
     "pytest-jupyter[server]>=0.6.0"
 ]
 
+[dependency-groups]
+# Imported by single galata tests, beyond the demo, kernel and plots extras.
+ui-tests = [
+    "matplotlib",
+    "ninejs",
+    "plotnine",
+    "polars",
+    "scikit-learn",
+]
+
 # The kernel in a sandbox (whybook/sandbox/), which the kernelspec
 # "Python 3 (sandboxed)" names in metadata.kernel_provisioner.
 [project.entry-points."jupyter_client.kernel_provisioners"]
