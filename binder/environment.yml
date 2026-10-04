@@ -17,4 +17,4 @@ dependencies:
   - pip:
       # The release from PyPI, not a build of this checkout: no Node.js, and a
       # faster build each time a new commit invalidates the image.
-      - whybook[demo,kernel,plots]
+      - whybook[demo,kernel,plots,models]

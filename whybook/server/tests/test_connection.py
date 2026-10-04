@@ -88,7 +88,7 @@ def test_readiness_says_what_is_missing_without_a_call(monkeypatch):
     assert connection.readiness(config)["priced"] is False
     monkeypatch.setattr(model_client, "is_installed", lambda provider=None: False)
     ready = connection.readiness(config)
-    assert ready["reason"] == "pydantic-ai-slim is not installed on the server" and ".[models]" in ready["setup"]
+    assert ready["reason"] == "pydantic-ai-slim is not installed on the server" and "whybook[models]" in ready["setup"]
 
 
 def test_readiness_asks_for_a_pasted_key_and_the_companys_sdk(monkeypatch):

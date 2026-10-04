@@ -120,7 +120,7 @@ def keychain_login(environ: dict[str, str]) -> bool:
 
 
 # One line on how to set the remote model up, for each thing that is missing.
-SETUP_SDK = "Install the claude extra of whybook, pip install -e \".[claude]\", and restart the server."
+SETUP_SDK = "Install the claude extra of whybook, pip install \"whybook[claude]\", and restart the server."
 SETUP_CLI_PATH = "Point c.Whybook.claude_cli_path at the claude command, or leave it unset to use the one that comes with claude-agent-sdk, and restart the server."
 SETUP_CLI = "Install claude-agent-sdk again, which brings the CLI, or install Claude Code, and restart the server."
 SETUP_CREDENTIAL = "Set ANTHROPIC_API_KEY where the server starts and restart it, or run claude in a terminal to log in, then reload the page."
@@ -269,7 +269,7 @@ async def structured_call(
     try:
         import claude_agent_sdk as sdk
     except ImportError:  # the "claude" extra is not installed
-        log.warning("claude-agent-sdk is not installed: pip install -e '.[claude]'")
+        log.warning("claude-agent-sdk is not installed: pip install 'whybook[claude]'")
         yield {"type": "error", "message": "No AI model is set up on the server."}
         return
 

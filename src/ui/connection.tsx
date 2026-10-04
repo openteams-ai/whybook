@@ -447,7 +447,7 @@ export function ConnectionSection(props: {
           {!state.models_installed && (
             <div className="jp-Epi-aipanel-note jp-mod-warning">
               Every choice but the Claude Code login needs pydantic-ai-slim on
-              the server: pip install -e ".[models]", then restart it.
+              the server: pip install "whybook[models]", then restart it.
             </div>
           )}
           <div className="jp-Epi-connection-group">On this machine</div>
@@ -635,7 +635,7 @@ export function ConnectionSection(props: {
                   label={company.label}
                   note={
                     !company.installed
-                      ? 'Needs its Python package on the server: pip install -e ".[models]"'
+                      ? 'Needs its Python package on the server: pip install "whybook[models]"'
                       : company.signed_in
                         ? `${serves}: ${keyWords(company)}`
                         : serves

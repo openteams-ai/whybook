@@ -45,7 +45,7 @@ MAX_SECONDS = 60
 # never said raised Tiny Streaming's errors from 4.83% to 5.88%.
 MAX_TERMS = 100
 MAX_TERM_LENGTH = 60
-INSTALL = "moonshine-voice is not installed: pip install -e '.[speech]'"
+INSTALL = "moonshine-voice is not installed: pip install 'whybook[speech]'"
 
 
 @dataclass(frozen=True)

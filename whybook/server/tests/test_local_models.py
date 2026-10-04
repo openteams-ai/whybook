@@ -174,7 +174,7 @@ def test_a_model_not_in_the_cache_gives_the_command_that_fetches_it(fake):
 def test_without_the_runtime_no_model_is_available(fake, monkeypatch):
     download(fake, GEMMA)
     monkeypatch.setattr(local_models, "runtime_available", lambda: False)
-    assert {entry["reason"] for entry in local_models.status()} == {"llama-cpp-python is not installed: pip install -e '.[local]'"}
+    assert {entry["reason"] for entry in local_models.status()} == {"llama-cpp-python is not installed: pip install 'whybook[local]'"}
 
 
 @pytest.mark.parametrize(
@@ -411,7 +411,7 @@ async def test_without_huggingface_hub_no_download_is_offered(fake, monkeypatch)
     monkeypatch.setattr(local_models, "hub_available", lambda: False)
     assert {entry["downloadable"] for entry in local_models.status()} == {False}
     events = [event async for event in local_models.download("gemma-4-e2b")]
-    assert events == [{"type": "error", "message": "huggingface_hub is not installed: pip install -e '.[local]'"}]
+    assert events == [{"type": "error", "message": "huggingface_hub is not installed: pip install 'whybook[local]'"}]
 
 
 async def test_the_download_route_takes_only_known_models(jp_fetch, fake, fake_hub, monkeypatch):

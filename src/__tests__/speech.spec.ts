@@ -544,12 +544,13 @@ describe('an engine of the Jupyter server', () => {
       speech_engines: [
         engine('moonshine-medium', {
           available: false,
-          reason: "moonshine-voice is not installed: pip install -e '.[speech]'"
+          reason:
+            "moonshine-voice is not installed: pip install 'whybook[speech]'"
         })
       ]
     };
     expect((await medium.availability(context(missing))).reason).toBe(
-      "Moonshine Medium cannot run in the Jupyter server: moonshine-voice is not installed: pip install -e '.[speech]'"
+      "Moonshine Medium cannot run in the Jupyter server: moonshine-voice is not installed: pip install 'whybook[speech]'"
     );
     expect((await medium.availability(context(null))).state).toBe(
       'unavailable'

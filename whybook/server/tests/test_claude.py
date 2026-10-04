@@ -202,7 +202,7 @@ def test_the_status_says_when_the_sdk_is_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(claude, "is_installed", lambda: False)
     status = claude.readiness(Whybook())
     assert (status["available"], status["reason"]) == (False, "claude-agent-sdk is not installed on the server")
-    assert 'pip install -e ".[claude]"' in status["setup"]
+    assert 'pip install "whybook[claude]"' in status["setup"]
 
 
 def test_on_macos_the_login_is_looked_for_in_the_keychain(tmp_path, monkeypatch):

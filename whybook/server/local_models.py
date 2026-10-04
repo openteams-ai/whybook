@@ -371,7 +371,7 @@ def status() -> list[dict[str, Any]]:
         missing = running or model_path(model) is None
         reason = None
         if not runtime_available():
-            reason = "llama-cpp-python is not installed: pip install -e '.[local]'"
+            reason = "llama-cpp-python is not installed: pip install 'whybook[local]'"
         elif running:
             reason = job.reason
         elif missing and job is not None and job.error:
@@ -1116,7 +1116,7 @@ async def download(model_id: str) -> AsyncIterator[dict[str, Any]]:
             yield {"type": "result", "model": model.id, "elapsed": 0.0}
             return
         if not hub_available():
-            yield {"type": "error", "message": "huggingface_hub is not installed: pip install -e '.[local]'"}
+            yield {"type": "error", "message": "huggingface_hub is not installed: pip install 'whybook[local]'"}
             return
         job = Download(model)
         job.task = asyncio.ensure_future(_download_and_check(job))

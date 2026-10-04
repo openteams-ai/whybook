@@ -139,7 +139,7 @@ def test_without_moonshine_voice_no_engine_can_run(monkeypatch):
     monkeypatch.setattr(speech, "runtime_available", lambda: False)
     entries = speech.status()
     assert [entry["id"] for entry in entries] == ["moonshine-medium", "moonshine-small"]
-    assert {entry["reason"] for entry in entries} == {"moonshine-voice is not installed: pip install -e '.[speech]'"}
+    assert {entry["reason"] for entry in entries} == {"moonshine-voice is not installed: pip install 'whybook[speech]'"}
     assert not any(entry["available"] or entry["downloadable"] for entry in entries)
 
 
@@ -238,7 +238,7 @@ async def test_an_engine_whose_model_is_missing_or_unknown_is_refused(fake, monk
     with pytest.raises(speech.SpeechError, match="unknown speech engine 'whisper'"):
         await speech.ask_transcribe("whisper", sine_wav(), [])
     monkeypatch.setattr(speech, "runtime_available", lambda: False)
-    with pytest.raises(speech.SpeechError, match=r"pip install -e '\.\[speech\]'") as error:
+    with pytest.raises(speech.SpeechError, match=r"pip install 'whybook\[speech\]'") as error:
         await speech.ask_transcribe("moonshine-medium", sine_wav(), [])
     assert error.value.status == 409
 
@@ -258,7 +258,7 @@ async def test_a_download_fetches_the_model_as_moonshine_voice_does(fake):
 async def test_a_download_without_moonshine_voice_says_how_to_install_it(monkeypatch):
     monkeypatch.setattr(speech, "runtime_available", lambda: False)
     events = [event async for event in speech.download("moonshine-medium")]
-    assert events == [{"type": "error", "message": "moonshine-voice is not installed: pip install -e '.[speech]'"}]
+    assert events == [{"type": "error", "message": "moonshine-voice is not installed: pip install 'whybook[speech]'"}]
     assert [event async for event in speech.download("whisper")] == [{"type": "error", "message": "unknown speech engine 'whisper'"}]
 
 

@@ -529,7 +529,7 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
     return drive
 
 
-SETUP_MODELS = 'Install the models extra of whybook, pip install -e ".[models]", and restart the server.'
+SETUP_MODELS = 'Install the models extra of whybook, pip install "whybook[models]", and restart the server.'
 
 # The words of a provider's error for a key that it refuses: HTTP 401, or a company's own words.
 # HTTP 403 is not among them: OpenRouter sends it for a prompt that its moderation flags,
