@@ -137,6 +137,29 @@ async function clickMode(page: IJupyterLabPageFixture): Promise<void> {
     .click();
 }
 
+/**
+ * The box of an element once it stops moving. After Run all, the Variables
+ * list settles and moves the Contents panel under it, so a box read too early
+ * sends a drag to the wrong place.
+ */
+async function settledBox(
+  locator: Locator
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  let last = '';
+  await expect
+    .poll(
+      async () => {
+        const now = JSON.stringify(await locator.boundingBox());
+        const same = now === last;
+        last = now;
+        return same;
+      },
+      { intervals: [250] }
+    )
+    .toBe(true);
+  return (await locator.boundingBox())!;
+}
+
 /** The status says that a model is set up; no model runs. */
 async function connected(page: IJupyterLabPageFixture): Promise<void> {
   await page.route(/\/whybook\/status/, async route => {
@@ -331,8 +354,8 @@ test.describe('a popover inside the window', () => {
     const source = column(page, 'tariff');
     const title = card(page, 'peak').locator('.jp-Epi-title');
     await title.scrollIntoViewIfNeeded();
-    const from = (await source.boundingBox())!;
-    const to = (await title.boundingBox())!;
+    const from = await settledBox(source);
+    const to = await settledBox(title);
     await page.mouse.move(from.x + 20, from.y + from.height / 2);
     await page.mouse.down();
     await page.mouse.move(from.x + 40, from.y + from.height / 2 + 5, {
@@ -340,6 +363,7 @@ test.describe('a popover inside the window', () => {
     });
     await page.mouse.move(to.x + 30, to.y + to.height / 2, { steps: 10 });
     await page.mouse.up();
+    await expect(popover(page)).toBeVisible();
     // No template fits: the popover waits for the model's questions.
     await expect(popover(page).locator('.jp-Epi-modelline')).toBeVisible({
       timeout: 60000
