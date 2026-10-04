@@ -144,8 +144,8 @@ export function ModeSwitch(props: { model: EpiModel }): JSX.Element {
 
 const LAYOUTS: { value: Layout; title: string }[] = [
   { value: 'sidebars', title: 'Panels in the sidebars' },
-  { value: 'variables-here', title: 'Variables in this view' },
-  { value: 'all-here', title: 'All panels in this view' }
+  { value: 'variables-here', title: 'Variables beside the notebook' },
+  { value: 'all-here', title: 'All panels beside the notebook' }
 ];
 
 export function LayoutSelect(props: { model: EpiModel }): JSX.Element {
@@ -223,7 +223,7 @@ export function followRule(map: boolean, picked: boolean): string {
   const percent = (zoom: number) => `${Math.round(zoom * 100)}%`;
   const rule = map
     ? `The zoom sets the level: None below ${percent(ZOOM_STEPS[0])}, Minimal from ${percent(ZOOM_STEPS[0])}, Overview from ${percent(ZOOM_STEPS[1])}.`
-    : `The width of the view sets the level: Overview when narrow, Compact from ${WIDTH_STEPS[0]} px, Full from ${WIDTH_STEPS[1]} px.`;
+    : `The width of the column of cells sets the level: Overview when narrow, Compact from ${WIDTH_STEPS[0]} px, Full from ${WIDTH_STEPS[1]} px.`;
   const space = map ? 'the zoom' : 'the width';
   return picked
     ? `You picked this level. It holds until ${space} reaches another level. ${rule}`

@@ -9,7 +9,7 @@
 
 ## You ask the questions. Agents write the code.
 
-Whybook is a view of a Jupyter notebook for data analysis with AI, in which the analyst asks the questions and still understands every result. It has no chat box. The analyst picks one of the questions that Whybook offers, or types or says their own. The offers follow what the analyst points at (a column dragged onto a cell or clicked in Click mode, a region of a plot, a chip on a cell). The code comes from a template or from the AI model of the analyst's choice, and Whybook places the cell and runs it. Every constant, default and choice behind the result is shown on the cell, where the analyst can question it.
+Whybook is a view of a Jupyter notebook for asking questions about data and understanding every result. It has no chat box. The analyst picks one of the questions it offers, or types or says their own. The offers follow what the analyst points at (a column dragged onto a cell or clicked in Click mode, a region of a plot, a chip on a cell). The code comes from a template or from the AI model of the analyst's choice, and Whybook places the cell and runs it. Every constant, default and choice behind the result is shown on the cell, where the analyst can question it.
 
 [whybook.dev](https://whybook.dev) also gives the evidence behind the idea, and [the roadmap](https://whybook.dev/roadmap.html) sets out the path to v1.
 

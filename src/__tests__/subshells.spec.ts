@@ -1,9 +1,9 @@
 /**
  * The connections of the view to subshells (src/model/kernel.ts), and the
  * branches that wait for them (src/model/jobs.ts), with a kernel that does
- * not answer: the galata failure of 30 September, where a branch stayed
- * queued for a minute after ipykernel 7.3 left the first request of its new
- * connection unread. No kernel starts.
+ * not answer: the galata failure where a branch stayed queued for a minute
+ * after ipykernel 7.3 left the first request of its new connection unread.
+ * No kernel starts.
  */
 import './fakes/quiet';
 
@@ -187,8 +187,8 @@ describe('subshellConnection', () => {
     const { kernel, created, clones, woken } = fakeKernel();
     const result = settled(subshellConnection(kernel));
     await jest.advanceTimersByTimeAsync(100);
-    // Before 30 September the new connection asked for its kernel info in
-    // the main shell, and waited there for the cell.
+    // A connection that asks for its kernel info in the main shell waits
+    // there for the cell.
     expect(result.pending).toBe(false);
     expect(result.value).toBe(clones[0]);
     expect(clones[0].askedIn).toBe('s1');
@@ -281,7 +281,7 @@ describe('a branch whose subshell does not open', () => {
     await jest.advanceTimersByTimeAsync(SUBSHELL_WAIT_MS - 100);
     expect(jobs.jobFor('cell-1')?.status).toBe('queued');
     await jest.advanceTimersByTimeAsync(200);
-    // Before 30 September the job stayed queued, and the run never ended.
+    // Without SUBSHELL_WAIT_MS, the job stays queued and the run never ends.
     expect(result.value).toEqual({
       ok: false,
       error:

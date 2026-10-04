@@ -124,7 +124,7 @@ export function EmptyStart(props: { model: EpiModel }): JSX.Element {
       <h2 className="jp-Epi-start-title">Start from your data</h2>
       <p className="jp-Epi-start-text">
         Drag a data file from the file browser, or a table from the Databases
-        panel, and drop it here. The view then offers to load it, profile it, or
+        panel, and drop it here. Whybook then offers to load it, profile it, or
         join it to the data you have.
       </p>
       <div className="jp-Epi-start-actions">

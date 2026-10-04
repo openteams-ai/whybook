@@ -1,6 +1,6 @@
 /**
- * Rules first, and a model when the rules cannot tell: the owner's rule of
- * 30 September 2026. Two places of the view follow it.
+ * Rules first, and a model when the rules cannot tell: the owner's rule.
+ * Two places of the view follow it.
  *
  * - The values offered from a constant's chip follow the kind of the
  *   constant, which rules read on the server (whybook/server/questions/

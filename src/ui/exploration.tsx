@@ -455,7 +455,7 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
                   meta.exploration?.dismissed?.length
                   ? 'No suggestions left: the others were put off with Not now.'
                   : 'Every column is in the analysis, and no cell leaves a choice open.'
-                : 'No suggestions yet: no cell leaves a choice open, and the view does not know which column this analysis explains.'
+                : 'No suggestions yet: no cell leaves a choice open, and Whybook does not know which column this analysis explains.'
               : 'Suggestions appear once the kernel has data.'}
           </div>
         )}

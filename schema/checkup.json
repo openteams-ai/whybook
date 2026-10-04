@@ -23,8 +23,8 @@
         },
         {
           "const": "whybook",
-          "title": "Whybook views",
-          "description": "On the tabs of Whybook views"
+          "title": "Notebooks in Whybook",
+          "description": "On the tabs of notebooks open in Whybook"
         },
         {
           "const": "notebooks",

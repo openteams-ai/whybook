@@ -84,7 +84,7 @@ export function serverEngine(spec: {
       const entry = entryOf(context.status);
       if (!entry) {
         return unavailable(
-          `This Jupyter server has no ${spec.label}: its Whybook may be older than the view's.`
+          `This Jupyter server has no ${spec.label}: its Whybook may be older than the one in the browser.`
         );
       }
       if (entry.available) {

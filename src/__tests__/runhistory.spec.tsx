@@ -531,7 +531,7 @@ describe('the history of runs in the view', () => {
     await view.unmount();
     opened.model.dispose();
     expect(note).toBe(
-      'The notebook kept the cells of this run, not its steps or its answer: it ran before the view kept them.'
+      'The notebook kept the cells of this run, not its steps or its answer: it ran before Whybook kept them.'
     );
   });
 

@@ -46,7 +46,7 @@ const BY_LEVEL_ONE = [
 describe('A notebook that uses # for each section', () => {
   it('numbers the sections from 1 after the cells before the first heading', () => {
     // §0 holds the cells before the first heading; the numbers read §0, §2,
-    // §3 before 30 September, since §0 counted as the first section.
+    // §3 when §0 counted as the first section.
     const { model } = benchModel(BY_LEVEL_ONE);
     const numbers = model
       .sections()

@@ -165,7 +165,7 @@ async function svgAsPng(
       height: canvas.height
     };
   } catch (error) {
-    console.warn('The view could not turn the SVG picture into a PNG', error);
+    console.warn('Whybook could not turn the SVG picture into a PNG', error);
     return null;
   }
 }

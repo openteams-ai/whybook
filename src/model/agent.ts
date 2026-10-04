@@ -191,7 +191,7 @@ export interface IAgentRun {
   /**
    * A run that ended before, drawn again from the notebook's record of it
    * (design iteration 1.73): when it ended, and whether the record holds its
-   * steps and its answer, which records from before 30 September 2026 lack.
+   * steps and its answer, which records of older versions lack.
    * Its strip has no Remove, since the record keeps no code to check the
    * cells against.
    */

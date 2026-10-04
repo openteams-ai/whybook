@@ -269,7 +269,7 @@ describe('the words', () => {
     ]);
     // A cell of the view with no mark may be a model's, from an earlier version.
     expect(writer({ written_by: 'agent' })).toEqual([
-      'The view wrote this code, from a template or with a model; the notebook does not record which.'
+      'Whybook wrote this code, from a template or with a model; the notebook does not record which.'
     ]);
     expect(writer({})).toEqual(['You wrote this code.']);
     expect(cellWriter({}, {}, 'markdown')).toEqual(['You wrote this text.']);

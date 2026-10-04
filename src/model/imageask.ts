@@ -142,7 +142,7 @@ export function imageOptions(cellId: string, cellLabel: string): IOption[] {
       type: 'descriptive',
       origin: 'template',
       probability: null,
-      reasons: ['the view cannot map this picture to rows'],
+      reasons: ['Whybook cannot map this picture to rows'],
       effect: 'AI reads the picture and writes a cell',
       placement: {
         kind: 'new',

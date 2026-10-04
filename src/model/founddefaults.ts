@@ -1,7 +1,7 @@
 /**
  * Library defaults that a model found in the signatures of the functions
  * that a cell calls: design iteration 1.53, the setting "Find more defaults
- * with AI", on by default since 1 October 2026.
+ * with AI", on by default.
  *
  * With the setting on, the kernel's analysis of each cell also lists the
  * library functions that the cell calls, each with every parameter that has

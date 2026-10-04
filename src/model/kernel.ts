@@ -37,7 +37,7 @@ export function snippetCall(
 ): string {
   const code = language.call(name, args);
   if (code === null) {
-    throw new Error(`The view has no ${name} for ${language.label}`);
+    throw new Error(`Whybook has no ${name} for ${language.label}`);
   }
   return code;
 }
@@ -200,7 +200,7 @@ export async function subshellConnection(
   };
   try {
     if (!(await opened(connection))) {
-      throw new Error('The view could not open a connection to the kernel');
+      throw new Error('Whybook could not open a connection to the kernel');
     }
     let waited = 0;
     for (let wait = WAKE_MS; ; wait *= 2) {
@@ -405,7 +405,7 @@ export class KernelBridge implements IDisposable {
     const language = await this._readLanguage();
     if (!language) {
       throw new Error(
-        `The view has no ${name} for ${this._languageName || 'this kernel'}`
+        `Whybook has no ${name} for ${this._languageName || 'this kernel'}`
       );
     }
     const execution = await this.execute(

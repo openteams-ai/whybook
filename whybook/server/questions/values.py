@@ -8,10 +8,10 @@ significance level the conventional levels next to it, a seed other seeds.
 ``suggest`` gives the kind and the values, each with a reason.
 
 When no rule knows the kind, the view asks a model for values
-(``model_values`` and ``local_values``): the owner's rule of 30 September
-2026, that the view defers to a model where its rules cannot tell. Without
-a model the view keeps the rule of before, ``fallback``: half below and
-above a whole number, half and double a decimal.
+(``model_values`` and ``local_values``): the owner's rule that the view
+defers to a model where its rules cannot tell. Without a model the view keeps
+the older rule, ``fallback``: half below and above a whole number, half and
+double a decimal.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ class Suggestion:
     """The kind of a constant and the values to try for it.
 
     ``kind`` is None when no rule knows the kind: then ``values`` hold the
-    rule of before 30 September 2026 (``fallback``), and the view asks a model.
+    older rule (``fallback``), and the view asks a model.
     ``label`` names the kind for the analyst, "a count of days", and ``rule``
     says how the values were chosen, "common lengths of time".
     """
@@ -521,7 +521,7 @@ def reads_file(function: str, param: str, value: str) -> bool:
 
 
 def fallback(value: str) -> tuple[Value, ...]:
-    """The rule of before 30 September 2026: half below and above a whole number, half and double a decimal."""
+    """The rule without a model: half below and above a whole number, half and double a decimal."""
     number = _number(value)
     if number is None:
         return ()

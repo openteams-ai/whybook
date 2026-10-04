@@ -322,7 +322,7 @@ describe("the Running panel's section and the status bar item", () => {
     expect(label.props.children).toBe('pain_diary_cohort.ipynb');
     expect(item.detail?.()).toBe('1 cell · 41 s');
     expect(item.labelTitle?.()).toBe(
-      `An agent answers "${QUESTION}" in pain_diary/pain_diary_cohort.ipynb: 1 cell so far. Click to open the run in the Whybook view.`
+      `An agent answers "${QUESTION}" in pain_diary/pain_diary_cohort.ipynb: 1 cell so far. Click to open the run in Whybook.`
     );
     expect(item.children?.map(child => child.label())).toEqual([QUESTION]);
     // Stop, as the strip's Stop does.

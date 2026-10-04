@@ -1,5 +1,5 @@
 /**
- * Design iterations 1.55 and 1.56 of 30 September, in the browser against
+ * Design iterations 1.55 and 1.56, in the browser against
  * the built extension:
  *
  * - 1.56: an agent's run that goes on after its Whybook view closes shows in

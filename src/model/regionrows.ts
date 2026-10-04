@@ -1,7 +1,7 @@
 /**
  * Questions about the rows of a range picked on a plot (design iteration
  * 1.85): who they are, and how the groups compare there. Pain step 28 of
- * the second pass of dogfooding: weeks 20 to 28 picked on the trajectory of
+ * the testers' second pass: weeks 20 to 28 picked on the trajectory of
  * pain asked only about the interval method of the card.
  */
 import type { IOption, IPlacement } from '../tokens';

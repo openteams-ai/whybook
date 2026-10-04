@@ -470,7 +470,7 @@ export function speedFindings(
       findings: [],
       // The view times the runs that it sees while the Check-up is on: a Run
       // all before the setting turned on left no time (design iteration 1.83).
-      note: 'No run times yet. The view times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
+      note: 'No run times yet. Whybook times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
     };
   }
   const total = timed.reduce((sum, cell) => sum + seconds.get(cell.id)!, 0);
@@ -1027,7 +1027,7 @@ export function pythonsDiffer(kernel: string, notebook: string): boolean {
 
 /**
  * The note of the folded section, in grey: none before the first check-up
- * (the owner, 30 September 2026: "never does not need to be shown"), then
+ * (the owner: "never does not need to be shown"), then
  * the day of the last one. Seven days or more after the last check-up, and
  * after one of the events of 1.70, it says how many days: the one hint. A
  * look at the check-up sets the day again, so the hint goes for seven days.

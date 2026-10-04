@@ -1,7 +1,7 @@
 /**
  * Another library for a cell that calls a known library: "Compare with
  * statsmodels" in the cell's menu (design iteration 1.68, C2, decided by
- * the owner on 30 September 2026). A small table maps a call to another
+ * the owner). A small table maps a call to another
  * library, with the reason that the result can differ. A model writes a
  * branch of the cell with the other library, as it writes a what-if
  * branch, and the two results stand side by side.

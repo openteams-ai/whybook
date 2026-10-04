@@ -176,7 +176,7 @@ describe('the R adapter', () => {
     );
     expect(R.call('region_summary', {})).toBeNull();
     expect(() => snippetCall('region_summary', {}, R)).toThrow(
-      'The view has no region_summary for R'
+      'Whybook has no region_summary for R'
     );
   });
 
@@ -229,7 +229,7 @@ describe('the SAS adapter', () => {
       expect(SAS.call(name, {})).toBeNull();
     }
     expect(() => snippetCall('inspect_variables', {}, SAS)).toThrow(
-      'The view has no inspect_variables for SAS'
+      'Whybook has no inspect_variables for SAS'
     );
     for (const feature of [
       'variables',
@@ -247,7 +247,7 @@ describe('the SAS adapter', () => {
     );
     // Questions ask about the variables, which the view cannot list in SAS.
     expect(unsupported('questions', 'sas')).toBe(
-      "Questions ask about the kernel's variables, which the view lists in a Python or R kernel. This kernel runs SAS."
+      "Questions ask about the kernel's variables, which Whybook lists in a Python or R kernel. This kernel runs SAS."
     );
   });
 

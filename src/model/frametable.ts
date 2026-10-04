@@ -1422,7 +1422,7 @@ function polarsSource(
         ...known,
         rows: null,
         keys: null,
-        reason: `The view cannot tell which rows of ${name} these are: the table has ${read.size.rows.toLocaleString('en-US')} rows, and ${name} has ${frame.rows.toLocaleString('en-US')} now.`
+        reason: `Whybook cannot tell which rows of ${name} these are: the table has ${read.size.rows.toLocaleString('en-US')} rows, and ${name} has ${frame.rows.toLocaleString('en-US')} now.`
       };
     }
   }
@@ -1434,14 +1434,14 @@ function polarsSource(
       : state.rows === 'groups'
         ? state.keys
           ? `The table shows groups of the rows of ${name}, by ${joinNames(state.keys)}.`
-          : `The table shows groups of the rows of ${name}, made by code the view cannot read.`
+          : `The table shows groups of the rows of ${name}, made by code that Whybook cannot read.`
         : state.rows === 'statistics'
           ? `The rows of this table are statistics of the columns of ${name}, not rows of ${name}.`
           : state.rows === 'columns'
             ? `Each row of this table is a column of ${name}.`
             : state.moved
-              ? `The view cannot tell which rows of ${name} these are. A polars table has no row labels, and after ${state.moved} a row's place in the table is not its place in ${name}.`
-              : `The view cannot tell which rows of ${name} these are: it does not read what ${expression} does to them.`;
+              ? `Whybook cannot tell which rows of ${name} these are. A polars table has no row labels, and after ${state.moved} a row's place in the table is not its place in ${name}.`
+              : `Whybook cannot tell which rows of ${name} these are: it does not read what ${expression} does to them.`;
   return {
     ...known,
     rows: state.rows,
@@ -1481,12 +1481,12 @@ export function resolveTable(
         : state.rows === 'groups'
           ? state.keys
             ? `The table shows groups of the rows of ${byName.name}, by ${joinNames(state.keys)}.`
-            : `The table shows groups of the rows of ${byName.name}, made by code the view cannot read.`
+            : `The table shows groups of the rows of ${byName.name}, made by code that Whybook cannot read.`
           : state.rows === 'statistics'
             ? `The rows of this table are statistics of the columns of ${byName.name}, not rows of ${byName.name}.`
             : state.rows === 'columns'
               ? `Each row of this table is a column of ${byName.name}.`
-              : `The view cannot tell which rows of ${byName.name} these are: ${expression} changes their labels.`;
+              : `Whybook cannot tell which rows of ${byName.name} these are: ${expression} changes their labels.`;
     return {
       frame: byName.name,
       rows: state.rows,
@@ -1523,7 +1523,7 @@ export function resolveTable(
       keys: null,
       expression,
       by: 'columns',
-      reason: `The table has the columns of ${found.name}. A polars table has no row labels, and the view cannot tell which rows of ${found.name} it shows without the code that shows it.`
+      reason: `The table has the columns of ${found.name}. A polars table has no row labels, and Whybook cannot tell which rows of ${found.name} it shows without the code that shows it.`
     };
   }
   if (found) {
@@ -1550,7 +1550,7 @@ export function resolveTable(
       by: 'columns',
       reason:
         rows === null
-          ? `The table has columns of ${found.name}, and the view cannot tell which of its rows it shows.`
+          ? `The table has columns of ${found.name}, and Whybook cannot tell which of its rows it shows.`
           : `The table has the columns of ${found.name}.`
     };
   }
@@ -1564,10 +1564,10 @@ export function resolveTable(
     by: null,
     reason:
       output.tables > 1
-        ? 'The view cannot tell which frame each of the tables of this output shows.'
+        ? 'Whybook cannot tell which frame each of the tables of this output shows.'
         : candidates.length > 1
-          ? `The view cannot tell which frame ${shown}: ${joinNames(candidates.map(frame => frame.name))} have its columns.`
-          : `The view cannot tell which frame ${shown}: no frame in the kernel has its columns.`
+          ? `Whybook cannot tell which frame ${shown}: ${joinNames(candidates.map(frame => frame.name))} have its columns.`
+          : `Whybook cannot tell which frame ${shown}: no frame in the kernel has its columns.`
   };
 }
 

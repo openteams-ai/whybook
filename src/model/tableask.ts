@@ -202,7 +202,7 @@ export function polarsPicks(
   );
   const absent = from.filter((_, index) => where[index] === undefined);
   if (absent.length) {
-    return `The table does not show ${listed(absent)}, which the view needs to find these rows in ${source.frame}. Keep the table as a variable to ask about its own rows.`;
+    return `The table does not show ${listed(absent)}, which Whybook needs to find these rows in ${source.frame}. Keep the table as a variable to ask about its own rows.`;
   }
   return {
     labels: picked.map(row => where.map(place => row.cells?.[place!] ?? '')),
@@ -338,7 +338,7 @@ function headerNote(
     return `${label} is a statistic of ${frame}, not one of its columns.`;
   }
   if (source.headers !== 'columns') {
-    return `The view cannot tell which column of ${frame} ${label} is.`;
+    return `Whybook cannot tell which column of ${frame} ${label} is.`;
   }
   return column
     ? source.reason
@@ -927,7 +927,7 @@ function otherOptions(
       type: 'descriptive',
       origin: 'template',
       probability: 0.5,
-      reasons: ['a frame of its own is one the view can read'],
+      reasons: ['a frame of its own is one that Whybook can read'],
       effect: `Runs ${expression} again as ${name}`,
       placement,
       code: [
@@ -957,7 +957,7 @@ function otherOptions(
       type: 'causal',
       origin: 'template',
       probability: 0.4,
-      reasons: ['the view cannot find these rows in a frame'],
+      reasons: ['Whybook cannot find these rows in a frame'],
       effect: 'AI writes the check',
       placement,
       code: null

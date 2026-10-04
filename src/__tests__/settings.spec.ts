@@ -53,8 +53,7 @@ describe('readSettings', () => {
     // JupyterLab fills modelQuestions in with its default.
     expect(composite.modelQuestions).toBe('always');
     expect(read('{"aiWhenNoTemplate": false}').modelQuestions).toBe('never');
-    // Until 30 September the switch was on by default: a saved true is the
-    // new default.
+    // The switch was on by default: a saved true reads as the new default.
     expect(read('{"aiWhenNoTemplate": true}').modelQuestions).toBe('always');
     // A choice saved since wins over the switch.
     expect(

@@ -244,7 +244,7 @@ test.describe('With "Level of detail follows the space" on', () => {
     await expect(tile).toContainText('4 lines');
     await expect(page.locator('.jp-Epi-detail')).toHaveAttribute(
       'title',
-      /The width of the view sets the level: Overview when narrow, Compact from 420 px, Full from 720 px\. A level you pick holds until the width reaches another level\./
+      /The width of the column of cells sets the level: Overview when narrow, Compact from 420 px, Full from 720 px\. A level you pick holds until the width reaches another level\./
     );
   });
 

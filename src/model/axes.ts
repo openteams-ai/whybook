@@ -1,7 +1,7 @@
 /**
  * The Axes of a figure drawn as a picture, as the kernel's matplotlib hook
- * describes them (future/kernel_code/plot_hooks.py), and the mapping from a
- * point of the picture to the values under it.
+ * describes them (whybook/server/kernel_code/plot_hooks.py), and the
+ * mapping from a point of the picture to the values under it.
  *
  * The hook gives each Axes' box in the picture's own pixels. The view works
  * with fractions of the picture: a point 25% across and 40% down the picture
@@ -33,7 +33,7 @@ export interface IAxesInfo {
   frame: string | null;
   /** The points it draws, to tell apart frames with the same columns. */
   marks: number | null;
-  /** What it draws: a pandas plot's kind, or scatter, bar or line; absent before 25 September 2026. */
+  /** What it draws: a pandas plot's kind, or scatter, bar or line; absent from the hooks of older versions. */
   kind?: string | null;
 }
 

@@ -322,7 +322,7 @@ describe('The Whybook section of the launcher', () => {
     ).toEqual(['Notebook']);
     // A card's title says what it makes.
     expect(cards(setup.launcher)[3].title).toBe(
-      'Create a notebook with R 4.4.3 (xr) and open it in the Whybook view'
+      'Create a notebook with R 4.4.3 (xr) and open it in Whybook'
     );
   });
 
@@ -494,7 +494,7 @@ describe('Under jupyterlab-launchpad', () => {
     expect(setup.commands.label(NEW_WHYBOOK, args)).toBe('Whybook');
     expect(setup.commands.icon(NEW_WHYBOOK, args)).toBe(epiIcon);
     expect(setup.commands.caption(NEW_WHYBOOK, args)).toBe(
-      'Create a notebook, choose its kernel, and open it in the Whybook view'
+      'Create a notebook, choose its kernel, and open it in Whybook'
     );
     // No kernel: the document's session asks with the kernel dialog, which
     // launchpad replaces with its table of kernels.

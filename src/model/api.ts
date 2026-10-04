@@ -56,7 +56,7 @@ export interface ITranscript {
   elapsed?: number;
 }
 
-/** A step of a model download: future/local_models.py, download(). */
+/** A step of a model download: whybook/server/local_models.py, download(). */
 export interface IDownloadEvent {
   type: 'progress' | 'result' | 'error';
   /** The share downloaded, when the server knows the size. */

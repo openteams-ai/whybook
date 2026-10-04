@@ -1,7 +1,7 @@
 {
   "name": "future-ui-tests",
   "version": "1.0.0",
-  "description": "JupyterLab future Integration Tests",
+  "description": "Whybook Integration Tests",
   "private": true,
   "scripts": {
     "start": "jupyter lab --config jupyter_server_test_config.py",

@@ -126,7 +126,7 @@ export class PlotHooks implements IDisposable {
       }
       return report;
     } catch (error) {
-      console.warn('The view could not install its plot hooks', error);
+      console.warn('Whybook could not install its plot hooks', error);
       if (kernel === this._kernel) {
         // The next cell tries again.
         this._installing = null;

@@ -115,12 +115,12 @@ test("shows the Check-up's icon on tabs as cards in the Check-up's settings, and
   );
   await expect(group.getByRole('radio')).toHaveText([
     'OffNo icon on tabs',
-    'Whybook viewsOn the tabs of Whybook views',
+    'Notebooks in WhybookOn the tabs of notebooks open in Whybook',
     'Every notebookOn the tabs of every notebook'
   ]);
   const every = group.getByRole('radio', { name: 'Every notebook' });
   await expect(
-    group.getByRole('radio', { name: 'Whybook views' })
+    group.getByRole('radio', { name: 'Notebooks in Whybook' })
   ).toHaveAttribute('aria-checked', 'true');
   await every.click();
   await expect(every).toHaveAttribute('aria-checked', 'true');

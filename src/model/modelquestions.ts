@@ -18,8 +18,8 @@ export const FOUND = { runs: 3, question: 300, answer: 600 };
  * answer of each run that ended with an answer, at most three, each cut. The
  * model that writes questions reads them, so that it does not ask again what
  * a run settled, or about a column that a run found missing (design
- * iteration 1.76). The notebook keeps a run's answer from 30 September 2026
- * (./runs.ts).
+ * iteration 1.76). A record of a run that an older version kept has no
+ * answer (./runs.ts).
  */
 export function agentFindings(
   runs: Record<string, IAgentRunRecord> | undefined

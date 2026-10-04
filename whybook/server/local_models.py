@@ -14,8 +14,8 @@ about 3 GB.
   labels tables as well as the three.
 - One step up, for machines with 24 GB or more: Gemma 4 E4B.
 
-Qwen3.5 0.8B, offered until 26 September 2026, described 2 of 12 held-out
-tables right, and is no longer offered.
+Qwen3.5 0.8B described 2 of 12 held-out tables right, and is no longer
+offered.
 
 They run through llama.cpp (llama-cpp-python) from GGUF files in the Hugging
 Face cache. The server downloads a model only when the user presses Download
@@ -1033,10 +1033,10 @@ class Download:
     """The download of a model's file and its check, in one job of the server.
 
     A page reload closes the stream of the view that pressed Download, and
-    the job goes on to the check: until 29 September 2026 the check ran in
-    that stream, after its last event, and a reload left an unchecked file
-    that the status offered as available. The stream only reports the job,
-    and the next status or download reads it.
+    the job goes on to the check. A check in that stream, after its last
+    event, would leave an unchecked file on a reload, which the status would
+    offer as available. The stream only reports the job, and the next status
+    or download reads it.
     """
 
     model: LocalModel

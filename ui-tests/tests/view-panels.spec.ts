@@ -595,7 +595,7 @@ test('shows the Check-up in an open view when its setting turns on, and says tha
   await expect(head).toBeVisible();
   await head.click();
   await expect(page.locator('.jp-Epi-checkup')).toContainText(
-    'No run times yet. The view times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
+    'No run times yet. Whybook times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
   );
   await page.evaluate(async () => {
     const registry = await (window as any).galata.getPlugin(

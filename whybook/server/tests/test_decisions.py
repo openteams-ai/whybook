@@ -64,7 +64,7 @@ def test_a_constant_assigned_in_the_cell_changes_where_it_is_assigned():
     cell = CellInfo("c3", "[3]", "ALPHA = 0.05\nsignificant = results[results.p < ALPHA]")
     alpha = Decision("ALPHA", "0.05", "literal")
     result = decision_options(cell, alpha, Context())
-    # A significance level takes the conventional levels next to it; until 30 September, half and double: 0.025 and 0.1.
+    # A significance level takes the conventional levels next to it; the fallback rule would give half and double: 0.025 and 0.1.
     assert texts(result)[:2] == ["What if ALPHA were 0.01?", "What if ALPHA were 0.1?"]
     assert result["options"][1]["code"].splitlines()[1:] == ["ALPHA_if_0_1 = 0.1", "significant_if_0_1 = results[results.p < ALPHA_if_0_1]"]
 
@@ -89,7 +89,7 @@ def test_a_branch_of_a_cell_that_makes_its_frame_from_itself_reads_the_frame_bef
     cell = CellInfo("c4", "[4]", 'weekly = weekly[weekly["days"] >= 14].merge(patients, on="patient_id")\nweekly.head()', decisions=(how,))
     left = option(decision_options(cell, how, Context()), 'What if how were "left"?')
     namespace = self_filtering()
-    exec(left["code"], namespace)  # noqa: S102  until 29 September: NameError: name 'weekly_if_left' is not defined
+    exec(left["code"], namespace)  # noqa: S102  the bug raised NameError: name 'weekly_if_left' is not defined
     assert (len(namespace["weekly_if_left"]), len(namespace["weekly"])) == (2, 3)
     # The branch of the default does the same.
     [branch] = [q for q in cell_questions([cell], Context()) if q.text.startswith("Is how=")]

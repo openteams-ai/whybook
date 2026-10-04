@@ -60,7 +60,7 @@ export function runItem(
       </span>
     ),
     labelTitle: () =>
-      `An agent answers "${run.question}" in ${path}: ${cells} so far. Click to open the run in the Whybook view.`,
+      `An agent answers "${run.question}" in ${path}: ${cells} so far. Click to open the run in Whybook.`,
     detail: () => `${cells} · ${runTime(run, now)}`,
     open,
     shutdown: () => entry.stop(),

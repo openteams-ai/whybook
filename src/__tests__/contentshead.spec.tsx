@@ -1,7 +1,7 @@
 /**
- * The head of Contents (design iteration 1.11, decided on 30 September
- * 2026): with a variable selected, the head is the variable's name alone.
- * Until then it read "of" and the name, "OF diary_raw" in the side panel.
+ * The head of Contents (design iteration 1.11): with a variable selected,
+ * the head is the variable's name alone, such as "weekly", with no "of"
+ * before it.
  */
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';

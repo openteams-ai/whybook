@@ -164,7 +164,7 @@ describe('codeWriter', () => {
     // A template's code, or a model's from before the view named the model,
     // as in the demos: the cell's chips mark its values as the AI's.
     expect(codeWriter({ written_by: 'agent' })).toBe(
-      'The view wrote the code, from a template or with an AI model; the notebook does not record which.'
+      'Whybook wrote the code, from a template or with an AI model; the notebook does not record which.'
     );
     expect(
       codeWriter({
@@ -176,7 +176,7 @@ describe('codeWriter', () => {
 
   it("says that a template's cell had no model call, since the view marks it", () => {
     expect(codeWriter({ written_by: 'agent', template: true })).toBe(
-      'The view wrote the code from a template, with no model call.'
+      'Whybook wrote the code from a template, with no model call.'
     );
   });
 });

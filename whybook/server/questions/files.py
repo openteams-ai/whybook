@@ -91,9 +91,9 @@ def date_columns(root: str | None, path: str, suffix: str) -> list[str]:
     A delimited file: the columns whose values in the first rows are all ISO
     dates, such as the day of a reading or the date a home switched tariff,
     which is empty for most homes. A parquet file: the columns of dates
-    without a time, which pandas reads as ``datetime.date`` objects. Until 1
-    October 2026 the load left both as text, and a question about the time
-    before and after a date had nothing to compare.
+    without a time, which pandas reads as ``datetime.date`` objects. Left as
+    text, a date gives a question about the time before and after it nothing
+    to compare.
     """
     full = _inside(root, path)
     if full is None or (suffix not in DELIMITED and suffix != ".parquet"):
@@ -207,7 +207,7 @@ def file_options(drop: FileDrop, root: str | None) -> dict[str, Any]:
     if drop.directory:
         note = "Drop a file, not a folder."
     elif reader is None:
-        note = f"{drop.label} is not a data file this view reads yet: {READABLE}."
+        note = f"{drop.label} is not a data file that Whybook reads yet: {READABLE}."
     else:
         read = reader.format(path=codegen.literal(drop.kernel_path))
         taken = set(context.frames) | {name for c in drop.cells for name in c.defs}

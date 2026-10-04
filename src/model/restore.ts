@@ -122,7 +122,7 @@ export function looksSecret(name: string, value?: string): boolean {
 /**
  * A variable without the text of a secret: one that the kernel lists as a
  * secret, or a string that looks like one by its name or its text
- * (looksSecret), as a notebook saved before 29 September 2026 may keep. Its
+ * (looksSecret), as a notebook saved by an older version may keep. Its
  * length stays where it is known.
  */
 export function withoutSecret<

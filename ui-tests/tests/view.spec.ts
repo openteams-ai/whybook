@@ -3797,7 +3797,7 @@ test("keeps what every model call cost, with the setting off too: a template cel
       has: page.locator('.jp-Epi-details-toggle', { hasText: 'Written by' })
     })
   ).toContainText(
-    'The view wrote the code from a template, with no model call.'
+    'Whybook wrote the code from a template, with no model call.'
   );
   await expect(cost.locator('.jp-Epi-cost-parts tr')).toHaveText([
     /^The labels of its tables\s*1 call\s*\$0\.0021$/

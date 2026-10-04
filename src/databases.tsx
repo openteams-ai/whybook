@@ -137,9 +137,9 @@ function Databases(props: {
           />
           <p className="jp-Epi-databases-title">No SQLite database found</p>
           <p>
-            The panel lists SQLite files (.sqlite, .sqlite3, .db) up to{' '}
+            The panel lists SQLite files (.sqlite, .sqlite3, .db, .db3) up to{' '}
             {listing.depth} folders below the server's root. Drag a table from
-            here into the Whybook view to start an analysis from it.
+            here onto a notebook in Whybook to start an analysis from it.
           </p>
           <p className="jp-Epi-caption">
             Only SQLite for now: other databases need a connector that is not
@@ -198,7 +198,7 @@ function Databases(props: {
                             title={
                               pickable
                                 ? `Click to pick ${table.name}, then a cell`
-                                : `Drag ${table.name} onto the view or a cell`
+                                : `Drag ${table.name} onto the notebook or onto a cell`
                             }
                             onDragStart={event => setDragItem(event, item)}
                             onClick={() => {
@@ -264,7 +264,7 @@ function Databases(props: {
       {listing && listing.databases.length > 0 && (
         <div className="jp-Epi-caption jp-Epi-databases-foot">
           <lockIcon.react tag="span" /> Opened read-only. Drag a table onto the
-          view or onto a cell{pickable ? ', or click it, then a cell' : ''}.
+          notebook or onto a cell{pickable ? ', or click it, then a cell' : ''}.
           {listing.complete
             ? ''
             : ' The search stopped early: not every file is listed.'}

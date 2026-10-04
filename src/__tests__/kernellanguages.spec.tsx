@@ -87,7 +87,7 @@ describe('questions by the language of the kernel', () => {
     const { model, view, drops } = await dropped('julia');
     expect(drops).toEqual([]);
     expect(view.host.querySelector('.jp-Epi-unsupported')?.textContent).toBe(
-      "Questions ask about the kernel's variables, which the view lists in a Python or R kernel. This kernel runs julia."
+      "Questions ask about the kernel's variables, which Whybook lists in a Python or R kernel. This kernel runs julia."
     );
     expect(view.host.querySelector('.jp-Epi-option')).toBeNull();
     await view.unmount();

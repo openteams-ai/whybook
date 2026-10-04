@@ -226,7 +226,7 @@ describe('A setting with choices, as cards', () => {
     expect(field().classList.contains('jp-mod-modified')).toBe(true);
     expect(
       view.host.querySelector('.jp-Epi-choicefield-default')?.textContent
-    ).toBe('Default: Whybook views');
+    ).toBe('Default: Notebooks in Whybook');
     await view.unmount();
   });
 

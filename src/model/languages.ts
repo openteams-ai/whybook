@@ -9,16 +9,16 @@ import { RESULT_MIME } from '../tokens';
  *
  * The view lists the kernel's variables, analyses the cells and summarises
  * the rows behind a region of a plot with small programs that it runs in the
- * kernel (future/kernel_code). A language adapter holds these programs for
- * one language. The `language_info.name` of the kernel's info reply picks
- * the adapter. In a kernel of a language without an adapter, the view runs
+ * kernel (whybook/server/kernel_code). A language adapter holds these
+ * programs for one language. The `language_info.name` of the kernel's info
+ * reply picks the adapter. In a kernel of a language without an adapter, the view runs
  * cells and shows their outputs, and the features that need the programs
  * are off, each with a note where it would show.
  */
 
 /**
- * A program of future/kernel_code, by the name of its file: inspect_variables,
- * analyze_cells, region_summary.
+ * A program of whybook/server/kernel_code, by the name of its file:
+ * inspect_variables, analyze_cells, region_summary.
  */
 export type Snippet = string;
 
@@ -72,7 +72,7 @@ function hashComment(line: string): string | null {
   return match ? match[1].trim() : null;
 }
 
-/** Every Python file of future/kernel_code. */
+/** Every Python file of whybook/server/kernel_code. */
 export const PYTHON: ILanguage = {
   names: ['python'],
   label: 'Python',
@@ -92,9 +92,9 @@ export const PYTHON: ILanguage = {
 };
 
 /**
- * R kernels, such as xeus-r and IRkernel: the variables, and the analysis of
- * cells with their chips since 1 October 2026 (design iteration 1.79), and
- * questions, whose code a model writes in R.
+ * R kernels, such as xeus-r and IRkernel: the variables, the analysis of
+ * cells with their chips (design iteration 1.79), and questions, whose code
+ * a model writes in R.
  */
 export const R: ILanguage = {
   names: ['r'],
@@ -231,7 +231,7 @@ export function unsupported(
     case 'plots':
       return `Questions about a plot need a ${needs} kernel. ${runs}`;
     case 'questions':
-      return `Questions ask about the kernel's variables, which the view lists in a ${needs} kernel. ${runs}`;
+      return `Questions ask about the kernel's variables, which Whybook lists in a ${needs} kernel. ${runs}`;
   }
 }
 

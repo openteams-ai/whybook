@@ -254,8 +254,8 @@ async def test_a_key_is_no_constant_to_ask_about(jp_fetch, fake_model):
 def test_a_share_changes_by_points_and_a_temperature_by_a_rounded_factor():
     """examples/home_energy: the what-if values of MIN_COVERAGE and BASE_TEMP_C as the chip lists them.
 
-    Until 30 September, 0.45 and 1.8 for the share, 1.8 being past its bound,
-    and "(÷2)" and "(×2)" for every decimal.
+    The fallback rule would give 0.45 and 1.8 for the share, 1.8 being past
+    its bound, and "(÷2)" and "(×2)" for every decimal.
     """
     daily = CellInfo("c4", "[4]", "daily = readings.pipe(drop_gappy).pipe(add_degree_days)")
     coverage = Decision("MIN_COVERAGE", "0.9", "defaulted", param="min_coverage", function="drop_gappy", source_file="energy.py", source_line=16)

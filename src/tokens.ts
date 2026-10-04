@@ -146,14 +146,14 @@ export interface IDecision {
   /**
    * The calls that leave this value, in the order of the code: two merges
    * that leave `how='inner'` make one decision with two calls. A decision
-   * kept before 27 September 2026, or of an assignment, lists none.
+   * that an older version kept, or one of an assignment, lists none.
    */
   calls?: IDecisionCall[] | null;
   /**
    * The library that a default of the view's own list belongs to, and its
    * version, as the kernel read them: the popover says "default in pandas
    * 3.0.6". A decision that a model found has them in `found`. A decision
-   * kept before 1 October 2026 has neither.
+   * that an older version kept has neither.
    */
   library?: string | null;
   version?: string | null;
@@ -355,9 +355,9 @@ export interface IEpiCellMeta {
   written_by?: 'user' | 'agent';
   /**
    * The view wrote the code from a template, with no model call: a drop's
-   * question, a what-if value, a branch that needs no model. From 28
-   * September 2026; a cell of the view without it may be a model's from
-   * before `generated_by` existed.
+   * question, a what-if value, a branch that needs no model. Older versions
+   * did not write it, so a cell of the view without it may also be a model's
+   * from before `generated_by` existed.
    */
   template?: boolean;
   branch?: { of: string; letter: string };
@@ -370,7 +370,7 @@ export interface IEpiCellMeta {
     /**
      * The provider of the model that wrote it: 'openrouter', 'anthropic',
      * 'ollama', 'claude-code' and the others, or 'remote' when the view does
-     * not know it. Notebooks written before 27 September 2026 say 'claude'.
+     * not know it. Notebooks written by older versions say 'claude'.
      */
     agent: string;
     model?: string | null;
@@ -382,7 +382,7 @@ export interface IEpiCellMeta {
     cost_usd?: number | null;
     /**
      * How long the model took to write an answer of one cell, in seconds.
-     * Recorded from 28 September 2026; a cell of an agent's run leaves it
+     * Older versions did not record it; a cell of an agent's run leaves it
      * out, and the run's record holds the time of the whole run.
      */
     seconds?: number | null;
@@ -398,7 +398,8 @@ export interface IEpiCellMeta {
   agent?: { run: string; step: number };
   /**
    * The key of the code that the view wrote in the cell, from a template, a
-   * model or an agent's run; from 1 October 2026 (src/model/handedit.ts).
+   * model or an agent's run; older versions did not write it
+   * (src/model/handedit.ts).
    */
   view_code_key?: string;
   /** The code as the view wrote it, kept once the analyst changed it in the view. */
@@ -410,8 +411,8 @@ export interface IEpiCellMeta {
   /**
    * What models did for the cell and what it cost, as sums by kind: its
    * answers, its title, the labels of its tables, the summaries of the frames
-   * it makes. A call for several cells gives each its share. From 28
-   * September 2026 (src/model/cost.ts).
+   * it makes. A call for several cells gives each its share. Older versions
+   * did not record it (src/model/cost.ts).
    */
   costs?: ICostRecord;
 }
@@ -447,7 +448,7 @@ export interface ITableNote {
   description: string;
   /** The result to see first, or an empty string when none stands out. */
   headline: string;
-  /** The AI that wrote them; missing for labels kept before 25 September 2026. */
+  /** The AI that wrote them; missing for labels that an older version kept. */
   by?: IWrittenBy;
 }
 
@@ -492,7 +493,7 @@ export interface IEpiNotebookMeta {
       guess?: Guess;
       outcome?: AskedOutcome;
     })[];
-    /** A text before 27 September 2026, then the step with the cells it names. */
+    /** A text in a notebook of an older version, else the step with the cells it names. */
     dismissed?: (string | IDismissedStep)[];
   };
   dag?: { edges?: [string, string][] };
@@ -519,7 +520,7 @@ export interface IEpiNotebookMeta {
   cost_cap_usd?: number;
   /**
    * What every model call of the view cost, as sums by kind. Written at the
-   * first call after 28 September 2026, from what the notebook held before;
+   * first call in a notebook without it, from what the notebook held before;
    * it never goes down when cells go (src/model/cost.ts).
    */
   costs?: ICostRecord;
@@ -539,19 +540,19 @@ export interface IAgentRunRecord {
    * when the server could not tell what a stopped run cost.
    */
   cost_usd: number | null;
-  /** How long the whole run took, in seconds; recorded from 28 September 2026. */
+  /** How long the whole run took, in seconds; older versions did not record it. */
   seconds?: number | null;
   cells: string[];
   files: string[];
-  /** 'failed' is recorded from 28 September 2026, for a run that added cells or cost money. */
+  /** 'failed' is recorded for a run that added cells or cost money; older versions did not record it. */
   state: 'done' | 'stopped' | 'failed';
   /** When the run ended, as an ISO date and time. */
   at: string;
   /*
-   * From 30 September 2026, what the run's strip shows, so that the history
-   * of runs draws it again (design iteration 1.73, src/model/runs.ts). A
-   * record without `steps` is from before, or from a view whose setting
-   * "History of agents' runs" was off.
+   * What the run's strip shows, so that the history of runs draws it again
+   * (design iteration 1.73, src/model/runs.ts). A record without `steps` is
+   * from an older version, or from a view whose setting "History of agents'
+   * runs" was off.
    */
   /** When the run started, as an ISO date and time. */
   started?: string;
@@ -605,7 +606,7 @@ export interface IAgentStepRecord {
 export interface IFrameNote {
   summary: string;
   key: string;
-  /** The AI that wrote it; missing for summaries kept before 25 September 2026. */
+  /** The AI that wrote it; missing for summaries that an older version kept. */
   by?: IWrittenBy;
 }
 
@@ -754,8 +755,8 @@ export interface IPlotPayload {
   points?: { x: number; y: number; g: string | null; i: number }[];
   /**
    * The groups of a scatter's points, in the order of a ribbon's lines, which
-   * gives each its colour. A payload written before 30 September 2026 has
-   * none: the groups then take the order in which they first appear.
+   * gives each its colour. A payload of an older version has none: the
+   * groups then take the order in which they first appear.
    */
   groups?: string[];
   bins?: { x0: number; x1: number; n: number }[];

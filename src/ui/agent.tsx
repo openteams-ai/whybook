@@ -205,7 +205,7 @@ export function AgentRunView(props: {
       {run.past && !run.past.full && (
         <div className="jp-Epi-caption jp-Epi-agentrun-kept">
           The notebook kept the cells of this run, not its steps or its answer:
-          it ran before the view kept them.
+          it ran before Whybook kept them.
         </div>
       )}
     </div>

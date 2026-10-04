@@ -209,7 +209,7 @@ export interface IChip {
  * The library of a default and its version, `pandas 3.0.6`: for a default
  * that a model found, from the signature that it read; for a default of the
  * view's own list, from the kernel. Null where neither is known, as for a
- * decision that a notebook kept before 1 October 2026.
+ * decision that an older version kept in the notebook.
  */
 export function libraryOf(decision: IDecision): string | null {
   const found = decision.found;
@@ -332,7 +332,7 @@ export function decisionKey(decision: IDecision): string {
  * that they typed or picked for a decision: the view records it in
  * `user_values`. The template that the analyst picked chose the others in
  * code that a template wrote with no model call, which the view marks
- * `template` since 28 September 2026, and the AI chose them in any other
+ * `template`, and the AI chose them in any other
  * code of the view. Defaults stay defaults.
  *
  * Code of the view that the analyst changed by hand, with `source` the code

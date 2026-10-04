@@ -172,8 +172,8 @@ def key_name(connection: Connection) -> str:
 
     A key typed for a server belongs to the URL it was typed for, so that it
     goes to no other server: "vllm http://localhost:8000/v1". A sign-in's key,
-    or a company's, belongs to the provider. A server's key typed before 29
-    September 2026 is kept under the provider alone, and goes to no server.
+    or a company's, belongs to the provider. A server's key that an older
+    version saved is kept under the provider alone, and goes to no server.
     """
     if connection.provider in TYPED_KEYS:
         return f"{connection.provider} {connection.url}"

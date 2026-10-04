@@ -382,7 +382,7 @@ test('shows the name of the selected variable alone in the head of Contents', as
   // With nothing selected, Contents has no head: its title names it.
   await expect(head).toBeHidden();
   await variable.click();
-  // Until 30 September the head read "of df".
+  // The head is the name alone, with no "of" before it.
   await expect(head).toBeVisible();
   await expect(head).toHaveText('df', { useInnerText: true });
   await expect(head.locator('code')).toHaveText('df');

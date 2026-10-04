@@ -694,7 +694,7 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
             on = codegen.literals(keys)
             joined = f"{a.name}.join({b.name}, on={on}, how=\"left\")" if a.library == "polars" else f"{a.name}.merge({b.name}, on={on}, how=\"left\")"
             join = "\n".join([codegen.comment(f"{a.name} joined with {b.name} on {', '.join(keys)}"), f"{result} = {joined}", f"{result}.head()"])
-            options.append(_option(f"Join {a.name} and {b.name}", "quality", 0.6, home, join, f"AI picks the key: {', '.join(keys)}", a.name, b.name))
+            options.append(_option(f"Join {a.name} and {b.name}", "quality", 0.6, home, join, f"Left join on {', '.join(keys)}", a.name, b.name))
         else:
             note = _mismatch_note(a.name, b.name, context)
         options.append(_option("Which columns of one predict the other?", "association", 0.45, home, None, "Wide screen · catalogue of hits", a.name, b.name))

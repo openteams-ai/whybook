@@ -313,7 +313,7 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
 
 /**
  * Local models that the view no longer offers, and the one that takes the
- * choice. Qwen3.5 0.8B went on 26 September 2026: it described 2 of 12
+ * choice. Qwen3.5 0.8B is no longer offered: it described 2 of 12
  * held-out tables right (research/local-models.md), and typed questions
  * gained 4 points with it over the keywords.
  */
@@ -401,7 +401,7 @@ export function readModels(value: unknown, own: unknown = value): ModelChoices {
       models[task.id] = DROPPED[choice] ?? choice;
     }
   }
-  // The labels were for tables only, under another key, on 23 September 2026.
+  // Older versions kept the labels for tables only, under another key.
   if (
     typeof saved.labels !== 'string' &&
     typeof saved.tableLabels === 'string'

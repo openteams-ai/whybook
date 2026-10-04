@@ -453,7 +453,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           };
         })
         .catch(reason =>
-          console.error('Failed to load settings for the Whybook view.', reason)
+          console.error('Failed to load the settings of Whybook.', reason)
         );
       // The view's editors follow the notebook's settings, such as line numbers.
       void settingRegistry
@@ -486,7 +486,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // launcher, File › New and the palette, is in ./launcher.ts.
 
     app.commands.addCommand(CommandIDs.openWhybook, {
-      label: 'Open Notebook in Whybook View',
+      label: 'Open Notebook in Whybook',
       icon: epiIcon,
       isEnabled: () => !!notebooks?.currentWidget,
       describedBy: NO_ARGS,

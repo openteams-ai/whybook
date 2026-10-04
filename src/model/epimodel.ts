@@ -306,8 +306,8 @@ export class EpiSettings {
   /**
    * The kernel reads the signatures of the library functions that the cells
    * call, and the model chosen for More questions picks the defaults that
-   * can change a result, for the cells' chips: on by default since 1 October
-   * 2026 (./founddefaults.ts).
+   * can change a result, for the cells' chips: on by default
+   * (./founddefaults.ts).
    */
   findDefaults = true;
   /**
@@ -936,7 +936,7 @@ export class EpiModel implements IDisposable {
         notebookMeta(this.notebook).agent_runs
       );
       this._onNotebookChanged();
-      // A notebook saved before 29 September 2026 may keep a secret's text.
+      // A notebook saved by an older version may keep a secret's text.
       this._keep('variables');
       this.cellTitles.titleAll();
     });
@@ -2860,7 +2860,7 @@ export class EpiModel implements IDisposable {
       if (!snapshot || snapshot.variables.length === 0) {
         // A fresh kernel lists nothing yet: the kept list stays, less the
         // text of a secret and the variables whose cell is gone, which a
-        // notebook saved before 29 September 2026 may hold.
+        // notebook saved by an older version may hold.
         next = keptWithout(this._storedVariables(), cellId =>
           Boolean(findCell(this.notebook, cellId))
         );

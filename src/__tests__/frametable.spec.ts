@@ -462,12 +462,12 @@ describe('resolveTable', () => {
     ]);
     expect(twice.frame).toBeNull();
     expect(twice.reason).toBe(
-      'The view cannot tell which frame pd.concat([a, b]) shows: df and copy have its columns.'
+      'Whybook cannot tell which frame pd.concat([a, b]) shows: df and copy have its columns.'
     );
     const none = resolve(HEAD, 'make()', [frames[1]]);
     expect(none.frame).toBeNull();
     expect(none.reason).toBe(
-      'The view cannot tell which frame make() shows: no frame in the kernel has its columns.'
+      'Whybook cannot tell which frame make() shows: no frame in the kernel has its columns.'
     );
   });
 
@@ -518,14 +518,14 @@ describe('resolveTable', () => {
         const found = polars(source);
         expect(found).toMatchObject({ frame: 'df', rows: null, keys: null });
         expect(found.reason).toBe(
-          `The view cannot tell which rows of df these are. A polars table has no row labels, and after ${method} a row's place in the table is not its place in df.`
+          `Whybook cannot tell which rows of df these are. A polars table has no row labels, and after ${method} a row's place in the table is not its place in df.`
         );
       }
       // The frame changed since the table was shown.
       expect(
         polars('df', POLARS, [{ ...polarsFrames[0], rows: 5 }]).reason
       ).toBe(
-        'The view cannot tell which rows of df these are: the table has 2 rows, and df has 5 now.'
+        'Whybook cannot tell which rows of df these are: the table has 2 rows, and df has 5 now.'
       );
       // Without the code, the view finds the frame for the headers, and no rows.
       expect(polars('pl.concat([a, b])')).toMatchObject({

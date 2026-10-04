@@ -661,7 +661,7 @@ export function comparisonMarkdown(options: {
   const lines = [
     `## ${question}`,
     '',
-    `Whybook's agent ran ${ran === 1 ? '1 cell' : `${ran} cells`} in [${secondName}](${encodeURI(secondName)}), with ${second.kernel}. It cites each estimate from the output of a cell of each notebook, and the view checked that the output prints it.`
+    `Whybook's agent ran ${ran === 1 ? '1 cell' : `${ran} cells`} in [${secondName}](${encodeURI(secondName)}), with ${second.kernel}. It cites each estimate from the output of a cell of each notebook, and Whybook checked that the output prints it.`
   ];
   if (!first.results) {
     lines.push(

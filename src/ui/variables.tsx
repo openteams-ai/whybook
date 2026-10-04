@@ -333,7 +333,7 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
         {kernel && listed && variables.length === 0 && (
           <div className="jp-Epi-empty">
             No variables yet. Run a cell that loads data, or drag a data file
-            from the file browser into the view to start from it.
+            from the file browser onto the notebook to start from it.
           </div>
         )}
         {shown.map(variable => (
@@ -1512,7 +1512,7 @@ function MissingContent(props: {
         {forCell
           ? null
           : missing.from === 'variable'
-            ? ': the view shows what the notebook kept from the last run.'
+            ? ': Whybook shows what the notebook kept from the last run.'
             : ': this output is from an earlier run, and its rows are not there to read.'}
       </div>
       {missing.running && (
@@ -1717,7 +1717,7 @@ export function askMode(ask: IDropAsk): { label: string; strong: boolean } {
   if (ask.modifiers.branch) {
     return { label: 'Shift · always branch', strong: true };
   }
-  return { label: 'AI picks edit, new cell or branch', strong: false };
+  return { label: 'Rules pick edit, new cell or branch', strong: false };
 }
 
 /**

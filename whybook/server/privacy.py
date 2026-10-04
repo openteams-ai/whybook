@@ -18,8 +18,8 @@ from typing import Any
 from .config import Whybook
 
 # A key, a token or a password in a variable: the kernel lists such a string
-# with its length and ``"secret": true``, never its text, and a value that a
-# view kept from before 29 September 2026 goes to no model. Four places hold
+# with its length and ``"secret": true``, never its text, and a value that an
+# older version of the view kept goes to no model. Four places hold
 # the same rule: this module, the kernel's listing and its analysis of cells
 # (kernel_code/inspect_variables.py, kernel_code/analyze_cells.py), which
 # cannot import this package, and the view (looksSecret in

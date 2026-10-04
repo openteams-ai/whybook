@@ -257,7 +257,7 @@ describe('polarsPicks', () => {
 
   it('says so when the table does not show a key', () => {
     expect(polarsPicks(table, { ...source, keys: ['week'] }, [0])).toBe(
-      'The table does not show week, which the view needs to find these rows in df. Keep the table as a variable to ask about its own rows.'
+      'The table does not show week, which Whybook needs to find these rows in df. Keep the table as a variable to ask about its own rows.'
     );
   });
 });

@@ -15,7 +15,7 @@ import { imageRequest, pickAbout } from '../model/imageask';
  * A payload that the matplotlib hook wrote for a retina PNG of two Axes, a
  * linear one and one with a log x axis, with four square markers each. The
  * fractions below are the centres of the markers' pixels, measured in that
- * PNG (future/tests/test_plot_hooks.py draws the same figure).
+ * PNG (whybook/server/tests/test_plot_hooks.py draws the same figure).
  */
 const REAL: IAxesPayload = {
   version: 1,

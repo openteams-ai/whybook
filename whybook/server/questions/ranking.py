@@ -32,9 +32,9 @@ MAX_TEXT = 300
 # The prediction prompt of research/ranking-placement.md, "Language models as
 # rankers". On 300 drops rebuilt from public notebooks, a remote model asked what
 # the analyst will ask next put the analyst's type first for 60.7% of them, the
-# learned ranker of the default order 57.0%, and the prompt used until 26
-# September 2026, which asked what the analyst should ask and weighed the mode,
-# 44.0%. The mode stays in the state that the model reads.
+# learned ranker of the default order 57.0%, and the earlier prompt, which
+# asked what the analyst should ask and weighed the mode, 44.0%. The mode stays
+# in the state that the model reads.
 SYSTEM_PROMPT = """\
 You predict the question that an analyst asks next in a data analysis notebook.
 The view offers questions about the variables that the analyst selected. For

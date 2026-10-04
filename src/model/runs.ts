@@ -201,8 +201,8 @@ export function historyOf(run: IAgentRun): Partial<IAgentRunRecord> {
 }
 
 /**
- * A run as the notebook keeps it, to draw its strip again. A record from
- * before 30 September 2026 has no steps: its cells show as one step, with
+ * A run as the notebook keeps it, to draw its strip again. A record of an
+ * older version has no steps: its cells show as one step, with
  * no answer. The caller sets the strip's cell.
  */
 export function pastRun(id: string, record: IAgentRunRecord): IAgentRun {

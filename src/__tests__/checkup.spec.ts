@@ -268,7 +268,7 @@ describe('What makes it slow?', () => {
     );
     expect(speedFindings(cells, new Map())).toEqual({
       findings: [],
-      note: 'No run times yet. The view times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
+      note: 'No run times yet. Whybook times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
     });
   });
 

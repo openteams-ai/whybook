@@ -83,7 +83,7 @@ describe('The Check-up section', () => {
       'olink is made in [2], and no later cell uses it.'
     );
     expect(view.host.textContent).toContain(
-      'No run times yet. The view times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
+      'No run times yet. Whybook times a cell only while "Questions about the notebook" is on and the notebook is open in it. Run the cells again to time them.'
     );
     // The day of the check-up, kept in the notebook, is the note now.
     expect(checkupMeta(nb).last).toBeTruthy();

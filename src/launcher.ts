@@ -377,11 +377,11 @@ export function addNewWhybookCommand(
     caption: args => {
       const card = cardKernel(args as INewWhybookArgs);
       if (card) {
-        return `Create a notebook with ${card.spec?.display_name || card.name} and open it in the Whybook view`;
+        return `Create a notebook with ${card.spec?.display_name || card.name} and open it in Whybook`;
       }
       return args.chooseKernel
-        ? 'Create a notebook, choose its kernel, and open it in the Whybook view'
-        : 'Create a notebook and open it in the question-driven Whybook view';
+        ? 'Create a notebook, choose its kernel, and open it in Whybook'
+        : 'Create a notebook and open it in Whybook';
     },
     icon: args => {
       if (args.isPalette) {
@@ -455,7 +455,7 @@ export function addNewWhybookCommand(
 export const launcherPlugin: JupyterFrontEndPlugin<void> = {
   id: 'whybook:launcher',
   description:
-    'Creates a notebook in the Whybook view from the launcher, with a card for each kernel, from File, New and from the command palette.',
+    'Creates a notebook in Whybook from the launcher, with a card for each kernel, from File, New and from the command palette.',
   autoStart: true,
   optional: [ILauncher, IMainMenu, ICommandPalette, IDefaultFileBrowser],
   activate: (

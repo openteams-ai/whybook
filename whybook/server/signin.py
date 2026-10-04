@@ -69,8 +69,8 @@ def unreachable(company: str, error: Exception, then: str) -> SignInError:
     """A request that timed out or found nobody, as a sign-in error.
 
     tornado raises HTTPTimeoutError, an HTTPClientError and no OSError, for a
-    request that passes its timeout, also with raise_error=False: it gave the
-    routes an HTTP 500 until 29 September 2026.
+    request that passes its timeout, also with raise_error=False: uncaught,
+    it gives the routes an HTTP 500.
     """
     if isinstance(error, (HTTPTimeoutError, TimeoutError)):
         return SignInError(f"{company} did not answer in time: {then}")

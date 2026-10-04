@@ -1,7 +1,7 @@
 """Library defaults that can change a result, picked by a model from a function's signature.
 
 Design iteration 1.53, the view's setting "Find more defaults with AI", on
-by default since 1 October 2026. The kernel reads the signature of each
+by default. The kernel reads the signature of each
 library function that a cell calls, and lists the parameters that each call
 leaves at their defaults (kernel_code/analyze_cells.py, ``signatures``, and
 in R kernel_code/r/analyze_cells.R, whose functions say ``"language": "R"``).
@@ -54,9 +54,9 @@ NAME = re.compile(r"^[A-Za-z_.][A-Za-z0-9_.]*$")
 # The languages whose kernels list signatures; a function that names none is Python's.
 LANGUAGES = ("Python", "R")
 
-# The version of SYSTEM_PROMPT that a kept answer was asked with: 1 until 1
-# October 2026, when a pick had to be a parameter worth a chip and none was a
-# good answer. Raise it with each change of the prompt that can change a pick.
+# The version of SYSTEM_PROMPT that a kept answer was asked with. In version
+# 2 a pick has to be a parameter worth a chip, and none is a good answer.
+# Raise it with each change of the prompt that can change a pick.
 PROMPT_VERSION = 2
 
 # One thread writes the file at a time; each write reads it again first.

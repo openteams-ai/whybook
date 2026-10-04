@@ -264,12 +264,12 @@ describe('The slider, with the level of detail that follows the space', () => {
       narrow: {
         level: 'Overview',
         title:
-          'Level of detail of the outputs: Overview, every table and every printed text as a tile, and plots as thumbnails. The width of the view sets the level: Overview when narrow, Compact from 420 px, Full from 720 px. A level you pick holds until the width reaches another level.'
+          'Level of detail of the outputs: Overview, every table and every printed text as a tile, and plots as thumbnails. The width of the column of cells sets the level: Overview when narrow, Compact from 420 px, Full from 720 px. A level you pick holds until the width reaches another level.'
       },
       picked: {
         level: 'Full',
         title:
-          'Level of detail of the outputs: Full, small tables in full, printed text in full up to 10 lines, and plots up to 640 px wide; in the Code view, every output as in the notebook. You picked this level. It holds until the width reaches another level. The width of the view sets the level: Overview when narrow, Compact from 420 px, Full from 720 px.'
+          'Level of detail of the outputs: Full, small tables in full, printed text in full up to 10 lines, and plots up to 640 px wide; in the Code view, every output as in the notebook. You picked this level. It holds until the width reaches another level. The width of the column of cells sets the level: Overview when narrow, Compact from 420 px, Full from 720 px.'
       },
       map: {
         level: 'None',

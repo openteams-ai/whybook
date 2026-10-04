@@ -284,7 +284,7 @@ test('says when it cannot tell the frame, and leaves other tables alone', async 
   await made.locator('th.jp-Epi-askhead', { hasText: 'x' }).click();
   const ask = popover(page);
   await expect(ask.locator('.jp-Epi-joinnote')).toHaveText(
-    'The view cannot tell which frame pd.DataFrame({"x": [1, 2], "y": [3, 4]}) shows: no frame in the kernel has its columns.'
+    'Whybook cannot tell which frame pd.DataFrame({"x": [1, 2], "y": [3, 4]}) shows: no frame in the kernel has its columns.'
   );
   // Kept as a variable, the table is a frame the view can read.
   await ask
@@ -437,7 +437,7 @@ test('asks from the headers and the rows of a polars table', async ({
   // and offers to keep the table as a variable.
   await first(benchTable(page, 'cell-2'), 0).click();
   await expect(ask.locator('.jp-Epi-joinnote')).toHaveText(
-    "The view cannot tell which rows of df these are. A polars table has no row labels, and after filter() a row's place in the table is not its place in df."
+    "Whybook cannot tell which rows of df these are. A polars table has no row labels, and after filter() a row's place in the table is not its place in df."
   );
   await expect(
     ask.locator('.jp-Epi-option', {

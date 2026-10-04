@@ -56,8 +56,8 @@ class Decision:
     source_file: str | None = None
     source_line: int | None = None
     # The calls that leave this value, by their place in the cell. A decision
-    # kept before 27 September 2026 has none, and its what-if values change
-    # every call of its function, as they did then.
+    # that an older version kept has none, and its what-if values change every
+    # call of its function, as they did in that version.
     calls: tuple[DecisionCall, ...] = ()
 
     @classmethod

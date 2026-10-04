@@ -167,7 +167,7 @@ test('offers the values of a count of days and of a significance level by their 
   await days.click();
   const box = popover(page);
   const texts = box.locator('.jp-Epi-option .jp-Epi-option-text');
-  // Until 30 September: half below and above, 15 and 45.
+  // The fallback rule would give half below and above: 15 and 45.
   await expect(texts.first()).toHaveText('What if WINDOW_DAYS were 21?');
   await expect(texts.nth(1)).toHaveText('What if WINDOW_DAYS were 60?');
   // The line above the values is short (design iteration 1.86).
@@ -183,7 +183,7 @@ test('offers the values of a count of days and of a significance level by their 
   await box.getByRole('button', { name: 'Close the questions' }).click();
   await expect(box).toHaveCount(0);
   await page.locator('.jp-Epi-chip', { hasText: 'ALPHA 0.05' }).click();
-  // Until 30 September: half and double, 0.025 and 0.1.
+  // The fallback rule would give half and double: 0.025 and 0.1.
   await expect(texts).toHaveText([
     'What if ALPHA were 0.01?',
     'What if ALPHA were 0.1?'
@@ -453,7 +453,7 @@ test('with questions from a model set to never, a drop that no template fits wai
   await newNotebook(page, file, DROP);
   await openAndRun(page, file);
   // The choice that replaced the switch "Questions from AI when no template
-  // fits" on 30 September; a saved switch that is off reads as never
+  // fits"; a saved switch that is off reads as never
   // (firstdrops.spec.ts).
   await page.evaluate(() => {
     (window as any).jupyterapp.shell.currentWidget.content.model.settings.set(

@@ -86,7 +86,7 @@ class Whybook(Configurable):
             "Send requests through OpenRouter only to providers that keep neither the prompt"
             " nor the answer (zero data retention), for every user of the server. A model"
             " with no such provider then refuses the request. When True, the setting shows"
-            " as fixed in the view; when False, each user chooses with the setting 'Zero"
+            " as fixed in Whybook; when False, each user chooses with the setting 'Zero"
             " data retention (OpenRouter)', which is on unless the user turns it off."
         ),
     ).tag(config=True)
@@ -160,7 +160,7 @@ class Whybook(Configurable):
             " models read outputs and variables, and the remote model and Jev get"
             " names, kinds and the local models' descriptions, and write code. No"
             " values, tables, printed outputs or pictures leave the machine. When"
-            " True, the setting shows as fixed in the view; when False, each user"
+            " True, the setting shows as fixed in Whybook; when False, each user"
             " chooses with the setting 'Keep data on this machine'."
         ),
     ).tag(config=True)

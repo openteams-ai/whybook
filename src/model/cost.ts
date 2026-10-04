@@ -158,8 +158,8 @@ export function recordTotal(record: ICostRecord | undefined): INotebookCost {
  * that it held before the view kept sums: the answers of one cell in their
  * cells' `generated_by`, and the runs in `whybook.agent_runs`. The cells of a
  * run hold no cost of their own. The cells of a run that the notebook has no
- * record of, such as a run that failed at once or ran before 27 September
- * 2026, count once as a run without a known price.
+ * record of, such as a run that failed at once or ran before notebooks
+ * kept records of runs, count once as a run without a known price.
  */
 export function notebookCost(
   cells: IEpiCellMeta[],
@@ -366,7 +366,7 @@ export function cellWriter(
       return meta.template
         ? ['Written from a template, with no model call.']
         : [
-            'The view wrote this code, from a template or with a model; the notebook does not record which.'
+            'Whybook wrote this code, from a template or with a model; the notebook does not record which.'
           ];
     }
     return [

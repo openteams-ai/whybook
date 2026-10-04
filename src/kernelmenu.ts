@@ -57,7 +57,7 @@ export function addKernelMenu(
 
   commands.addCommand(KernelMenuIDs.interrupt, {
     label: 'Interrupt Kernel',
-    caption: 'Interrupt the kernel of this Whybook view',
+    caption: 'Interrupt the kernel of this notebook',
     describedBy: NO_ARGS,
     isEnabled,
     execute: async args => {
@@ -67,7 +67,7 @@ export function addKernelMenu(
   // True when the kernel restarted: Restart and Run All runs the cells then.
   commands.addCommand(KernelMenuIDs.restart, {
     label: 'Restart Kernel…',
-    caption: 'Restart the kernel of this Whybook view',
+    caption: 'Restart the kernel of this notebook',
     describedBy: NO_ARGS,
     isEnabled,
     execute: async args => {
@@ -101,7 +101,7 @@ export function addKernelMenu(
   });
   commands.addCommand(KernelMenuIDs.change, {
     label: 'Change Kernel…',
-    caption: 'Change the kernel of this Whybook view',
+    caption: 'Change the kernel of this notebook',
     describedBy: NO_ARGS,
     isEnabled,
     execute: async args => {
@@ -113,7 +113,7 @@ export function addKernelMenu(
   });
   commands.addCommand(KernelMenuIDs.shutdown, {
     label: 'Shut Down Kernel',
-    caption: 'Shut down the kernel of this Whybook view',
+    caption: 'Shut down the kernel of this notebook',
     describedBy: NO_ARGS,
     isEnabled,
     execute: async args => {
@@ -130,7 +130,7 @@ export function addKernelMenu(
   });
   commands.addCommand(KernelMenuIDs.runAll, {
     label: 'Run All Cells',
-    caption: 'Run every cell of this Whybook view in order',
+    caption: 'Run every cell of this notebook in order',
     describedBy: NO_ARGS,
     isEnabled,
     execute: async args => {

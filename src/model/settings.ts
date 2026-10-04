@@ -39,7 +39,7 @@ interface IPluginSettings {
   agentView?: unknown;
   showCost?: unknown;
   modelQuestions?: unknown;
-  /** Replaced by modelQuestions on 30 September 2026: a saved false reads as never. */
+  /** Replaced by modelQuestions: a saved false reads as never. */
   aiWhenNoTemplate?: unknown;
   findDefaults?: unknown;
   exploredOrder?: unknown;
@@ -89,7 +89,7 @@ export function readSettings(
     showCost: all.showCost === true,
     // Always, unless the analyst chose otherwise, or turned off the switch it replaced.
     modelQuestions: readModelQuestions(all.modelQuestions, own),
-    // On since 1 October 2026, unless the analyst turns it off.
+    // On, unless the analyst turns it off.
     findDefaults: all.findDefaults !== false,
     exploredOrder: exploredOrder(all.exploredOrder).id
   };

@@ -1,6 +1,6 @@
 /**
- * Cells, texts and outputs on the bench and in the Code view, as fixed on
- * 29 September (research/critique-3.md), in the browser against the built
+ * Cells, texts and outputs on the bench and in the Code view, the items of
+ * research/critique-3.md, in the browser against the built
  * extension. jest checks each of them in jsdom
  * too; the comment above each test names its item and what went wrong.
  */

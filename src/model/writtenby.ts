@@ -99,8 +99,8 @@ export function cellWrittenBy(
 /**
  * Who wrote a cell's code, in words for Cell details. The view marks the
  * code it writes, from a template or a model, with `written_by: "agent"`, a
- * model's code also with `generated_by`, which names the model, and since 28
- * September 2026 a template's with `template`. Code with none of these marks
+ * model's code also with `generated_by`, which names the model, and a
+ * template's with `template`. Code with none of these marks
  * is the analyst's.
  */
 export function codeWriter(meta: IEpiCellMeta): string {
@@ -109,11 +109,11 @@ export function codeWriter(meta: IEpiCellMeta): string {
     return 'You wrote the code.';
   }
   if (!written && meta.template) {
-    return 'The view wrote the code from a template, with no model call.';
+    return 'Whybook wrote the code from a template, with no model call.';
   }
   return written
     ? describeBy(written)
-    : 'The view wrote the code, from a template or with an AI model; the notebook does not record which.';
+    : 'Whybook wrote the code, from a template or with an AI model; the notebook does not record which.';
 }
 
 /** Who wrote or chose something, in words for the AI tag's tooltip. */

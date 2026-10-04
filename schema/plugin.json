@@ -3,7 +3,7 @@
   "jupyter.lab.setting-icon": "whybook:epinotebook",
   "jupyter.lab.setting-icon-label": "Whybook",
   "title": "Whybook",
-  "description": "Settings of the question-driven Whybook view.",
+  "description": "Settings of Whybook, a question-driven view of Jupyter notebooks.",
   "type": "object",
   "properties": {
     "interaction": {
@@ -36,8 +36,8 @@
         },
         {
           "const": "document",
-          "title": "In the Whybook view",
-          "description": "A column inside the view"
+          "title": "In Whybook",
+          "description": "A column beside the notebook"
         }
       ],
       "default": "sidebar"
@@ -54,8 +54,8 @@
         },
         {
           "const": "document",
-          "title": "In the Whybook view",
-          "description": "A column inside the view"
+          "title": "In Whybook",
+          "description": "A column beside the notebook"
         }
       ],
       "default": "sidebar"
@@ -186,7 +186,7 @@
     },
     "detailFollowsSpace": {
       "title": "Level of detail follows the space",
-      "description": "A trial: the level of detail grows with the width of the view, and on the map with the zoom. A level you pick on the Detail slider holds until the space calls for another one.",
+      "description": "A trial: the level of detail grows with the width of the column of cells, and on the map with the zoom. A level you pick on the Detail slider holds until the space calls for another one.",
       "type": "boolean",
       "oneOf": [
         {
