@@ -10,7 +10,9 @@ research/local-predictors-2.md measured the local models on 120 typed
 questions. With the keywords first, Gemma 4 E2B types 69% right and Qwen3.5
 0.8B 49%, where the keywords alone type 45%. No local model placed a cell
 better than the rules, which are right for 84%, so a local model gives only
-the type. Jev has not run on these questions: there is no TypeSafe account.
+the type. Through OpenRouter, Jev 1.13 types 75% of them right alone
+(research/choice-classifiers.md), but its place, taken where no first word
+gives one, puts 65% of the places right, against 84% for the rules alone.
 """
 
 from __future__ import annotations

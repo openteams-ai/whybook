@@ -563,7 +563,7 @@ function typedChoices(status: IServerStatus | null): IModelChoice[] {
     {
       id: 'jev',
       label: 'Jev by TypeSafe, remote',
-      note: 'the type, and the place when no first word gives it; the question and the first 20 lines of its cell leave the machine; not measured yet',
+      note: 'the type, and the place when no first word gives it; the question and the first 20 lines of its cell leave the machine; on 120 test questions, the type was right for 76%, against 45% with the keywords alone, and the place for 65%, against 84% with the first words alone',
       available: !!status?.jev?.available,
       reason: status
         ? (status.jev?.reason ?? null)
@@ -612,7 +612,7 @@ function rankingChoices(
     {
       id: 'jev',
       label: 'Jev by TypeSafe, remote',
-      note: `one yes-or-no question per offered question; ${info.sends} leave the machine; not measured yet`,
+      note: `one yes-or-no question per offered question; ${info.sends} leave the machine; on 300 drops rebuilt from public notebooks, the first question had the type of the analyst's next question for 40% of drops, against 57% with the rules, built in`,
       available: jev,
       reason: jev
         ? null
