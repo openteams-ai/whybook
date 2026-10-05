@@ -4517,7 +4517,7 @@ export class EpiModel implements IDisposable {
       }
       this._keepGuess(strip);
       this._ledger(
-        `${option.text} · via ${this.interaction === 'drag' ? 'drop' : 'pick'} on ${target.label}`
+        `${option.text} · asked by ${this.interaction === 'drag' ? 'dragging onto' : 'clicking'} ${target.label}`
       );
       const result = await this._run(
         target.model as ICodeCellModel,

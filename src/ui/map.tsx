@@ -55,8 +55,8 @@ const GRID = 24;
 const MAP_HINT =
   'Top to bottom is execution order. Click a cell, a text or a data node ' +
   'for questions; double-click a cell to show it on the bench; drag a ' +
-  'rectangle or Shift/Ctrl-click to select several. Scroll, Space+drag or ' +
-  'a middle-button drag moves the map; Ctrl+scroll zooms.';
+  'rectangle or Shift/Ctrl-click to select several. Scroll, or drag with ' +
+  'Space held or with the middle button, to move the map; Ctrl+scroll zooms.';
 
 interface INode {
   id: string;

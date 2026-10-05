@@ -246,7 +246,7 @@ export const TASKS: {
   {
     id: 'questions',
     label: 'More questions',
-    help: 'Writes more questions about a drop when you press "More questions from AI", and, with "Questions from a model" at always, the default, next to the templates on every drop and click. Suggests other values of a constant whose kind no rule knows, from its chip. With "Find more defaults with AI" on, picks the library defaults that can change a cell\'s result, from the signatures of the functions it calls, for its chips. In the Check-up, answers "What would a reviewer ask?" when you press Ask. The questions that templates offer, and the values of a count of days or a threshold, need no model.',
+    help: 'Writes more questions about what you dropped or clicked when you press "More questions from AI", and, with "Questions from a model" at always, the default, next to the templates each time you drag or click. Suggests other values of a constant whose kind no rule knows, from its chip. With "Find more defaults with AI" on, picks the library defaults that can change a cell\'s result, from the signatures of the functions it calls, for its chips. In the Check-up, answers "What would a reviewer ask?" when you press Ask. The questions that templates offer, and the values of a count of days or a threshold, need no model.',
     sends:
       'what the questions are about, with summaries of the variables, the name and code of a constant, and the signatures of library functions',
     local: true,
@@ -277,15 +277,15 @@ export const TASKS: {
   {
     id: 'ranking',
     label: 'Question order',
-    help: 'Orders the questions offered for a drop, for cells, for a text, and under "Worth asking next". The rules score each question at once, from its type, the data and the questions asked so far, and the list shows in their order. A model then scores the questions again, and the list takes its order when the answer comes, with the model named above it. While the pointer is on the list, the questions stay where they are, and the note above them shows the model\'s order on a click. Questions about a table, a plot or a picture keep the rules\' order. With a local model, no data leaves the machine.',
+    help: 'Orders the questions offered for what you drag or click, for cells, for a text, and under "Worth asking next". The rules score each question at once, from its type, the data and the questions asked so far, and the list shows in their order. A model then scores the questions again, and the list takes its order when the answer comes, with the model named above it. While the pointer is on the list, the questions stay where they are, and the note above them shows the model\'s order on a click. Questions about a table, a plot or a picture keep the rules\' order. With a local model, no data leaves the machine.',
     sends:
       'the offered questions, the names and sizes of the variables selected, the titles of the last 20 cells and the questions asked so far',
     local: true,
     notes: {
       'gemma-4-e2b':
-        "picks the next question among the offered ones, read once after the notebook's state; on 60 drops rebuilt from public notebooks, the first question had the type of the analyst's next question for 45% of drops, against 57% with the rules, built in",
+        "picks the next question among the offered ones, read once after the notebook's state; on 60 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 45% of them, against 57% with the rules, built in",
       'gemma-4-e4b':
-        "picks the next question among the offered ones, read once after the notebook's state; on 60 drops rebuilt from public notebooks, the first question had the type of the analyst's next question for 43% of drops, against 57% with the rules, built in"
+        "picks the next question among the offered ones, read once after the notebook's state; on 60 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 43% of them, against 57% with the rules, built in"
     }
   },
   {
@@ -588,7 +588,7 @@ function rankingChoices(
   const remote: IModelChoice = {
     id: 'remote',
     label: remoteLabel(status),
-    note: `asked which question you will ask next: on 300 drops rebuilt from public notebooks, the first question had the type of the analyst's next question for 61% of drops, against 57% with the rules, built in; ${remoteSends(status, info.sends)}`,
+    note: `asked which question you will ask next: on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 61% of them, against 57% with the rules, built in; ${remoteSends(status, info.sends)}`,
     available: reason === null,
     reason,
     download: null,
@@ -600,7 +600,7 @@ function rankingChoices(
     {
       id: 'rules',
       label: 'Rules, built in',
-      note: "the rules score each question from its type, the data and the questions asked so far, and a learned ranker orders their types; on 4,790 drops rebuilt from public notebooks, the first question then had the type of the analyst's next question for 52.5% of drops, against 29.5% with the rules alone and 25.3% in a random order",
+      note: "the rules score each question from its type, the data and the questions asked so far, and a learned ranker orders their types; on 4,790 cells of public notebooks, asked again by dragging the variables they use, the first question then had the type of the analyst's next question for 52.5% of them, against 29.5% with the rules alone and 25.3% in a random order",
       available: true,
       reason: null,
       download: null,
@@ -612,7 +612,7 @@ function rankingChoices(
     {
       id: 'jev',
       label: 'Jev by TypeSafe, remote',
-      note: `one yes-or-no question per offered question; ${info.sends} leave the machine; on 300 drops rebuilt from public notebooks, the first question had the type of the analyst's next question for 40% of drops, against 57% with the rules, built in`,
+      note: `one yes-or-no question per offered question; ${info.sends} leave the machine; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 40% of them, against 57% with the rules, built in`,
       available: jev,
       reason: jev
         ? null

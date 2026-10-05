@@ -222,7 +222,7 @@
     },
     "offeredQuestions": {
       "title": "Offered questions per request",
-      "description": "How many questions a drop or a click offers, best first. None: you type every question yourself.",
+      "description": "How many questions are offered each time you drag or click, best first. None: you type every question yourself.",
       "type": "integer",
       "oneOf": [
         { "const": 0, "title": "None" },
@@ -369,7 +369,7 @@
     },
     "modelQuestions": {
       "title": "Questions from a model",
-      "description": "When a drop or a click also asks the AI model of More questions for questions, beside those of the templates. None of its questions runs until you pick it.",
+      "description": "When the AI model of More questions also writes questions each time you drag or click, beside those of the templates. None of its questions runs until you pick it.",
       "type": "string",
       "oneOf": [
         {

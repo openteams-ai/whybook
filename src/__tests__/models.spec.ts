@@ -224,11 +224,11 @@ describe('choicesFor', () => {
       ['minicpm5-2b', false],
       ['jev', false]
     ]);
-    expect(ranking[2].note).toMatch(/45% of drops, against 57% with the rules/);
+    expect(ranking[2].note).toMatch(/45% of them, against 57% with the rules/);
     // The remote model's prompt predicts the next question, as measured.
-    expect(ranking[1].note).toMatch(/61% of drops, against 57% with the rules/);
+    expect(ranking[1].note).toMatch(/61% of them, against 57% with the rules/);
     expect(ranking[0].note).toMatch(
-      /52.5% of drops, against 29.5% with the rules alone and 25.3% in a random order/
+      /52.5% of them, against 29.5% with the rules alone and 25.3% in a random order/
     );
     // Jev orders questions through Cloudflare too, as the ranker did before TypeSafe.
     const cloudflare = { ...STATUS, jev_configured: true };

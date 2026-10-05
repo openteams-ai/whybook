@@ -52,7 +52,7 @@ The questions from templates work with no AI model. Questions marked needs AI, a
 
 ## What leaves the machine
 
-Once a remote AI model is connected, Whybook sends it each table that it shows as a tile, to get a label, and asks it for more questions at each drop or click. With the setting "Keep data on this machine", no values, tables or pictures leave the machine, and `c.Whybook.keep_data_local = True` turns it on for every user of a Jupyter server.
+Once a remote AI model is connected, Whybook sends it each table that it shows as a tile, to get a label, and asks it for more questions each time the analyst drags or clicks. With the setting "Keep data on this machine", no values, tables or pictures leave the machine, and `c.Whybook.keep_data_local = True` turns it on for every user of a Jupyter server.
 
 ## Development
 
