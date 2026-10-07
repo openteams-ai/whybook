@@ -63,7 +63,6 @@ def _option(
     code: str | None,
     effect: str,
     *parts: str,
-    action: dict | None = None,
     uses: dict[str, str] | None = None,
 ) -> Candidate:
     return Candidate(
@@ -76,7 +75,6 @@ def _option(
         effect=effect,
         placement=placement,
         code=code,
-        action=action,
         uses=uses,
     )
 
@@ -238,12 +236,12 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tup
                 else:
                     new_source = None
             code = new_source
-        options.append(_option(f"Add {column.label} as a covariate", "model", 0.55, edit, code, "Recorded as a new assumption", column.name, cell.id))
+        options.append(_option(f"Add {column.label} as a covariate", "model", 0.55, edit, code, f"Refits the model with {column.label}", column.name, cell.id))
     exposure = group_column(context)
     # Nothing causes a unit's id or the week of a visit (design iteration 1.75).
     timeless = not templates.is_unit(column, context) and not templates.is_time(column)
     if outcome and exposure and column.label not in (exposure, outcome) and timeless:
-        options.append(_option(f"Could {column.label} mediate the effect of {exposure}?", "causal", 0.45, branch, None, "Adds a node to the causal diagram first", column.name, cell.id, uses=uses))
+        options.append(_option(f"Could {column.label} mediate the effect of {exposure}?", "causal", 0.45, branch, None, "AI writes the branch", column.name, cell.id, uses=uses))
     if base and outcome and column.label != outcome:
         # A time index with repeated units draws the outcome over time: a line
         # per unit and the mean with its band, where a scatter of whole weeks
@@ -662,19 +660,6 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 options.append(_trajectory(request, time, other, unit_here, home))
                 answered.add("trend")
         if special is None:
-            options.append(
-                _option(
-                    f"Is there a plausible causal path from {a.label} to {b.label}?",
-                    "causal",
-                    0.55,
-                    Placement("metadata", None, "the causal diagram"),
-                    None,
-                    "Proposes an edge in the causal diagram",
-                    a.name,
-                    b.name,
-                    action={"kind": "dag_edge", "from": a.label, "to": b.label},
-                )
-            )
             options.append(_option(f"What else could explain both {a.label} and {b.label}?", "causal", 0.5, home, None, "Scans unexplored variables for common causes", a.name, b.name))
         else:
             # How many rows each unit has: a group-by count, which the model was asked for.
@@ -827,7 +812,7 @@ def drop_options(request: DropRequest) -> dict[str, Any]:
         involved = [source] if self_drop else [source, target]
     for option in options:
         score_candidate(option, involved, context)
-        if option.code is None and option.action is None and not option.effect.startswith("AI "):
+        if option.code is None and not option.effect.startswith("AI "):
             option.reasons.append("needs AI")
     options.sort(key=lambda option: option.probability or 0.0, reverse=True)
     if request.target_cell is None:

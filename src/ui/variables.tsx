@@ -1209,7 +1209,7 @@ function AskOptions(props: { model: EpiModel; ask: Ask }): JSX.Element {
     // data stays on this machine, where only questions with code are offered.
     const local = model.keepDataLocal;
     const options = local
-      ? ask.options.filter(option => option.code || option.action)
+      ? ask.options.filter(option => option.code)
       : ask.options;
     return (
       <div className="jp-Epi-ask">

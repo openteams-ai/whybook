@@ -296,6 +296,74 @@
       "type": "boolean",
       "default": false
     },
+    "reviewGuard": {
+      "title": "Review guard",
+      "description": "Checks each prompt before it goes to a model on another machine, and code that an AI wrote before it runs. Ask waits for your answer; reject holds back what was flagged, and the work goes on.",
+      "oneOf": [
+        {
+          "const": "ask",
+          "title": "Ask: show what was flagged, and wait for my answer"
+        },
+        {
+          "const": "reject",
+          "title": "Reject: hold back what was flagged, and go on"
+        },
+        { "const": "none", "title": "None: check nothing" }
+      ],
+      "default": "ask"
+    },
+    "guardPrivacy": {
+      "title": "Review guard: check prompts (data privacy)",
+      "description": "Rules read every prompt before it goes to a model on another machine, for identifiers, personal details, small counts and keys.",
+      "type": "boolean",
+      "default": true
+    },
+    "guardPrivacyModel": {
+      "title": "Review guard: guard model for prompts",
+      "description": "A guard model on this machine that also reads each prompt against the privacy policy. Empty for the rules alone.",
+      "oneOf": [
+        { "const": "", "title": "None: the rules alone" },
+        {
+          "const": "granite-guardian-4.1-8b",
+          "title": "Granite Guardian 4.1 8B"
+        },
+        { "const": "dynaguard-4b", "title": "DynaGuard 4B" },
+        { "const": "shieldstral-1.0-3b", "title": "Shieldstral 1.0 3B" }
+      ],
+      "default": ""
+    },
+    "guardExecution": {
+      "title": "Review guard: check code (execution safety)",
+      "description": "Rules read code that an AI wrote before it runs, and ask about more while the kernel runs outside the sandbox.",
+      "type": "boolean",
+      "default": true
+    },
+    "guardExecutionModel": {
+      "title": "Review guard: guard model for code",
+      "description": "A guard model on this machine that also reads the code. Empty for the rules alone.",
+      "oneOf": [
+        { "const": "", "title": "None: the rules alone" },
+        { "const": "dynaguard-4b", "title": "DynaGuard 4B" },
+        {
+          "const": "granite-guardian-4.1-8b",
+          "title": "Granite Guardian 4.1 8B"
+        },
+        { "const": "shieldstral-1.0-3b", "title": "Shieldstral 1.0 3B" }
+      ],
+      "default": ""
+    },
+    "guardRemoteReview": {
+      "title": "Review guard: the remote model reviews code",
+      "description": "The connected model also reviews code that an AI wrote, in a call of its own that reads the code alone. One more call for each cell.",
+      "type": "boolean",
+      "default": false
+    },
+    "privacyPolicy": {
+      "title": "Privacy policy",
+      "description": "What may leave this machine, in your words, for the guard models. Empty for the default policy.",
+      "type": "string",
+      "default": ""
+    },
     "zeroDataRetention": {
       "title": "Zero data retention (OpenRouter)",
       "description": "Requests through OpenRouter go only to providers that keep neither the prompt nor the answer. A model with no such provider cannot answer.",

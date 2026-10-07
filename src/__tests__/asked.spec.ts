@@ -29,8 +29,8 @@ describe('countAsked', () => {
         { ...question('failed'), outcome: 'failed' },
         // An edit in place, or a preview: the log says that it ran.
         { ...question('edit'), outcome: 'ran' },
-        // An edge of the causal diagram: no cell ran for it.
-        question('edge')
+        // Still written or run: no cell ran for it, and the log has no outcome.
+        question('writing')
       ],
       []
     );

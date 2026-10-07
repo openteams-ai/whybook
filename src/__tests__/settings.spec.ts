@@ -2,6 +2,7 @@
  * The settings of the view as the plugin reads them (src/model/settings.ts),
  * from the settings that JupyterLab composes through the schema.
  */
+import { DEFAULT_GUARD } from '../model/guard';
 import { DEFAULT_MODELS } from '../model/models';
 import { readSettings } from '../model/settings';
 import { composed } from './fakes/settings-fake';
@@ -36,7 +37,8 @@ describe('readSettings', () => {
       showCost: false,
       modelQuestions: 'always',
       findDefaults: true,
-      exploredOrder: 'auto'
+      exploredOrder: 'auto',
+      guard: DEFAULT_GUARD
     });
   });
 

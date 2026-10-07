@@ -320,9 +320,8 @@ class Placement:
 
     ``edit`` rewrites ``cell`` in place, ``new`` inserts a cell after
     ``cell``, ``branch`` inserts a branch of ``cell`` that runs in its own
-    subshell, ``preview`` shows the result in the sidebar without writing to
-    the notebook, and ``metadata`` only records something in the notebook
-    metadata, such as an edge of the causal diagram.
+    subshell, and ``preview`` shows the result in the sidebar without writing
+    to the notebook.
     """
 
     kind: str
@@ -361,7 +360,6 @@ class Candidate:
     effect: str = ""
     placement: Placement | None = None
     code: str | None = None
-    action: dict[str, Any] | None = None
     # The outcome and the unit that the question takes from the context, by
     # column: {"outcome": "kwh_import"}. The view shows where each came from.
     uses: dict[str, str] | None = None
@@ -379,7 +377,6 @@ class Candidate:
             "effect": self.effect,
             "placement": self.placement.to_json() if self.placement else None,
             "code": self.code,
-            "action": self.action,
         }
         if self.uses:
             data["uses"] = dict(self.uses)

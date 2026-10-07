@@ -740,17 +740,6 @@ def multi_cell_questions(cells: list[CellInfo], context: Context) -> list[Candid
         questions += [
             _question(f"Do {first.label} and {second.label} agree on the effect of interest?", "model", 0.7, after, None, "Side-by-side estimates", *[c.id for c in cells]),
             _question("Which fits better, and by what criterion?", "model", 0.55, after, None, "You choose the criterion first", *[c.id for c in cells]),
-            Candidate(
-                id=question_id("keep", *[c.id for c in cells]),
-                text="Keep one branch, or report both?",
-                type="model",
-                origin="template",
-                variables=(),
-                prior=0.45,
-                effect="Records the decision as an assumption",
-                placement=Placement("metadata", None, "notebook assumptions"),
-                action={"kind": "assumption", "text": f"Report both {first.label} and {second.label}"},
-            ),
         ]
     elif plots and models:
         plot, model = plots[0], models[0]

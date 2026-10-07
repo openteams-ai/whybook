@@ -85,7 +85,6 @@ export function fakeModel(
     parallelEnded: new Map(),
     nextSteps: [],
     agentRuns: [],
-    notices: [],
     touched: new Set(),
     codeOpen: new Set(),
     collapsed: new Set(),

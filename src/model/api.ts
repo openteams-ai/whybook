@@ -5,6 +5,12 @@ import { requestAPI, streamAPI } from '../request';
 import type { IDropResult, IOption, IWrittenBy, StreamEvent } from '../tokens';
 import type { ICustomLocalModel } from './custommodels';
 import { customSpec } from './custommodels';
+import type {
+  GuardAnswer,
+  IGuardEvent,
+  IGuardHeld,
+  IGuardMemory
+} from './guard';
 
 /**
  * Where a local model stands: one of the three best for a laptop with 16 GB,
@@ -117,6 +123,10 @@ export interface IServerStatus {
    * user (c.Whybook.openrouter_zdr): the setting zeroDataRetention is fixed.
    */
   openrouter_zdr?: boolean;
+  /** The review guard's mode when the server fixes it for every user (c.Whybook.review_guard), else "". */
+  review_guard?: string;
+  /** The guard models of the server, with the reason each cannot run: whybook/server/guard/models.py. */
+  guard_models?: ILocalModel[];
   /**
    * The connected provider's models for the tasks that need speed, by tier,
    * the first being the tier's own: whybook/server/tiers.py. Empty lists for
@@ -340,7 +350,7 @@ export class Api {
     return streamAPI(
       'decision/values',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body)),
       this._cost('decision/values', body, this._watch(onEvent)),
       signal
     );
@@ -369,7 +379,7 @@ export class Api {
     return streamAPI(
       'defaults/ask',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body), true),
       event =>
         event.type === 'result' && event.kept === true
           ? onEvent(event)
@@ -390,7 +400,7 @@ export class Api {
     return streamAPI(
       'solve',
       this._settings,
-      this._policy(body),
+      this._guarded(this._policy(body)),
       this._cost('solve', body, onEvent),
       signal
     );
@@ -418,7 +428,7 @@ export class Api {
     return streamAPI(
       'questions/claude',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body), true),
       this._cost('questions/claude', body, this._watch(onEvent)),
       signal
     );
@@ -437,7 +447,7 @@ export class Api {
     return streamAPI(
       'questions/review',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body)),
       this._cost('questions/review', body, this._watch(onEvent)),
       signal
     );
@@ -456,7 +466,7 @@ export class Api {
     return streamAPI(
       'questions/rank',
       this._settings,
-      this._policy(body),
+      this._guarded(this._policy(body), true),
       this._cost('questions/rank', body, onEvent),
       signal
     );
@@ -475,7 +485,7 @@ export class Api {
     return streamAPI(
       'agent',
       this._settings,
-      this._policy(body),
+      this._guarded(this._policy(body)),
       this._cost('agent', body, onEvent),
       signal
     );
@@ -488,6 +498,30 @@ export class Api {
     result: unknown;
   }): Promise<{ ok: boolean }> {
     return this._post('agent/result', body);
+  }
+
+  /** The analyst's answer to a question of the review guard: the request that waits goes on. */
+  guardAnswer(
+    id: string,
+    answer: GuardAnswer,
+    note: string
+  ): Promise<{ ok: boolean }> {
+    return requestAPI('guard/answer', this._settings, {
+      method: 'POST',
+      body: JSON.stringify({ id, answer, note })
+    });
+  }
+
+  /** What the server keeps of a session of the review guard, after a change: forget an answer, or allow what a held item flagged. */
+  guardSession(body: {
+    session: string;
+    forget?: number | 'all';
+    allow?: unknown;
+  }): Promise<IGuardMemory> {
+    return requestAPI('guard/session', this._settings, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
   }
 
   /** Stop an agent's run; the cells it added stay. */
@@ -516,7 +550,7 @@ export class Api {
     return streamAPI(
       'dependencies/claude',
       this._settings,
-      this._policy(body),
+      this._guarded(this._policy(body)),
       this._cost('dependencies/claude', body, onEvent),
       signal
     );
@@ -530,7 +564,7 @@ export class Api {
     return streamAPI(
       'tables/describe',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body), true),
       this._cost('tables/describe', body, this._watch(onEvent)),
       signal
     );
@@ -544,7 +578,7 @@ export class Api {
     return streamAPI(
       'frames/describe',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body), true),
       this._cost('frames/describe', body, this._watch(onEvent)),
       signal
     );
@@ -559,7 +593,7 @@ export class Api {
     return streamAPI(
       'cells/title',
       this._settings,
-      this._local(body),
+      this._guarded(this._local(body), true),
       this._cost('cells/title', body, this._watch(onEvent)),
       signal
     );
@@ -780,6 +814,20 @@ export class Api {
   }
 
   /**
+   * The body of a request that can reach a model, with the review guard's
+   * object: what the view chose, and what the notebook tells of its data
+   * and its kernel. Other requests go without it. A request that nobody
+   * waits on, such as a table's labels, is `background`: the guard holds it
+   * back without a question.
+   */
+  private _guarded(body: unknown, background = false): unknown {
+    const guard = this._options.guard?.();
+    return guard && body && typeof body === 'object' && !Array.isArray(body)
+      ? { ...body, guard: background ? { ...guard, background } : guard }
+      : body;
+  }
+
+  /**
    * The body with `zero_data_retention: false` when the analyst turned zero
    * data retention off, and the server does not pin it: requests through
    * OpenRouter may then go to any provider. A body without it keeps the
@@ -823,6 +871,34 @@ export class Api {
   ): (event: StreamEvent) => void {
     let told = false;
     return event => {
+      const kind = (event as { type: string }).type;
+      if (kind === 'guard') {
+        // A question of the review guard: the request waits for the answer.
+        const question = event as unknown as IGuardEvent;
+        const ask = this._options.onGuard;
+        void (
+          ask
+            ? ask(question)
+            : Promise.resolve({ answer: 'stop' as GuardAnswer, note: '' })
+        )
+          .catch(() => ({ answer: 'stop' as GuardAnswer, note: '' }))
+          .then(({ answer, note }) =>
+            this.guardAnswer(question.id, answer, note)
+          )
+          .catch(() => undefined);
+        return;
+      }
+      if (kind === 'guard_held') {
+        this._options.onGuardHeld?.(event as unknown as IGuardHeld);
+        // An agent's run shows it among its steps.
+        if (route !== 'agent') {
+          return;
+        }
+      }
+      // The server pings while a question waits; only an agent's run reads pings.
+      if (kind === 'ping' && route !== 'agent') {
+        return;
+      }
       const cost = (event as { cost_usd?: unknown }).cost_usd;
       if (
         !told &&
@@ -875,5 +951,13 @@ export namespace Api {
     customModels?: () => ICustomLocalModel[];
     /** Called once for each call that reached a model, with what it cost. */
     onCall?: (call: IModelCall) => void;
+    /** The review guard's object of each request: src/model/guard.ts, guardBody. */
+    guard?: () => Record<string, unknown>;
+    /** Asks the analyst a question of the review guard. */
+    onGuard?: (
+      event: IGuardEvent
+    ) => Promise<{ answer: GuardAnswer; note: string }>;
+    /** Told what the guard held back in reject mode. */
+    onGuardHeld?: (event: IGuardHeld) => void;
   }
 }

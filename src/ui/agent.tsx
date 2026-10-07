@@ -5,6 +5,8 @@ import * as React from 'react';
 import type { IAgentRun } from '../model/agent';
 import { runStatus } from '../model/agent';
 import type { EpiModel } from '../model/epimodel';
+import type { IGuardHeld } from '../model/guard';
+import { heldWords } from '../model/guard';
 import { splitLabels } from '../model/labels';
 import { runWhen } from '../model/runs';
 import type { QuestionType } from '../tokens';
@@ -174,6 +176,16 @@ export function AgentRunView(props: {
           ))}
         </ol>
       )}
+      {run.held && run.held.length > 0 && (
+        <ul
+          className="jp-Epi-agentrun-held"
+          aria-label="What the review guard held back"
+        >
+          {run.held.map((held, index) => (
+            <HeldLine key={index} model={model} held={held} />
+          ))}
+        </ul>
+      )}
       {busy && last && <div className="jp-Epi-thinking">{last}</div>}
       {run.answer && (
         <div className="jp-Epi-agentrun-answer">
@@ -209,6 +221,44 @@ export function AgentRunView(props: {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * What the review guard held back in a run, in reject mode: the words, and
+ * "Allow for this session" when the guard flagged parts that a later check
+ * can match.
+ */
+function HeldLine(props: { model: EpiModel; held: IGuardHeld }): JSX.Element {
+  const { model, held } = props;
+  const [allowed, setAllowed] = React.useState(false);
+  const parts = held.flags.filter(flag => flag.text);
+  return (
+    <li className={`jp-mod-${held.guard}`}>
+      <span className="jp-Epi-agentrun-heldkind">Guard</span>
+      <span className="jp-Epi-agentrun-heldtext">{heldWords(held)}</span>
+      {parts.length > 0 &&
+        (allowed ? (
+          <span className="jp-Epi-agentrun-heldallowed">
+            Allowed for this session
+          </span>
+        ) : (
+          <button
+            className="jp-Epi-link"
+            title={`The guard lets ${parts.map(flag => flag.text).join(', ')} go for the rest of this session`}
+            onClick={() =>
+              void model
+                .guardMemory({
+                  allow: { guard: held.guard, flags: held.flags }
+                })
+                .then(() => setAllowed(true))
+                .catch(() => undefined)
+            }
+          >
+            Allow for this session
+          </button>
+        ))}
+    </li>
   );
 }
 

@@ -12,7 +12,7 @@ from jupyter_server.utils import url_path_join
 from tornado.iostream import StreamClosedError
 from tornado.web import HTTPError
 
-from . import agent, cell_titles, connection, databases, dependencies, frame_notes, library_defaults, local_models, model_client, privacy, providers, signin, sorting, speech, table_notes, tiers
+from . import agent, cell_titles, connection, databases, dependencies, frame_notes, guard, library_defaults, local_models, model_client, privacy, providers, signin, sorting, speech, table_notes, tiers
 from .keystore import KeyStore
 from .config import Whybook
 from .questions import claude_questions, ranking, review, templates, values
@@ -145,6 +145,9 @@ class StatusHandler(BaseHandler):
             "speech_engines": speech.status(),
             "json_check_warning": local_models.fast_check_warning(),
             "keep_data_local": config.keep_data_local,
+            # The mode of the review guard when the server fixes it for every user, else "".
+            "review_guard": config.review_guard,
+            "guard_models": guard.models.status(),
             # True when the server pins zero data retention on OpenRouter for every user.
             "openrouter_zdr": config.openrouter_zdr,
             # The connected provider's models for the tasks that need speed: tiers.py.
@@ -657,6 +660,38 @@ class AgentStopHandler(BaseHandler):
         self.finish(json.dumps({"ok": True}))
 
 
+class GuardAnswerHandler(BaseHandler):
+    """The analyst's answer to a question of the review guard: ``{"id", "answer", "note"}``. The request that waits goes on."""
+
+    @tornado.web.authenticated
+    def post(self):
+        body = self.get_json_body()
+        if not isinstance(body, dict) or not isinstance(body.get("id"), str) or body.get("answer") not in ("send", "mask", "stop", "run"):
+            raise HTTPError(400, "the body needs the question's id and an answer: send, mask, stop or run")
+        if not guard.answer(body["id"], body["answer"], body.get("note")):
+            raise HTTPError(404, "no question of the guard waits under that id")
+        self.finish(json.dumps({"ok": True}))
+
+
+class GuardSessionHandler(BaseHandler):
+    """What the review guard keeps for a session: the answers allowed and the items held back. ``{"session"}``,
+    with ``"forget"`` an index or ``"all"``, or with ``"allow"`` the flags of a held item and a note."""
+
+    @tornado.web.authenticated
+    def post(self):
+        body = self.get_json_body()
+        session = body.get("session") if isinstance(body, dict) else None
+        if not isinstance(session, str) or not session.strip() or len(session) > 80:
+            raise HTTPError(400, "the body needs the session")
+        forget = body.get("forget")
+        if forget is not None and not guard.forget(session, None if forget == "all" else forget if isinstance(forget, int) else -1):
+            raise HTTPError(404, "no such answer in this session")
+        allow = body.get("allow")
+        if isinstance(allow, dict) and not guard.remember_flags(session, allow.get("guard"), allow.get("flags"), allow.get("note")):
+            raise HTTPError(400, "allow needs the guard and the flags of a held item")
+        self.finish(json.dumps(guard.memory(session).to_json()))
+
+
 def connection_state(config: Whybook) -> dict[str, Any]:
     """The connected model and each provider, as the AI models panel shows them: never a key, only whether one is kept."""
     keys = KeyStore()
@@ -973,6 +1008,8 @@ def setup_route_handlers(web_app, config: Whybook):
         (("agent",), AgentHandler),
         (("agent", "result"), AgentResultHandler),
         (("agent", "stop"), AgentStopHandler),
+        (("guard", "answer"), GuardAnswerHandler),
+        (("guard", "session"), GuardSessionHandler),
         (("databases",), DatabasesHandler),
         (("databases", "tables"), DatabaseTablesHandler),
         (("dependencies",), DependenciesHandler),

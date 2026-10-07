@@ -409,7 +409,15 @@ def describe_source(item: Variable, root: str | None, language: str = "python") 
 
 
 async def solve(request: SolveRequest, config: Whybook) -> AsyncIterator[claude.Event]:
-    """Stream progress events, then a result event with the proposed cell."""
+    """Stream progress events, then a result event with the proposed cell.
+
+    The review guard reads the cell's code before the view runs it: a cell
+    that the analyst does not run, or that the guard holds back, ends as an
+    error, with the code and what the call cost.
+    """
+    from . import guard
+
+    settings = dataclasses.replace(guard.settings_of(config), language=languages.language(request.language).name)
     async for event in connection.structured_call(
         request.prompt(),
         schema=SCHEMA,
@@ -420,6 +428,18 @@ async def solve(request: SolveRequest, config: Whybook) -> AsyncIterator[claude.
     ):
         if event["type"] == "result":
             event["cell"] = complete_cell(event.pop("output"), request.defined, request.language)
+            code = event["cell"].get("code")
+            if settings.checks_code and isinstance(code, str) and code.strip():
+                held: list[guard.Outcome] = []
+                review = guard.code_review(config, settings)
+                async for step in guard.events(
+                    lambda emit: guard.review_code(code, settings, emit, what="the cell of an answer", threads=config.local_threads, review=review), held
+                ):
+                    yield step
+                if not held[0].go:
+                    why = "You did not run the cell that the AI wrote" if held[0].by == "analyst" else f"The review guard held back the cell that the AI wrote: {held[0].reason}"
+                    yield {"type": "error", "message": f"{why}.", "guard": True, "code": code, "cost_usd": event.get("cost_usd"), "model": event.get("model")}
+                    return
         yield event
 
 

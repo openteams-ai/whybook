@@ -1,12 +1,11 @@
 import * as React from 'react';
 
 /**
- * The counts under the questions asked: pivots, subanalyses, open
- * assumptions and, when the guess before a result is on, guesses. A count
- * of one takes the singular: "1 pivot".
+ * The counts under the questions asked: subanalyses, open assumptions and,
+ * when the guess before a result is on, guesses. A count of one takes the
+ * singular: "1 subanalysis".
  */
 export function ExplorationCounts(props: {
-  pivots: number;
   branches: number;
   assumptions: number;
   guesses: number | null;
@@ -19,7 +18,6 @@ export function ExplorationCounts(props: {
   );
   return (
     <div className="jp-Epi-block jp-Epi-numbers">
-      <div>{count(props.pivots, 'pivot', 'pivots')}</div>
       <div>{count(props.branches, 'subanalysis', 'subanalyses')}</div>
       <div>
         {count(props.assumptions, 'open assumption', 'open assumptions')}

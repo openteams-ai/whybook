@@ -46,7 +46,7 @@ export function readModelQuestions(
  */
 export function asksModel(
   when: ModelQuestions,
-  options: Pick<IOption, 'code' | 'action'>[]
+  options: Pick<IOption, 'code'>[]
 ): boolean {
   switch (when) {
     case 'always':
@@ -180,9 +180,7 @@ export function noModelNote(
  * Whether no template fits a request: it got no question, or only questions
  * that need AI. The view then asks the model for questions at once.
  */
-export function noTemplateFits(
-  options: Pick<IOption, 'code' | 'action'>[]
-): boolean {
+export function noTemplateFits(options: Pick<IOption, 'code'>[]): boolean {
   return options.every(needsAI);
 }
 

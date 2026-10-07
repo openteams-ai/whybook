@@ -112,7 +112,7 @@ def test_a_units_id_or_a_time_index_is_no_cause_and_no_level(source, target):
 def test_two_measures_keep_their_causal_questions():
     crp = column("crp_mg_l", "numeric", tag="num")
     found = texts(crp, DOSE)
-    assert "Is there a plausible causal path from crp_mg_l to analgesic_dose_mg?" in found
+    assert "What else could explain both crp_mg_l and analgesic_dose_mg?" in found
     assert "Does crp_mg_l influence analgesic_dose_mg, or the other way round?" in found
 
 

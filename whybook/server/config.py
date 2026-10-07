@@ -165,6 +165,17 @@ class Whybook(Configurable):
         ),
     ).tag(config=True)
 
+    review_guard = Enum(
+        ["", "ask", "reject"],
+        default_value="",
+        help=(
+            "Fix the mode of the review guard for every user: 'ask' or 'reject'. The"
+            " guard checks each prompt before it goes to a model on another machine,"
+            " and code that a model wrote before it runs. When empty, each user"
+            " chooses with the setting 'Review guard', which can also turn it off."
+        ),
+    ).tag(config=True)
+
     local_threads = Int(
         4,
         help=(

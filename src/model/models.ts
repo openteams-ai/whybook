@@ -600,7 +600,7 @@ function rankingChoices(
     {
       id: 'rules',
       label: 'Rules, built in',
-      note: "the rules score each question from its type, the data and the questions asked so far, and a learned ranker orders their types; on 4,790 cells of public notebooks, asked again by dragging the variables they use, the first question then had the type of the analyst's next question for 52.5% of them, against 29.5% with the rules alone and 25.3% in a random order",
+      note: "the rules score each question from its type, the data and the questions asked so far, and a learned ranker orders their types; on 4,790 cells of public notebooks, asked again by dragging the variables they use, the first question then had the type of the analyst's next question for 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order",
       available: true,
       reason: null,
       download: null,

@@ -325,7 +325,6 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
   const max = Math.max(1, ...Object.values(counts));
   const causalShare = asked.length ? counts.causal / asked.length : 0;
   const meta = notebookMeta(model.notebook);
-  const pivots = meta.exploration?.pivots ?? [];
   const branches = model.codeCells().filter(cell => cell.branchOf).length;
   // A kernel of another language: no columns read, and no questions offered.
   const noAnalysis = model.unsupported('analysis');
@@ -335,16 +334,6 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
   const steps = runnableFirst(model.nextSteps, !!model.aiOff()).slice(0, 3);
   return (
     <div className="jp-Epi-exploration">
-      {model.notices.map(notice => (
-        <div key={notice.id} className="jp-Epi-notice">
-          {notice.text}
-          {notice.undo && (
-            <button className="jp-Epi-link" onClick={() => notice.undo?.()}>
-              Undo
-            </button>
-          )}
-        </div>
-      ))}
       <div className="jp-Epi-block">
         <div className="jp-Epi-block-head">
           <span>Questions asked</span>
@@ -415,19 +404,10 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
         }
       />
       <ExplorationCounts
-        pivots={pivots.length}
         branches={branches}
         assumptions={openAssumptions(model)}
         guesses={model.settings.guessFirst ? model.guessCount() : null}
       />
-      {pivots.length > 0 && (
-        <div className="jp-Epi-caption">
-          Last pivot: {pivots[pivots.length - 1].text}
-          {pivots[pivots.length - 1].section
-            ? ` (${pivots[pivots.length - 1].section})`
-            : ''}
-        </div>
-      )}
       {model.settings.showCost && <CostBlock model={model} />}
       <div className="jp-Epi-block" {...pointerOn(model, model.next)}>
         <div className="jp-Epi-block-head">

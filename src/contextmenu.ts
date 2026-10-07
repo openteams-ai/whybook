@@ -32,37 +32,9 @@ const UNDO_MS = 12000;
 /** The head of Variables explored, in the Exploration panel (./ui/exploration.tsx). */
 const EXPLORED_HEAD = '.jp-Epi .jp-Epi-explored-head';
 
-/** Actions that are planned but not built: shown, and disabled. */
-const PLACEHOLDERS: {
-  id: string;
-  label: string;
-  selector: string;
-}[] = [
-  {
-    id: 'whybook:track-variable',
-    label: 'Track in the report',
-    selector: '.jp-Epi [data-variable]'
-  },
-  {
-    id: 'whybook:explain-cell',
-    label: 'Explain this cell',
-    selector: '.jp-Epi [data-cell-id]'
-  },
-  {
-    id: 'whybook:pin-cell',
-    label: 'Pin to the report',
-    selector: '.jp-Epi [data-cell-id]'
-  },
-  {
-    id: 'whybook:preview-table',
-    label: 'Preview rows',
-    selector: '.jp-Epi [data-table]'
-  }
-];
-
 /**
  * Context menus for variables, cells and tables in the Whybook view and
- * its panels. A few actions work; the rest are placeholders for later ones.
+ * its panels.
  */
 export function addContextMenus(
   app: JupyterFrontEnd,
@@ -287,16 +259,6 @@ export function addContextMenus(
     }
   });
 
-  for (const placeholder of PLACEHOLDERS) {
-    commands.addCommand(placeholder.id, {
-      label: placeholder.label,
-      caption: 'Not built yet: a placeholder for a later action',
-      isEnabled: () => false,
-      describedBy: NO_ARGS,
-      execute: () => undefined
-    });
-  }
-
   // The order of Variables explored, from the menu of its head (design
   // iteration 1.82). The order is a setting: it holds for every notebook.
   commands.addCommand(CommandIDs.exploredOrder, {
@@ -332,10 +294,7 @@ export function addContextMenus(
     [CommandIDs.moveDown, '.jp-Epi [data-cell-id]'],
     [CommandIDs.deleteCell, '.jp-Epi [data-cell-id]'],
     ['separator', '.jp-Epi [data-cell-id]'],
-    [CommandIDs.loadTable, '.jp-Epi [data-table]'],
-    ...PLACEHOLDERS.map(
-      placeholder => [placeholder.id, placeholder.selector] as [string, string]
-    )
+    [CommandIDs.loadTable, '.jp-Epi [data-table]']
   ];
   items.forEach(([command, selector], rank) =>
     contextMenu.addItem(

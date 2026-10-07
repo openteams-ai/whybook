@@ -611,9 +611,7 @@ export function OptionRow(props: {
  * the questions that need AI, which `runnableFirst` puts after the ones that
  * run.
  */
-export function OptionRows<
-  T extends Pick<IOption, 'id' | 'code' | 'action'>
->(props: {
+export function OptionRows<T extends Pick<IOption, 'id' | 'code'>>(props: {
   model: EpiModel;
   options: T[];
   children: (option: T) => JSX.Element;
@@ -1174,7 +1172,6 @@ function askLabel(place: IPlacement | null): string {
     case 'preview':
       return 'Preview';
     case 'new':
-    case 'metadata':
     case undefined:
     default:
       return 'Ask';

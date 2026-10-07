@@ -294,6 +294,11 @@ def register_custom(specs: Any) -> list[str]:
     return problems
 
 
+# Models of other tasks that a download and a lookup find, and the lists of
+# the tasks do not show: the guard models of guard/models.py.
+EXTRA: dict[str, LocalModel] = {}
+
+
 def model_of(model_id: Any, spec: Any = None) -> LocalModel | None:
     """The local model of an id, or None. A request for a model of the settings
     carries its spec, so the model runs after the server restarts; raises
@@ -302,6 +307,8 @@ def model_of(model_id: Any, spec: Any = None) -> LocalModel | None:
         return None
     if model_id in MODELS:
         return MODELS[model_id]
+    if model_id in EXTRA:
+        return EXTRA[model_id]
     if model_id.startswith("custom:") and spec is not None:
         CUSTOM[model_id] = replace(custom_model(spec), id=model_id)
     return CUSTOM.get(model_id)
@@ -358,14 +365,14 @@ def fetch_command(model: LocalModel) -> str:
     return f"hf download {model.repo} {model.file}" + (f" --revision {model.revision}" if model.revision else "")
 
 
-def status() -> list[dict[str, Any]]:
+def status(models: list[LocalModel] | None = None) -> list[dict[str, Any]]:
     """The local models the view can offer, each with the reason it cannot run, if any.
 
     A model whose download runs is not available until its file is checked,
     and the view does not offer to download it again.
     """
     entries = []
-    for model in all_models():
+    for model in all_models() if models is None else models:
         job = DOWNLOADS.get(model.id)
         running = job is not None and not job.done()
         missing = running or model_path(model) is None

@@ -15,7 +15,7 @@
 import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import type { Locator } from '@playwright/test';
 
-import { expect, test } from './fixtures';
+import { expect, test, withoutGuard } from './fixtures';
 
 /** Write a notebook with these code cells. */
 async function newNotebook(
@@ -260,8 +260,12 @@ test('shows the defaults that a model picks from the signatures as chips, with t
     default: 'True'
   });
   expect(groupby.function).not.toHaveProperty('calls');
-  // Nothing of the notebook: its names, its code or its data.
-  expect(JSON.stringify(asked)).not.toMatch(/names|totals|second/);
+  // Nothing of the notebook: its names, its code or its data. The review
+  // guard's object tells the server the notebook's columns, and the server
+  // keeps it: no model reads it.
+  expect(JSON.stringify(asked.map(withoutGuard))).not.toMatch(
+    /names|totals|second/
+  );
   // The server was asked first for the answers it kept, with the same signatures.
   expect(lookups[0].functions.map((f: any) => f.name).sort()).toEqual(
     functions

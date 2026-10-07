@@ -4,6 +4,7 @@ import type { AgentView } from './agent';
 import type { EpiSettings, MapColumns, Placement } from './epimodel';
 import { readCustomModels } from './custommodels';
 import { exploredOrder } from './exploredorder';
+import { readGuard } from './guard';
 import { readModels } from './models';
 import { readModelQuestions } from './rulesfirst';
 import type { Detail, Interaction, MapDetail } from '../tokens';
@@ -43,6 +44,13 @@ interface IPluginSettings {
   aiWhenNoTemplate?: unknown;
   findDefaults?: unknown;
   exploredOrder?: unknown;
+  reviewGuard?: unknown;
+  guardPrivacy?: unknown;
+  guardPrivacyModel?: unknown;
+  guardExecution?: unknown;
+  guardExecutionModel?: unknown;
+  guardRemoteReview?: unknown;
+  privacyPolicy?: unknown;
 }
 
 /**
@@ -91,7 +99,9 @@ export function readSettings(
     modelQuestions: readModelQuestions(all.modelQuestions, own),
     // On, unless the analyst turns it off.
     findDefaults: all.findDefaults !== false,
-    exploredOrder: exploredOrder(all.exploredOrder).id
+    exploredOrder: exploredOrder(all.exploredOrder).id,
+    // Ask, with both guards and the rules alone, unless the analyst chose otherwise.
+    guard: readGuard(all)
   };
 }
 

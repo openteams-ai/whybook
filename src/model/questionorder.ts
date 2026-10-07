@@ -67,9 +67,9 @@ export function orderByScores(
     );
 }
 
-/** Whether a question needs an AI model: no template wrote code or an action for it. */
-export function needsAI(option: Pick<IOption, 'code' | 'action'>): boolean {
-  return !option.code && !option.action;
+/** Whether a question needs an AI model: no template wrote code for it. */
+export function needsAI(option: Pick<IOption, 'code'>): boolean {
+  return !option.code;
 }
 
 /**
@@ -77,7 +77,7 @@ export function needsAI(option: Pick<IOption, 'code' | 'action'>): boolean {
  * others, so that a limit on the questions offered keeps them. Each group
  * keeps its order. With a model, the list as it is.
  */
-export function runnableFirst<T extends Pick<IOption, 'code' | 'action'>>(
+export function runnableFirst<T extends Pick<IOption, 'code'>>(
   options: T[],
   aiOff: boolean
 ): T[] {

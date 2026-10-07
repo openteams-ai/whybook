@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import dataclasses
 import json
 import logging
 import math
@@ -50,7 +51,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Awaitable, Callable
 
-from . import claude, languages, privacy
+from . import claude, guard, languages, privacy
 from .config import Whybook
 from .questions.models import InvalidRequest
 from .solve import SolveRequest
@@ -490,6 +491,8 @@ class AgentRequest:
     # kernel: that notebook's cells, and the kernel it names.
     notebook: dict[str, Any] | None = None
     compare: dict[str, str] | None = None
+    # The first prompt as the review guard let it go, its flagged parts masked; None sends it as built.
+    guarded_prompt: str | None = None
 
     @classmethod
     def from_json(cls, data: Any, config: Whybook) -> AgentRequest:
@@ -529,6 +532,8 @@ class AgentRequest:
         return config.agent_budget_usd, "server"
 
     def prompt(self) -> str:
+        if self.guarded_prompt is not None:
+            return self.guarded_prompt
         body = json.loads(self.solve.prompt())
         body["task"] = COMPARE_TASK if self.compare else TASK
         body.pop("previous_attempt", None)
@@ -680,6 +685,13 @@ class Run:
     # "variables", and what a cell of the run shows at its end, with the
     # cell's label. A cell that only shows one of them again is refused.
     shown: dict[str, str | None] = field(default_factory=dict)
+    # The review guard: what the view chose, where the prompts go, and the
+    # connected model's review of code when the analyst turned it on.
+    guard_settings: guard.Settings = field(default_factory=guard.Settings)
+    to: str = "the remote model"
+    local: bool = False
+    threads: int = 4
+    review: Callable[[str], Any] | None = None
 
     def emit(self, event: dict[str, Any]) -> None:
         self.queue.put_nowait(event)
@@ -731,6 +743,13 @@ class Run:
             if self.cells + added > self.max_cells:
                 return {"status": "refused", "error": f"at most {self.max_cells} cells in all, in every notebook: finish with what you have"}
             self.cells += added
+        held = await self.guard_code(name, tool_input)
+        if held is not None:
+            if name == "write_file":
+                self.files -= 1
+            elif name in ("run_cell", "explore"):
+                self.cells -= 1 if name == "run_cell" else len(tool_input.get("branches") or [])
+            return held
         call_id = secrets.token_hex(6)
         future: asyncio.Future = asyncio.get_running_loop().create_future()
         self.calls[call_id] = future
@@ -746,7 +765,47 @@ class Run:
             self.notebooks += 1
         if name == "run_cell" and not tool_input.get("notebook") and isinstance(result, dict) and result.get("status") == "ok":
             self.saw(str(tool_input.get("code") or ""), result.get("cell"))
-        return privacy.tool_result(result, self.keep_local)
+        return await self.guard_result(name, privacy.tool_result(result, self.keep_local))
+
+    async def guard_code(self, name: str, tool_input: dict[str, Any]) -> dict[str, Any] | None:
+        """The execution guard on the code of a tool before the view runs it: None lets it run, else what the agent reads instead."""
+        if not self.guard_settings.checks_code:
+            return None
+        if name == "run_cell":
+            code, what = str(tool_input.get("code") or ""), "a cell"
+        elif name == "explore":
+            branches = tool_input.get("branches") if isinstance(tool_input.get("branches"), list) else []
+            code = "\n\n".join(str(branch.get("code") or "") for branch in branches if isinstance(branch, dict))
+            what = "the branches of a cell"
+        elif name == "write_file" and str(tool_input.get("path") or "").endswith(".py"):
+            code, what = str(tool_input.get("content") or ""), f"the file {str(tool_input.get('path'))[:120]}"
+        else:
+            return None
+        if not code.strip():
+            return None
+        outcome = await guard.review_code(code, self.guard_settings, self.emit, what=what, threads=self.threads, review=self.review)
+        if outcome.go:
+            return None
+        if outcome.by == "analyst":
+            return {"status": "refused", "reason": f"The analyst did not run it. {outcome.finding.reasons()}."}
+        return {"status": "refused", "reason": f"held back by the review guard: {outcome.reason}. Do it another way, or finish with what you have."}
+
+    async def guard_result(self, name: str, kept: dict[str, Any]) -> dict[str, Any]:
+        """The privacy guard on a tool's result before it goes to a model on another machine."""
+        if not self.guard_settings.checks_prompts or self.local:
+            return kept
+        text = json.dumps(kept)
+        cell = kept.get("cell")
+        what = f"the result of {cell}" if isinstance(cell, str) and cell else "the result of a step"
+        outcome = await guard.check_prompt(text, self.guard_settings, self.emit, to=self.to, what=what, threads=self.threads)
+        if not outcome.go:
+            return {"status": kept.get("status", "ok"), "cell": kept.get("cell"), "result": f"held back by the review guard: {outcome.reason}"}
+        if outcome.text != text:
+            try:
+                return json.loads(outcome.text)
+            except ValueError:
+                return {"status": kept.get("status", "ok"), "cell": kept.get("cell"), "result": "held back by the review guard"}
+        return kept
 
 
 Driver = Callable[[Run, AgentRequest, Whybook], Awaitable[dict[str, Any]]]
@@ -777,7 +836,35 @@ def stop(run_id: str) -> bool:
 async def run_events(request: AgentRequest, config: Whybook, driver: Driver | None = None) -> AsyncIterator[dict[str, Any]]:
     """The events of one run: its id, progress, the agent's words and tool calls, then one result or error."""
     start = time.monotonic()
-    run = Run(id=secrets.token_hex(8), keep_local=request.keep_local, max_cells=request.max_cells, shown=dict.fromkeys(request.frames()))
+    from . import connection
+
+    settings = guard.settings_of(config)
+    connected = connection.load(config)
+    to, local = connected.label(config), connected.local
+    if settings.checks_prompts and not local:
+        # The privacy guard reads the question and the notebook before the run sends them.
+        held: list[guard.Outcome] = []
+        prompt = request.prompt()
+        async for event in guard.events(
+            lambda emit: guard.check_prompt(prompt, settings, emit, to=to, what="the question and the notebook", threads=config.local_threads), held
+        ):
+            yield event
+        if not held[0].go:
+            yield {"type": "error", "message": f"The review guard held back the question: {held[0].reason}.", "guard": True, "elapsed": round(time.monotonic() - start, 1)}
+            return
+        if held[0].text != prompt:
+            request = dataclasses.replace(request, guarded_prompt=held[0].text)
+    run = Run(
+        id=secrets.token_hex(8),
+        keep_local=request.keep_local,
+        max_cells=request.max_cells,
+        shown=dict.fromkeys(request.frames()),
+        guard_settings=dataclasses.replace(settings, language=languages.language(request.solve.language).name),
+        to=to,
+        local=local,
+        threads=config.local_threads,
+        review=guard.code_review(config, settings),
+    )
     RUNS[run.id] = run
     run.task = asyncio.ensure_future((driver or claude_driver)(run, request, config))
     yield {"type": "started", "run": run.id, "keep_local": run.keep_local, "elapsed": 0.0}

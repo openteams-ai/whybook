@@ -9,6 +9,7 @@ import type { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import type { Contents } from '@jupyterlab/services';
 import { ContentsManager, ServerConnection } from '@jupyterlab/services';
 import type { PartialJSONObject } from '@lumino/coreutils';
+import { UUID } from '@lumino/coreutils';
 import type { IDisposable } from '@lumino/disposable';
 import { Debouncer } from '@lumino/polling';
 import type { ISignal } from '@lumino/signaling';
@@ -168,6 +169,17 @@ import { type IImageAsk, imageRequest } from './imageask';
 import type { IOrdered, IQuestionOrder } from './questionorder';
 import { needsAI, orderByScores } from './questionorder';
 import { importsName } from './datalinks';
+import type {
+  GuardAnswer,
+  GuardMode,
+  IGuardColumn,
+  IGuardMemory,
+  IGuardEvent,
+  IGuardFlag,
+  IGuardHeld,
+  IGuardSettings
+} from './guard';
+import { DEFAULT_GUARD, guardBody, heldWords } from './guard';
 import {
   axisValueText,
   axisValues,
@@ -316,6 +328,11 @@ export class EpiSettings {
    */
   exploredOrder: ExploredOrder = 'auto';
   /**
+   * The review guard: its mode, which guards run, and the privacy policy
+   * (./guard.ts). Its keys in schema/plugin.json are each a setting of its own.
+   */
+  guard: IGuardSettings = { ...DEFAULT_GUARD };
+  /**
    * JupyterLab's editor options for notebook cells, from its notebook
    * settings: the view's editors follow them, line numbers included.
    */
@@ -405,6 +422,27 @@ export class EpiSettings {
     this.save?.(key, value);
   }
 
+  /**
+   * Change the guard's settings from the UI: each field is saved under its
+   * own key of schema/plugin.json.
+   */
+  setGuard(patch: Partial<IGuardSettings>): void {
+    this.guard = { ...this.guard, ...patch };
+    this._changed.emit();
+    const keys: Record<keyof IGuardSettings, string> = {
+      mode: 'reviewGuard',
+      privacy: 'guardPrivacy',
+      privacyModel: 'guardPrivacyModel',
+      execution: 'guardExecution',
+      executionModel: 'guardExecutionModel',
+      remoteReview: 'guardRemoteReview',
+      policy: 'privacyPolicy'
+    };
+    for (const [field, value] of Object.entries(patch)) {
+      this.save?.(keys[field as keyof IGuardSettings], value);
+    }
+  }
+
   update(
     values: Partial<
       Pick<
@@ -433,6 +471,7 @@ export class EpiSettings {
         | 'findDefaults'
         | 'exploredOrder'
         | 'cellEditors'
+        | 'guard'
       >
     >
   ): void {
@@ -773,12 +812,6 @@ export interface IPreview extends IProgress {
   start?: () => Promise<void>;
 }
 
-export interface INotice {
-  id: number;
-  text: string;
-  undo: (() => void) | null;
-}
-
 /**
  * What the object of a cell takes from the cell itself, kept until the cell
  * changes (EpiModel.cells).
@@ -856,8 +889,13 @@ export class EpiModel implements IDisposable {
       zeroDataRetention: () => this.zeroDataRetention,
       customModels: () => this.settings.customLocalModels,
       // Every call of this view that reached a model: its cost is kept.
-      onCall: call => this._onModelCall(call)
+      onCall: call => this._onModelCall(call),
+      // The review guard: its choices go with each request, and its questions open a dialog.
+      guard: () => this._guardBody(),
+      onGuard: event => this._askGuard(event),
+      onGuardHeld: event => this._onGuardHeld(event)
     });
+    this._guardDialog = options.askGuard ?? null;
     this._serverSettings = options.serverSettings;
     // A finished sign-in changes what the tasks can run.
     this.signIns = new SignIns(this.api, () => this.refreshStatus());
@@ -1001,6 +1039,108 @@ export class EpiModel implements IDisposable {
   /** Whether only local models read the data: the server's choice, or else the setting's. */
   get keepDataLocal(): boolean {
     return !!this.status?.keep_data_local || this.settings.keepDataLocal;
+  }
+
+  /**
+   * The review guard's mode as it holds: the server's, when it fixes one
+   * for every user (c.Whybook.review_guard), else the setting's.
+   */
+  get guardMode(): GuardMode {
+    const fixed = this.status?.review_guard;
+    return fixed === 'ask' || fixed === 'reject'
+      ? fixed
+      : this.settings.guard.mode;
+  }
+
+  /** Whether the server fixes the guard's mode, so that the setting cannot change it. */
+  get guardFixed(): boolean {
+    const fixed = this.status?.review_guard;
+    return fixed === 'ask' || fixed === 'reject';
+  }
+
+  /** Whether the notebook's kernel runs in Whybook's sandbox (design iteration 1.46). */
+  get sandboxed(): boolean {
+    const name = this._kernelName();
+    return !!this._kernelChoices().find(choice => choice.name === name)
+      ?.sandboxed;
+  }
+
+  /** Whether the notebook says that its data is synthetic: the guard then lets identifiers and values go. */
+  get guardSynthetic(): boolean {
+    return notebookMeta(this.notebook).guard?.synthetic === true;
+  }
+
+  setGuardSynthetic(value: boolean): void {
+    setNotebookMeta(this.notebook, {
+      guard: { ...(notebookMeta(this.notebook).guard ?? {}), synthetic: value }
+    });
+    this._emit();
+  }
+
+  /**
+   * What the server keeps of this view's session: the answers that the
+   * analyst allowed, and what the guard held back. A change forgets an
+   * answer, all of them, or allows what a held item flagged.
+   */
+  guardMemory(change?: {
+    forget?: number | 'all';
+    allow?: { guard: string; flags: IGuardFlag[]; note?: string };
+  }): Promise<IGuardMemory> {
+    return this.api.guardSession({ session: this.guardSession, ...change });
+  }
+
+  /** The guard's object of each request: what the view chose, and what the notebook tells of its data and its kernel. */
+  private _guardBody(): Record<string, unknown> {
+    const inferred = this.inferred();
+    const unit = inferred.hand.unit ?? inferred.units[0]?.column ?? null;
+    const columns: IGuardColumn[] = [];
+    for (const variable of this.variables()) {
+      for (const column of variable.columns ?? []) {
+        columns.push({
+          name: column.label,
+          levels: column.levels?.map(String)
+        });
+      }
+    }
+    return guardBody(
+      { ...this.settings.guard, mode: this.guardMode },
+      {
+        session: this.guardSession,
+        sandboxed: this.sandboxed,
+        folder:
+          PathExt.dirname(this.context.path) || "the server's root folder",
+        language: this.languageName() ?? 'Python',
+        synthetic: this.guardSynthetic,
+        unit,
+        columns
+      }
+    );
+  }
+
+  /** Ask the analyst what the guard flagged: one question at a time, in the order they came. */
+  private _askGuard(
+    event: IGuardEvent
+  ): Promise<{ answer: GuardAnswer; note: string }> {
+    const dialog = this._guardDialog;
+    const next = this._guardQueue.then(() =>
+      dialog ? dialog(event) : { answer: 'stop' as GuardAnswer, note: '' }
+    );
+    this._guardQueue = next.catch(() => undefined);
+    return next;
+  }
+
+  /**
+   * What the guard held back: kept for the panel's list, and told in a
+   * notice, unless nobody waited on the request, as for a table's labels.
+   */
+  private _onGuardHeld(event: IGuardHeld): void {
+    this.guardHeld = [...this.guardHeld, { ...event, time: Date.now() }].slice(
+      -100
+    );
+    if (!event.background) {
+      Notification.warning(heldWords(event), { autoClose: 8000 });
+    }
+    this._emit();
   }
 
   /** Whether the server keeps the data on the machine, so that the setting is fixed. */
@@ -1234,8 +1374,17 @@ export class EpiModel implements IDisposable {
   readonly spaceDetail: SpaceDetail;
   /** Sign-ins to a provider of the connected model in progress: src/model/connection.ts. */
   readonly signIns: SignIns;
+  /**
+   * The review guard's session: the server keeps the analyst's answers under
+   * it while this view is open, or until the server restarts.
+   */
+  readonly guardSession = `view-${UUID.uuid4()}`;
+  /** What the guard held back in this session, the newest last. */
+  guardHeld: IGuardHeld[] = [];
   /** The model of labels and captions when the settings last changed. */
   private _labelsModel = '';
+  private _guardDialog: EpiModel.IOptions['askGuard'] | null = null;
+  private _guardQueue: Promise<unknown> = Promise.resolve();
 
   status: IServerStatus | null = null;
   view: ViewKind = 'bench';
@@ -1268,7 +1417,6 @@ export class EpiModel implements IDisposable {
   next: IOrdered = { order: null };
   /** The agents' runs of this view, the newest last. */
   agentRuns: IAgentRun[] = [];
-  notices: INotice[] = [];
   /**
    * A refresh reads the kernel: the Variables section marks its list busy
    * for screen readers, and draws nothing for it.
@@ -3103,7 +3251,7 @@ export class EpiModel implements IDisposable {
       const off = this.aiOff();
       ask.checked = result.preselected.filter(id => {
         const option = result.options.find(item => item.id === id);
-        return !off || !option || !!option.code || !!option.action;
+        return !off || !option || !!option.code;
       });
       void this._orderByModel(
         ask,
@@ -4342,16 +4490,11 @@ export class EpiModel implements IDisposable {
     };
     // The same question again, at the same place: the end is the end then.
     const again = () => this._answer(option, placement, ask, previewMeta);
-    if (where.kind !== 'metadata' && !option.code && this._heldAtCap()) {
+    if (!option.code && this._heldAtCap()) {
       this._hold(where, { text: option.text, option }, again);
       return;
     }
     this._recordAsked(option);
-    if (where.kind === 'metadata') {
-      this._applyMetadata(option);
-      this._emit();
-      return;
-    }
     if (where.kind === 'preview') {
       await this._preview(option, ask);
       return;
@@ -4516,9 +4659,6 @@ export class EpiModel implements IDisposable {
         setCellMeta(target.model, { costs });
       }
       this._keepGuess(strip);
-      this._ledger(
-        `${option.text} · asked by ${this.interaction === 'drag' ? 'dragging onto' : 'clicking'} ${target.label}`
-      );
       const result = await this._run(
         target.model as ICodeCellModel,
         target.label,
@@ -6262,6 +6402,10 @@ export class EpiModel implements IDisposable {
       strip.stage = event.stage;
     } else if (event.type === 'text') {
       run.notes = [...run.notes, event.text];
+    } else if (event.type === 'guard_held') {
+      // What the review guard held back shows in the run's strip.
+      run.held = [...(run.held ?? []), event];
+      run.notes = [...run.notes, heldWords(event)];
     } else if (event.type === 'tool') {
       run.state = 'working';
       run.thinking = null;
@@ -7801,51 +7945,6 @@ export class EpiModel implements IDisposable {
     this._emit();
   }
 
-  private _applyMetadata(option: IOption): void {
-    const action = option.action;
-    if (!action) {
-      return;
-    }
-    const meta = notebookMeta(this.notebook);
-    if (action.kind === 'dag_edge') {
-      const edge: [string, string] = [String(action.from), String(action.to)];
-      const edges = [...(meta.dag?.edges ?? []), edge];
-      setNotebookMeta(this.notebook, { dag: { ...meta.dag, edges } });
-      this._notice(
-        `Added ${edge[0]} → ${edge[1]} to the causal diagram`,
-        () => {
-          const current = notebookMeta(this.notebook).dag?.edges ?? [];
-          setNotebookMeta(this.notebook, {
-            dag: {
-              edges: current.filter(
-                e => !(e[0] === edge[0] && e[1] === edge[1])
-              )
-            }
-          });
-        }
-      );
-    } else if (action.kind === 'assumption') {
-      this._ledger(String(action.text));
-      this._notice(`Recorded: ${action.text}`, null);
-    }
-  }
-
-  private _ledger(text: string): void {
-    const meta = notebookMeta(this.notebook);
-    setNotebookMeta(this.notebook, {
-      assumptions: [...(meta.assumptions ?? []), { text, source: 'view' }]
-    });
-  }
-
-  private _notice(text: string, undo: (() => void) | null): void {
-    const notice: INotice = { id: ++counter, text, undo };
-    this.notices = [notice, ...this.notices].slice(0, 3);
-    setTimeout(() => {
-      this.notices = this.notices.filter(n => n.id !== notice.id);
-      this._emit();
-    }, 20000);
-  }
-
   /**
    * The analyst's guess of a result, made while its cell was written or run:
    * the question log and the cell that shows the result keep it.
@@ -8936,6 +9035,13 @@ export namespace EpiModel {
      * share (./runs.ts). A model without it keeps its runs to itself.
      */
     runs?: AgentRuns;
+    /**
+     * The dialog that asks the analyst about what the review guard flagged
+     * (src/ui/guard.tsx). Without it, every question is answered "stop".
+     */
+    askGuard?: (
+      event: IGuardEvent
+    ) => Promise<{ answer: GuardAnswer; note: string }>;
   }
 }
 

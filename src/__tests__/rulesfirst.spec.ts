@@ -146,9 +146,6 @@ describe('the words of rules first', () => {
     expect(noTemplateFits([option('a'), option('b', { code: 'x = 1' })])).toBe(
       false
     );
-    expect(
-      noTemplateFits([option('a', { action: { kind: 'assumption' } })])
-    ).toBe(false);
   });
 
   it("marks the options that try a model's values, and only those", () => {

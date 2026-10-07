@@ -66,7 +66,7 @@ def score_candidate(candidate: Candidate, involved: list, context: Context) -> N
     elif context.last_type and context.mode == "wonder" and candidate.type != context.last_type:
         score += RUN_WEIGHT
         reasons.append(f"a change from the {context.last_type} question asked last")
-    if candidate.code or candidate.action:
+    if candidate.code:
         score += 0.3
         reasons.append("runs offline")
     candidate.probability = round(_sigmoid(score), 3)
@@ -82,7 +82,7 @@ def score_candidate(candidate: Candidate, involved: list, context: Context) -> N
 
 # The learned ranker of research/ranking-placement.md, fitted on 6,908 drops rebuilt
 # from public notebooks: the first option had the type of the analyst's question for
-# 52.5% of the drops of five corpora, against 29.5% with the rules' order alone.
+# 52.4% of the drops of five corpora, against 33.9% with the rules' order alone.
 LEARNED = json.loads((Path(__file__).parent / "learned_ranker.json").read_text())
 
 
@@ -121,7 +121,7 @@ def learned_order(options: list[Candidate], group: str, context: Context, cells_
         base = 3 * len(types)
         p = min(max(option.probability if option.probability is not None else 0.5, 1e-3), 1 - 1e-3)
         x[base] = _logit(p)
-        x[base + 1] = float(bool(option.code or option.action))
+        x[base + 1] = float(bool(option.code))
         x[base + 2] = float(option.placement is not None and option.placement.kind == "preview")
         x[base + 3] = float(option.type == context.last_type)
         x[base + 4] = shares.get(option.type, 0.0)

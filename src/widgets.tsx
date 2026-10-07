@@ -30,6 +30,7 @@ import {
 } from './ui/document';
 import { coverage } from './ui/exploration';
 import { AIButton } from './ui/aipanel';
+import { askGuard } from './ui/guard';
 import { bindWidgetManager } from './model/ipywidgets';
 import { EpiPlot } from './ui/plot';
 
@@ -52,7 +53,8 @@ export class EpiContent extends ReactWidget {
       }),
       serverSettings: options.serverSettings,
       settings: options.settings,
-      runs: options.runs
+      runs: options.runs,
+      askGuard
     });
     this._editorServices = options.editorServices;
     this._openFile = options.openFile;

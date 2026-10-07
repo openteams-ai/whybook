@@ -250,13 +250,19 @@ def for_request(config: Whybook, body: Any) -> Whybook:
     retention = body.get("zero_data_retention") is False and not config.openrouter_zdr and config.zero_data_retention
     model = body.get("model")
     task = model if tiers.is_remote(model) and model != config.task_model else None
-    if not retention and task is None:
+    guarded = isinstance(body.get("guard"), dict) or config.review_guard
+    if not retention and task is None and not guarded:
         return config
     own = copy.copy(config)
     if retention:
         own.zero_data_retention = False
     if task is not None:
         own.task_model = task
+    if guarded:
+        # The review guard's choices of the view, for every call of the request: guard/review.py.
+        from . import guard
+
+        own.guard_settings = guard.Settings.from_body(body, config.review_guard)
     return own
 
 
@@ -336,6 +342,18 @@ async def structured_call(
     except ValueError as error:
         yield {"type": "error", "message": f"No AI model answered: {error}."}
         return
+    from . import guard
+
+    settings = guard.settings_of(config)
+    if settings.checks_prompts and not connection.local:
+        # The privacy guard reads the prompt before it leaves this machine.
+        held: list[guard.Outcome] = []
+        async for event in guard.events(lambda emit: guard.check_prompt(prompt, settings, emit, to=connection.label(config), threads=config.local_threads), held):
+            yield event
+        if not held[0].go:
+            yield {"type": "error", "message": f"The review guard held back the request: {held[0].reason}.", "guard": True}
+            return
+        prompt = held[0].text
     if connection.provider == "claude-code":
         if connection.model and connection.model != config.claude_model:
             # A model of the Claude Code login that the task names.

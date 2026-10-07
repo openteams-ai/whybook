@@ -1,3 +1,4 @@
+import type { IGuardHeld } from './guard';
 import { PathExt } from '@jupyterlab/coreutils';
 import type { IOutputModel } from '@jupyterlab/rendermime';
 
@@ -52,6 +53,7 @@ export interface IAgentToolEvent {
 export type IAgentEvent =
   | StreamEvent
   | IAgentToolEvent
+  | IGuardHeld
   | { type: 'started'; run: string; keep_local: boolean }
   | { type: 'text'; text: string }
   | { type: 'ping' };
@@ -128,6 +130,8 @@ export interface IAgentStep {
 export interface IAgentRun {
   /** The server's id of the run, once it started. */
   id: string | null;
+  /** What the review guard held back in this run, in reject mode: its strip lists them. */
+  held?: IGuardHeld[];
   /**
    * The cell whose strip shows the run, right above the run's cells: the
    * cell that they go after, which is the cell asked about when no cell

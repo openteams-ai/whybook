@@ -3379,16 +3379,6 @@ button.jp-Epi-textoutput:hover,
   outline-offset: 3px;
 }
 
-.jp-Epi-notice {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: var(--jp-border-radius);
-  background: var(--epi-brand-tint);
-  color: var(--jp-ui-font-color1);
-}
-
 .jp-Epi-block {
   display: flex;
   flex-direction: column;
@@ -5009,4 +4999,306 @@ button.jp-Epi-textoutput:hover,
   border-radius: 50%;
   background: var(--jp-warn-color1);
   vertical-align: super;
+}
+
+/* The review guard in the AI models panel (src/ui/guard.tsx). */
+.jp-Epi-guard-section {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+}
+
+.jp-Epi-guard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.jp-Epi-guard-title {
+  font-weight: 600;
+}
+
+.jp-Epi-guard-mode,
+.jp-Epi-guard-kernel,
+.jp-Epi-guard-detail,
+.jp-Epi-guard-memory,
+.jp-Epi-guard-download {
+  font-size: var(--jp-ui-font-size0);
+  line-height: 1.35;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-guard-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 4px 0 0;
+  border: none;
+}
+
+.jp-Epi-guard-group legend {
+  padding: 0 0 2px;
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-guard-group:disabled {
+  opacity: 0.55;
+}
+
+.jp-Epi-guard-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.jp-Epi-guard-check input {
+  margin: 2px 0 0;
+}
+
+.jp-Epi-guard-check label {
+  line-height: 1.35;
+}
+
+.jp-Epi-guard-detail {
+  display: block;
+  margin-top: 2px;
+}
+
+.jp-Epi-guard-modelcheck {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jp-Epi-guard-modelrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: 22px;
+}
+
+.jp-Epi-guard-kernel {
+  padding: 4px 6px;
+  border-left: 3px solid var(--jp-warn-color1);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-guard-kernel.jp-mod-sandboxed {
+  border-left-color: var(--jp-success-color1);
+}
+
+.jp-Epi-guard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-guard-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.35;
+}
+
+/* The guard's question, in a JupyterLab dialog: the text has no line numbers. */
+.jp-Epi-guard-dialog {
+  max-width: min(720px, 90vw);
+}
+
+.jp-Epi-guard-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-Epi-guard-lead {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.jp-Epi-guard-caption,
+.jp-Epi-guard-note,
+.jp-Epi-guard-hint {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-guard-text {
+  max-height: 32vh;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color2);
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  line-height: var(--jp-code-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.jp-Epi-guard-mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  color: inherit;
+}
+
+.jp-Epi-guard-mark.jp-mod-reject {
+  background: color-mix(in srgb, var(--jp-error-color1) 22%, transparent);
+  box-shadow: inset 0 -2px var(--jp-error-color1);
+}
+
+.jp-Epi-guard-mark.jp-mod-ask {
+  background: color-mix(in srgb, var(--jp-warn-color1) 22%, transparent);
+  box-shadow: inset 0 -2px var(--jp-warn-color1);
+}
+
+.jp-Epi-guard-findings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-guard-findings li {
+  padding-left: 8px;
+  border-left: 3px solid var(--jp-warn-color1);
+  line-height: 1.4;
+}
+
+.jp-Epi-guard-findings li.jp-mod-reject {
+  border-left-color: var(--jp-error-color1);
+}
+
+.jp-Epi-guard-level {
+  font-weight: 600;
+}
+
+.jp-Epi-guard-by,
+.jp-Epi-guard-parts {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-guard-review {
+  padding: 6px 8px;
+  border-left: 3px solid var(--jp-brand-color1);
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-guard-why {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.jp-Epi-guard-optional {
+  font-weight: normal;
+  color: var(--jp-ui-font-color2);
+}
+
+/* A table's personal column: why the guard flagged the text, not a part that it masks. */
+.jp-Epi-guard-mark.jp-mod-context {
+  background: none;
+  box-shadow: none;
+  text-decoration: underline dotted var(--jp-ui-font-color2);
+  text-underline-offset: 3px;
+}
+
+.jp-Epi-guard-group > .jp-Epi-link {
+  align-self: flex-start;
+}
+
+.jp-Epi-guard-memory .jp-Epi-link:disabled {
+  color: var(--jp-ui-font-color2);
+  cursor: default;
+  text-decoration: none;
+}
+
+.jp-Epi-guard-why textarea {
+  font: inherit;
+  font-weight: normal;
+  resize: vertical;
+}
+
+.jp-Epi-guard-policyeditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(640px, 80vw);
+}
+
+.jp-Epi-guard-policyeditor p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.jp-Epi-guard-policyeditor textarea {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+  resize: vertical;
+}
+
+.jp-Epi-guard-gap {
+  color: var(--jp-ui-font-color3);
+}
+
+.jp-Epi-guard-whole.jp-Epi-link {
+  align-self: flex-start;
+  font-size: var(--jp-ui-font-size0);
+}
+
+/* What the review guard held back in an agent's run, in reject mode. */
+.jp-Epi-agentrun-held {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jp-Epi-agentrun-held li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--jp-error-color1);
+  background: color-mix(in srgb, var(--jp-error-color1) 8%, transparent);
+  line-height: 1.4;
+}
+
+.jp-Epi-agentrun-heldkind {
+  font-weight: 600;
+  color: var(--jp-error-color1);
+}
+
+.jp-Epi-agentrun-heldtext {
+  flex: 1 1 260px;
+}
+
+.jp-Epi-agentrun-heldallowed {
+  color: var(--jp-ui-font-color2);
 }

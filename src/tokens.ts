@@ -204,7 +204,7 @@ export const QUESTION_TYPES: {
   { id: 'descriptive', label: 'Descriptive', short: 'descriptive' }
 ];
 
-export type PlacementKind = 'edit' | 'new' | 'branch' | 'preview' | 'metadata';
+export type PlacementKind = 'edit' | 'new' | 'branch' | 'preview';
 
 export interface IPlacement {
   kind: PlacementKind;
@@ -263,7 +263,6 @@ export interface IOption {
   effect?: string;
   placement: IPlacement | null;
   code?: string | null;
-  action?: { kind: string; [key: string]: unknown } | null;
   /**
    * The outcome and the unit that the question takes from the notebook, by
    * column: the view shows where each came from (./model/inferred.ts).
@@ -487,7 +486,6 @@ export interface IEpiNotebookMeta {
   inferred?: IInferredMeta;
   mode?: Mode;
   exploration?: {
-    pivots?: { text: string; section?: string }[];
     asked?: (IAskedQuestion & {
       at?: string;
       guess?: Guess;
@@ -496,8 +494,6 @@ export interface IEpiNotebookMeta {
     /** A text in a notebook of an older version, else the step with the cells it names. */
     dismissed?: (string | IDismissedStep)[];
   };
-  dag?: { edges?: [string, string][] };
-  assumptions?: { text: string; source?: string }[];
   /** The variables of the last run, for a view without a kernel. */
   variables?: IStoredVariable[];
   /** A model's summary of each data frame, by the frame's name. */
@@ -518,6 +514,12 @@ export interface IEpiNotebookMeta {
    * it is missing (src/model/cost.ts).
    */
   cost_cap_usd?: number;
+  /**
+   * What the review guard reads of the notebook: whether its data is
+   * synthetic, so that identifiers and values may leave the machine
+   * (src/model/guard.ts).
+   */
+  guard?: { synthetic?: boolean };
   /**
    * What every model call of the view cost, as sums by kind. Written at the
    * first call in a notebook without it, from what the notebook held before;

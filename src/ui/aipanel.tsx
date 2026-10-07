@@ -19,6 +19,7 @@ import { HelpButton, useDismiss, useModel } from './common';
 import { ModelOptions } from './modeloptions';
 import { ConnectionSection } from './connection';
 import { DataPolicyToggle, RetentionToggle } from './datapolicy';
+import { GuardSection } from './guard';
 import { TaskModelPicker } from './taskmodels';
 
 /**
@@ -53,7 +54,11 @@ export function AIButton(props: {
       model.modelsPanelRequested.disconnect(open);
     };
   }, [model, open]);
-  useDismiss(panel, () => setWhere(null), { anchor: button });
+  // A dialog that the panel opens, such as the privacy policy's, counts as inside.
+  useDismiss(panel, () => setWhere(null), {
+    anchor: button,
+    keep: '.jp-Dialog'
+  });
   // The panel is a dialog: it takes the focus when it opens, so that the
   // keyboard reaches its choices. With the focus left on the button, Tab
   // went past the panel, which closed as the focus left it.
@@ -146,6 +151,7 @@ export function AIButton(props: {
                 />
               )}
             </div>
+            <GuardSection model={model} />
             {TASKS.map(task => {
               const saved = settings.models[task.id];
               const choices = choicesFor(status, task.id, saved);

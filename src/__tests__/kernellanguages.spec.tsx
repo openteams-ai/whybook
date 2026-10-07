@@ -53,8 +53,7 @@ async function dropped(language: string) {
           reasons: [],
           effect: '',
           placement: null,
-          code: null,
-          action: null
+          code: null
         }
       ],
       placements: [],

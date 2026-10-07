@@ -559,7 +559,7 @@ async def generate(
         state = privacy.local_state(state)
     else:
         state["already_suggested"] = [
-            {"text": c.text, "runs": bool(c.code or c.action)} if offered is not None else c.text for c in shown
+            {"text": c.text, "runs": bool(c.code)} if offered is not None else c.text for c in shown
         ]
         if found:
             state["found_so_far"] = found

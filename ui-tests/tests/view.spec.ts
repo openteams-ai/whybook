@@ -1487,9 +1487,9 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
   const panel = page.locator('.jp-Epi-aipanel');
   await expect(panel).toBeVisible();
   // Each task has a help icon that says what it controls, and so do
-  // "Keep data on this machine" and "Connected model" above them.
+  // "Keep data on this machine", "Connected model" and "Review guard".
   const help = panel.locator('.jp-Epi-help');
-  await expect(help).toHaveCount(8);
+  await expect(help).toHaveCount(9);
   const typed = panel.locator(
     '.jp-Epi-help[aria-label="What Typed questions controls"]'
   );
@@ -5684,9 +5684,6 @@ test.describe('the pain diary demo', () => {
     const menu = page.locator('.lm-Menu');
     await expect(menu).toContainText('Show in Variables');
     await expect(menu).toContainText('Copy name');
-    await expect(
-      menu.locator('.lm-Menu-item', { hasText: 'Track in the report' })
-    ).toHaveClass(/lm-mod-disabled/);
     await menu.locator('.lm-Menu-item', { hasText: 'Ask about it' }).click();
     await expect(popover(page)).toContainText('weekly (itself)');
     await popover(page).locator('.jp-Epi-close').click();

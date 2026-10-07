@@ -17,8 +17,7 @@ export interface IAnsweringCell {
  * cells. A cell that raised, or an answer that the AI could not write, is a
  * failed question. A cell comes before the log, so a failed cell that runs
  * again without an error counts. A question with neither, such as one still
- * written or run, or one that only adds an edge to the causal diagram, does
- * not count.
+ * written or run, does not count.
  */
 export function countAsked(
   log: LoggedQuestion[],

@@ -125,6 +125,8 @@ describe('Api, with the data kept on this machine', () => {
     'dependencies',
     'agentResult',
     'agentStop',
+    'guardAnswer',
+    'guardSession',
     'downloadModel',
     'transcribe',
     'downloadSpeech',

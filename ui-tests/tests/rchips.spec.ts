@@ -13,7 +13,8 @@
  */
 import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 
-import { expect, test } from './fixtures';
+import { expect, test, withoutGuard } from './fixtures';
+import { tooltipLines } from './tooltips';
 
 /**
  * The name of a kernelspec whose language is R, or null. A sandboxed copy,
@@ -281,5 +282,8 @@ test('"Find more defaults with AI" is on, and asks about the formals of R functi
     default: '"two.sided"'
   });
   expect(ttest.function).not.toHaveProperty('calls');
-  expect(JSON.stringify(asked)).not.toMatch(/later|visits|MIN_WEEK/);
+  // The review guard's object stays on the server: no model reads it.
+  expect(JSON.stringify(asked.map(withoutGuard))).not.toMatch(
+    /later|visits|MIN_WEEK/
+  );
 });

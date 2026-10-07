@@ -72,3 +72,15 @@ export const test = base.extend<{ modelRoutes: void }>({
 });
 
 export { expect };
+
+/**
+ * A request's body without the review guard's object. The server reads the
+ * notebook's columns from it to check what would leave the machine, and no
+ * model reads it: a check that a request holds nothing of the notebook
+ * leaves it out.
+ */
+export function withoutGuard(body: any): any {
+  const copy = { ...body };
+  delete copy.guard;
+  return copy;
+}
