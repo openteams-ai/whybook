@@ -4,8 +4,10 @@ from contextlib import closing
 
 import pytest
 
+from whybook.server import claude
+from whybook.server.config import Whybook
 from whybook.server.questions.models import InvalidRequest
-from whybook.server.solve import SYSTEM_PROMPT, SolveRequest, complete_cell
+from whybook.server.solve import SYSTEM_PROMPT, SolveRequest, complete_cell, solve, syntax_error
 
 ADD = {"text": "What could visits add to this analysis?", "type": "descriptive"}
 
@@ -137,3 +139,67 @@ def test_the_cell_follows_the_analysts_mode():
     assert "mode" not in json.loads(SolveRequest.from_json({"question": question, "placement": "new"}).prompt())
     with pytest.raises(InvalidRequest):
         SolveRequest.from_json({"question": question, "placement": "new", "mode": "explain"})
+
+
+def branch_request():
+    question = {"text": "Estimate it by standardisation (g-formula)", "type": "causal"}
+    return SolveRequest.from_json({"question": question, "placement": "branch", "cell": {"label": "[7]", "source": "fit = smf.ols('y ~ x', data=d).fit()"}})
+
+
+def replying(monkeypatch, outputs):
+    """The model answers each call with the next output, at $0.01 a call; the prompts it got."""
+    prompts = []
+
+    async def by_claude(prompt, **options):
+        prompts.append(json.loads(prompt))
+        yield {"type": "result", "output": outputs[len(prompts) - 1], "model": "claude", "cost_usd": 0.01}
+
+    monkeypatch.setattr(claude, "structured_call", by_claude)
+    return prompts
+
+
+async def test_code_that_does_not_parse_goes_back_to_the_model_once_with_its_error(monkeypatch):
+    # Told to give every name of a branch a suffix, GPT-6 Luna wrote an import with two aliases.
+    broken = "import pandas as pd as pd_gformula\nest_gformula = pd_gformula.Series([1.0]).mean()\nest_gformula"
+    fixed = "import pandas as pd_gformula\nest_gformula = pd_gformula.Series([1.0]).mean()\nest_gformula"
+    prompts = replying(monkeypatch, [{"summary": "s", "code": broken}, {"summary": "s", "code": fixed}])
+    found = [event async for event in solve(branch_request(), Whybook())]
+    assert len(prompts) == 2
+    assert "previous_attempt" not in prompts[0]
+    assert prompts[1]["previous_attempt"] == {"code": broken, "error": "SyntaxError: invalid syntax (line 1)"}
+    # The analyst gets the second answer, with what both calls cost.
+    assert [event["type"] for event in found] == ["result"]
+    assert found[0]["cell"]["code"] == fixed
+    assert found[0]["cost_usd"] == pytest.approx(0.02)
+
+
+async def test_code_that_parses_takes_one_call(monkeypatch):
+    prompts = replying(monkeypatch, [{"summary": "s", "code": "%matplotlib inline\nx_gformula = 1\nx_gformula"}])
+    found = [event async for event in solve(branch_request(), Whybook())]
+    assert len(prompts) == 1
+    assert found[-1]["cost_usd"] == 0.01
+
+
+async def test_code_that_still_does_not_parse_reaches_the_analyst_after_two_calls(monkeypatch):
+    broken = {"summary": "s", "code": "x = (1,"}
+    prompts = replying(monkeypatch, [broken, broken, broken])
+    found = [event async for event in solve(branch_request(), Whybook())]
+    assert len(prompts) == 2
+    assert found[-1]["cell"]["code"] == "x = (1,"
+    assert found[-1]["cost_usd"] == pytest.approx(0.02)
+
+
+def test_ipython_lines_and_cell_magics_are_no_syntax_error():
+    assert syntax_error("%matplotlib inline\nimport pandas as pd\n!ls data\npd.DataFrame()") is None
+    assert syntax_error("%%bash\nls -la") is None
+    assert syntax_error("print(1)\nx = (1,") == "SyntaxError: '(' was never closed (line 2)"
+
+
+async def test_code_of_another_language_is_not_checked_as_python(monkeypatch):
+    # R that is no Python: `y ~ x` has no left operand in Python.
+    r_code = "fit <- lm(wt82_71 ~ qsmk, data = nhefs)\nsummary(fit)"
+    prompts = replying(monkeypatch, [{"summary": "s", "code": r_code}])
+    request = SolveRequest.from_json({"question": {"text": "Fit it in R", "type": "model"}, "placement": "new", "language": "r"})
+    found = [event async for event in solve(request, Whybook())]
+    assert len(prompts) == 1
+    assert found[-1]["cell"]["code"] == r_code

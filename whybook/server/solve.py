@@ -6,12 +6,13 @@ runs, so it states no result: a summary of what the output would show was a
 guess, and 15 of 34 such summaries claimed a curve that the data do not show
 (research/model_access/demo-model.md). The frontend inserts the cell, runs
 it in the user's kernel, and keeps the question and the assumptions in the
-cell metadata. When the cell fails, the frontend sends the error back as
-``previous_attempt``.
+cell metadata. Python code that does not parse goes back to the model once,
+as ``previous_attempt`` with Python's error, before the analyst sees it.
 """
 
 from __future__ import annotations
 
+import ast
 import dataclasses
 import json
 import re
@@ -418,29 +419,62 @@ async def solve(request: SolveRequest, config: Whybook) -> AsyncIterator[claude.
     from . import guard
 
     settings = dataclasses.replace(guard.settings_of(config), language=languages.language(request.language).name)
-    async for event in connection.structured_call(
-        request.prompt(),
-        schema=SCHEMA,
-        system_prompt=system_prompt(request.language),
-        config=config,
-        effort=config.solve_effort,
-        images=request.images(),
-    ):
-        if event["type"] == "result":
-            event["cell"] = complete_cell(event.pop("output"), request.defined, request.language)
-            code = event["cell"].get("code")
-            if settings.checks_code and isinstance(code, str) and code.strip():
-                held: list[guard.Outcome] = []
-                review = guard.code_review(config, settings)
-                async for step in guard.events(
-                    lambda emit: guard.review_code(code, settings, emit, what="the cell of an answer", threads=config.local_threads, review=review), held
-                ):
-                    yield step
-                if not held[0].go:
-                    why = "You did not run the cell that the AI wrote" if held[0].by == "analyst" else f"The review guard held back the cell that the AI wrote: {held[0].reason}"
-                    yield {"type": "error", "message": f"{why}.", "guard": True, "code": code, "cost_usd": event.get("cost_usd"), "model": event.get("model")}
-                    return
-        yield event
+    # Python, as complete_cell reads it: the language whose code the templates write.
+    python = languages.language(request.language).templates
+    attempt = request
+    # The cost of an answer whose code did not parse, added to the answer that replaces it.
+    spent: float | None = None
+    for round in range(2):
+        broken: dict[str, str] | None = None
+        async for event in connection.structured_call(
+            attempt.prompt(),
+            schema=SCHEMA,
+            system_prompt=system_prompt(request.language),
+            config=config,
+            effort=config.solve_effort,
+            images=request.images(),
+        ):
+            if event["type"] == "result":
+                event["cell"] = complete_cell(event.pop("output"), request.defined, request.language)
+                code = event["cell"].get("code")
+                error = syntax_error(code) if python and round == 0 and isinstance(code, str) else None
+                if error:
+                    # One more call, with the code and Python's error: the model fixes what it wrote.
+                    broken = {"code": code, "error": error}
+                    spent = event.get("cost_usd")
+                    break
+                if spent is not None:
+                    event["cost_usd"] = spent + (event.get("cost_usd") or 0.0)
+                if settings.checks_code and isinstance(code, str) and code.strip():
+                    held: list[guard.Outcome] = []
+                    review = guard.code_review(config, settings)
+                    async for step in guard.events(
+                        lambda emit: guard.review_code(code, settings, emit, what="the cell of an answer", threads=config.local_threads, review=review), held
+                    ):
+                        yield step
+                    if not held[0].go:
+                        why = "You did not run the cell that the AI wrote" if held[0].by == "analyst" else f"The review guard held back the cell that the AI wrote: {held[0].reason}"
+                        yield {"type": "error", "message": f"{why}.", "guard": True, "code": code, "cost_usd": event.get("cost_usd"), "model": event.get("model")}
+                        return
+            yield event
+        if broken is None:
+            return
+        attempt = dataclasses.replace(request, previous_attempt=broken)
+
+
+def syntax_error(code: str) -> str | None:
+    """Why Python code with IPython's ``%`` and ``!`` lines does not parse, as Python words it; None when it parses.
+
+    A cell magic (``%%bash``) holds another language, and is not checked.
+    """
+    if code.lstrip().startswith("%%"):
+        return None
+    lines = ["" if line.lstrip().startswith(("%", "!")) else line for line in code.splitlines()]
+    try:
+        ast.parse("\n".join(lines))
+    except SyntaxError as error:
+        return f"SyntaxError: {error.msg} (line {error.lineno})"
+    return None
 
 
 def complete_cell(cell: dict[str, Any], defined: frozenset[str] = frozenset(), language: str = "python") -> dict[str, Any]:
