@@ -299,6 +299,7 @@
     "reviewGuard": {
       "title": "Review guard",
       "description": "Checks each prompt before it goes to a model on another machine, and code that an AI wrote before it runs. Ask waits for your answer; reject holds back what was flagged, and the work goes on.",
+      "type": "string",
       "oneOf": [
         {
           "const": "ask",
@@ -321,6 +322,7 @@
     "guardPrivacyModel": {
       "title": "Review guard: guard model for prompts",
       "description": "A guard model on this machine that also reads each prompt against the privacy policy. Empty for the rules alone.",
+      "type": "string",
       "oneOf": [
         { "const": "", "title": "None: the rules alone" },
         {
@@ -341,6 +343,7 @@
     "guardExecutionModel": {
       "title": "Review guard: guard model for code",
       "description": "A guard model on this machine that also reads the code. Empty for the rules alone.",
+      "type": "string",
       "oneOf": [
         { "const": "", "title": "None: the rules alone" },
         { "const": "dynaguard-4b", "title": "DynaGuard 4B" },
