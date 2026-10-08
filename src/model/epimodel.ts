@@ -151,6 +151,7 @@ import {
   kernelChoices,
   kernelFacts,
   newNotebookPath,
+  notebookTitle,
   promptKernels
 } from './crosskernel';
 import type { ICallCost, ICellPart, INotebookCost, Segment } from './cost';
@@ -6796,8 +6797,13 @@ export class EpiModel implements IDisposable {
     // keeps what the run uses, and the run stops if the notebook closes.
     model._joinRun(run, this._agentAborts.get(run) ?? null);
     (this._runModels ??= new Map()).set(where.path, model);
-    const title =
-      this.sections().title ?? PathExt.basename(this.context.path, '.ipynb');
+    const title = notebookTitle({
+      heading: this.sections().title ?? null,
+      first: this.context.path,
+      given: String(input.title ?? ''),
+      requested,
+      label: kernel.label
+    });
     const intro = model._startAgentNotebook(
       introText({
         title,

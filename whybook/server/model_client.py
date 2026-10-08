@@ -22,6 +22,7 @@ runs without the ``models`` extra.
 from __future__ import annotations
 
 import ast
+import asyncio
 import base64
 import importlib.util
 import json
@@ -373,48 +374,62 @@ async def structured_call(
     progress = Progress(elapsed)
     yield {"type": "progress", "stage": "starting", "elapsed": elapsed()}
     result = None
-    try:
-        agent = Agent(
-            build_model(connection, key),
-            output_type=StructuredDict(schema, name="answer", description="The answer, as the schema asks."),
-            system_prompt=system_prompt,
-            retries={"tools": 1, "output": 2},
-        )
-        agent.output_validator(check)
-        async with agent.run_stream_events(
-            user_content(prompt, images),
-            model_settings=model_settings(connection, config, effort),
-            usage=usage,
-            usage_limits=UsageLimits(
-                request_limit=4,
-                cost_limit=cost_limit(connection, config.claude_budget_usd),
-                # Without a price of genai-prices, the cap holds as a number of tokens.
-                total_tokens_limit=token_cap(price, config.claude_budget_usd),
-            ),
-        ) as events:
-            async for event in events:
-                for update in progress.of(event):
-                    yield update
-                if isinstance(event, AgentRunResultEvent):
-                    result = event.result
-    except Exception as error:  # noqa: BLE001  the failure goes to the view in plain words
-        log.warning("the call to %s failed: %s", connection.provider, error)
-        message = reason(str(error), connection.label(config), connection.url, config, signs_in(connection))
-        if broken and "output retries" in str(error).lower():
-            # Pydantic AI's "Exceeded maximum output retries (2)": every answer broke the schema.
-            message = f"The AI model did not answer in the form asked for: {'; '.join(broken)}."
-        failed = {"type": "error", "message": message, "elapsed": elapsed()}
-        if key_refused(str(error)):
-            # For connection.structured_call, which marks the saved key as refused and drops the flag.
-            failed["key_refused"] = True
-        yield {**failed, "cost_usd": spent()} if spent() is not None else failed
-        return
+    # A provider that answers HTTP 429, "temporarily rate-limited upstream. Please retry shortly",
+    # gets one more try after RATE_LIMIT_WAIT seconds: in YRBS take 12 OpenRouter's fast model
+    # answered 429 twelve times in ten minutes, and a popover showed the error instead of questions.
+    for attempt in range(2):
+        try:
+            agent = Agent(
+                build_model(connection, key),
+                output_type=StructuredDict(schema, name="answer", description="The answer, as the schema asks."),
+                system_prompt=system_prompt,
+                retries={"tools": 1, "output": 2},
+            )
+            agent.output_validator(check)
+            async with agent.run_stream_events(
+                user_content(prompt, images),
+                model_settings=model_settings(connection, config, effort),
+                usage=usage,
+                usage_limits=UsageLimits(
+                    request_limit=4,
+                    cost_limit=cost_limit(connection, config.claude_budget_usd),
+                    # Without a price of genai-prices, the cap holds as a number of tokens.
+                    total_tokens_limit=token_cap(price, config.claude_budget_usd),
+                ),
+            ) as events:
+                async for event in events:
+                    for update in progress.of(event):
+                        yield update
+                    if isinstance(event, AgentRunResultEvent):
+                        result = event.result
+            break
+        except Exception as error:  # noqa: BLE001  the failure goes to the view in plain words
+            if attempt == 0 and http_status(str(error)) == 429:
+                log.info("the call to %s was rate-limited: one more try in %g s", connection.provider, RATE_LIMIT_WAIT)
+                yield {"type": "progress", "stage": "retrying", "elapsed": elapsed()}
+                await asyncio.sleep(RATE_LIMIT_WAIT)
+                continue
+            log.warning("the call to %s failed: %s", connection.provider, error)
+            message = reason(str(error), connection.label(config), connection.url, config, signs_in(connection))
+            if broken and "output retries" in str(error).lower():
+                # Pydantic AI's "Exceeded maximum output retries (2)": every answer broke the schema.
+                message = f"The AI model did not answer in the form asked for: {'; '.join(broken)}."
+            failed = {"type": "error", "message": message, "elapsed": elapsed()}
+            if key_refused(str(error)):
+                # For connection.structured_call, which marks the saved key as refused and drops the flag.
+                failed["key_refused"] = True
+            yield {**failed, "cost_usd": spent()} if spent() is not None else failed
+            return
     if result is None:
         yield {"type": "error", "message": "The AI model ended without an answer.", "elapsed": elapsed()}
         return
     # The prices of the messages, else what the call's usage added up.
     cost = cost_of(result)
     yield {"type": "result", "output": result.output, "model": model_name(result, connection), "cost_usd": cost if cost is not None else spent(), "elapsed": elapsed()}
+
+
+# Seconds before the one more try of a call that a provider rate-limited (HTTP 429).
+RATE_LIMIT_WAIT = 2.0
 
 
 def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, Any]]) -> Callable[[Any, Any, Whybook], Awaitable[dict[str, Any]]]:

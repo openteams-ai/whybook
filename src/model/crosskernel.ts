@@ -230,6 +230,46 @@ export function framesFolder(label: string): string {
   return `from_${label.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'kernel'}`;
 }
 
+/** Whether a notebook's name is JupyterLab's name for a new one: Untitled, Untitled3. */
+export function isUntitled(stem: string): boolean {
+  return /^untitled\d*$/i.test(stem.trim());
+}
+
+/**
+ * The title of the notebook that the agent makes: the heading of the
+ * analyst's notebook, else its name. A notebook that is still JupyterLab's
+ * "Untitled" gives no title: then the title that the agent gave, else the
+ * words of the name that it chose, without the language. "Untitled, in R"
+ * headed the R notebook of the first NHEFS video.
+ */
+export function notebookTitle(options: {
+  heading: string | null;
+  first: string;
+  given: string;
+  requested: string;
+  label: string;
+}): string {
+  if (options.heading) {
+    return options.heading;
+  }
+  const stem = PathExt.basename(options.first, '.ipynb');
+  if (!isUntitled(stem)) {
+    return stem;
+  }
+  const given = options.given.replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (given && !isUntitled(given)) {
+    return given;
+  }
+  const words = PathExt.basename(options.requested, '.ipynb')
+    .split(/[._\-\s]+/)
+    .filter(word => word && word.toLowerCase() !== options.label.toLowerCase());
+  const text = words.join(' ');
+  if (!text || isUntitled(words[0] ?? '')) {
+    return stem;
+  }
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /**
  * The first cell of the notebook that the agent makes: its title, and which
  * question it answers, about which notebook, with which kernel. The view

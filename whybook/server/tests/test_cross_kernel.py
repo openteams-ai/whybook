@@ -45,6 +45,9 @@ def test_the_tools_that_act_in_a_notebook_name_it_and_run_cell_takes_its_languag
     assert "notebook's kernel" in agent.TOOLS["run_cell"]["description"]
     made = agent.TOOLS["new_notebook"]["schema"]
     assert made["required"] == ["kernel", "name"]
+    # A reproduction of an Untitled notebook gets a name and a title of its own.
+    assert "Untitled" in made["properties"]["name"]["description"]
+    assert "Untitled" in made["properties"]["title"]["description"]
     assert agent.TOOLS["share_frames"]["schema"]["required"] == ["frames", "notebook"]
     rows = agent.TOOLS["finish"]["schema"]["properties"]["comparison"]["properties"]["rows"]
     assert rows["items"]["required"] == ["estimate", "first", "second"]

@@ -19,6 +19,7 @@ import {
   LANGUAGE_DEFAULTS,
   menuKernels,
   newNotebookPath,
+  notebookTitle,
   withRecent
 } from '../model/crosskernel';
 
@@ -296,6 +297,45 @@ describe('kernelFacts and introText', () => {
       })
     ).toBe(
       '# Pain diary cohort, in R\n\nWhybook\'s agent made this notebook for the question "Would I get the same results in R?", asked in pain_diary_cohort.ipynb. The cells after this one are the agent\'s, and R 4.4.3 (xr) runs them.'
+    );
+  });
+});
+
+describe('notebookTitle', () => {
+  const title = (first: string, given = '', requested = 'x.R.ipynb') =>
+    notebookTitle({ heading: null, first, given, requested, label: 'R' });
+
+  it("takes the heading of the analyst's notebook, else its name", () => {
+    expect(
+      notebookTitle({
+        heading: 'Pain diary cohort',
+        first: 'Untitled.ipynb',
+        given: 'Other',
+        requested: 'x.R.ipynb',
+        label: 'R'
+      })
+    ).toBe('Pain diary cohort');
+    expect(title('pain_diary/pain_diary_cohort.ipynb', 'Other')).toBe(
+      'pain_diary_cohort'
+    );
+  });
+
+  it("gives an untitled notebook's reproduction the agent's title, else the words of its name", () => {
+    // "Untitled, in R" headed the R notebook of the first NHEFS video.
+    expect(title('Untitled.ipynb', ' Quitting smoking and  weight gain ')).toBe(
+      'Quitting smoking and weight gain'
+    );
+    expect(title('Untitled3.ipynb', '', 'smoking_weight_gain.R.ipynb')).toBe(
+      'Smoking weight gain'
+    );
+    expect(title('Untitled.ipynb', '', 'nhefs_results_R.ipynb')).toBe(
+      'Nhefs results'
+    );
+  });
+
+  it('keeps the name when the agent gave nothing better', () => {
+    expect(title('Untitled.ipynb', 'Untitled', 'Untitled.R.ipynb')).toBe(
+      'Untitled'
     );
   });
 });

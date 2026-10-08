@@ -230,7 +230,17 @@ TOOLS: dict[str, dict[str, Any]] = {
                     "type": "string",
                     "description": (
                         "The file's name, ending in .ipynb: the analyst's notebook's name with the"
-                        " language, such as pain_diary_cohort.R.ipynb."
+                        " language, such as pain_diary_cohort.R.ipynb. When the analyst's notebook"
+                        " is still JupyterLab's Untitled, Untitled3 and so on, a name that says what"
+                        " the analysis is about instead, such as smoking_weight_gain.R.ipynb."
+                    ),
+                },
+                "title": {
+                    "type": "string",
+                    "description": (
+                        "What the analysis is about, in a few words, such as Quitting smoking and"
+                        " weight gain: the notebook's heading, with the language, when the analyst's"
+                        " notebook has no heading and is still Untitled."
                     ),
                 },
                 "why": {"type": "string", "description": "Why this notebook, in at most 15 words, shown to the analyst."},

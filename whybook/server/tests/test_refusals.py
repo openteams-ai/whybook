@@ -6,6 +6,8 @@ written in each company's documented format. A FunctionModel
 stands in for the model: no request leaves the process.
 """
 
+import json
+
 import pytest
 
 from whybook.server import connection, model_client
@@ -94,3 +96,56 @@ async def test_a_call_that_a_provider_refuses_ends_with_its_words(monkeypatch):
     assert events[-1]["message"] == f"No AI model answered: {LUNA} refused the request (HTTP 403): Azure: Your input was flagged."
     # The key is not marked as wrong.
     assert KeyStore().meta("openrouter").get("refused") is None
+
+
+def _busy(times: int, calls: list):
+    """A model that answers HTTP 429, "temporarily rate-limited upstream", `times` times, then an answer."""
+    from pydantic_ai.exceptions import ModelHTTPError
+    from pydantic_ai.models.function import DeltaToolCall
+
+    body = {"message": "Provider returned error", "code": 429, "metadata": {"raw": "inception/mercury-2.5 is temporarily rate-limited upstream. Please retry shortly.", "provider_name": "Inception"}}
+
+    async def stream(messages, info):
+        calls.append(len(calls) + 1)
+        if len(calls) <= times:
+            raise ModelHTTPError(429, "inception/mercury-2.5", body)
+        yield {0: DeltaToolCall(name=info.output_tools[0].name, json_args=json.dumps({"questions": []}))}
+
+    return stream
+
+
+async def test_a_call_that_a_provider_rate_limits_goes_again_once(monkeypatch):
+    pytest.importorskip("pydantic_ai")
+    from pydantic_ai.models.function import FunctionModel
+
+    calls: list = []
+    model = FunctionModel(lambda messages, info: None, stream_function=_busy(1, calls), model_name="inception/mercury-2.5")
+    monkeypatch.setattr(model_client, "build_model", lambda chosen, key: model)
+    monkeypatch.setattr(model_client, "RATE_LIMIT_WAIT", 0)
+    connection.save(Connection(provider="openrouter", model="inception/mercury-2.5"))
+    KeyStore().set("openrouter", "sk-or-v1-test", signin="openrouter")
+    options = {"schema": {"type": "object"}, "system_prompt": "s", "config": Whybook(), "effort": "low"}
+    events = [event async for event in connection.structured_call("p", **options)]
+    # In YRBS take 12 a popover showed the 429 instead of the model's questions.
+    assert calls == [1, 2]
+    assert any(event.get("stage") == "retrying" for event in events)
+    assert events[-1]["type"] == "result"
+    assert events[-1]["output"] == {"questions": []}
+
+
+async def test_a_call_rate_limited_twice_ends_with_the_provider_s_words(monkeypatch):
+    pytest.importorskip("pydantic_ai")
+    from pydantic_ai.models.function import FunctionModel
+
+    calls: list = []
+    model = FunctionModel(lambda messages, info: None, stream_function=_busy(2, calls), model_name="inception/mercury-2.5")
+    monkeypatch.setattr(model_client, "build_model", lambda chosen, key: model)
+    monkeypatch.setattr(model_client, "RATE_LIMIT_WAIT", 0)
+    connection.save(Connection(provider="openrouter", model="inception/mercury-2.5"))
+    KeyStore().set("openrouter", "sk-or-v1-test", signin="openrouter")
+    options = {"schema": {"type": "object"}, "system_prompt": "s", "config": Whybook(), "effort": "low"}
+    events = [event async for event in connection.structured_call("p", **options)]
+    assert calls == [1, 2]
+    assert events[-1]["type"] == "error"
+    assert "HTTP 429" in events[-1]["message"]
+    assert "temporarily rate-limited upstream" in events[-1]["message"]
