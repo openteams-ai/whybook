@@ -14,6 +14,11 @@ import type {
 import { SemanticCommand } from '@jupyterlab/apputils';
 import type { ICodeCellModel } from '@jupyterlab/cells';
 import type { IMainMenu } from '@jupyterlab/mainmenu';
+import {
+  fastForwardIcon,
+  refreshIcon,
+  stopIcon
+} from '@jupyterlab/ui-components';
 import type { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import type { Widget } from '@lumino/widgets';
 
@@ -54,8 +59,15 @@ export function addKernelMenu(
   const isEnabled = () =>
     tracker.currentWidget !== null &&
     tracker.currentWidget === shell.currentWidget;
+  // A toolbar's button of a command passes `toolbar: true`: the button then
+  // shows the icon of the same button in JupyterLab's notebook toolbar, and
+  // the menus keep their labels (the items of schema/toolbar.json).
+  const onToolbar =
+    (icon: typeof stopIcon) => (args: ReadonlyPartialJSONObject) =>
+      args.toolbar ? icon : undefined;
 
   commands.addCommand(KernelMenuIDs.interrupt, {
+    icon: onToolbar(stopIcon),
     label: 'Interrupt Kernel',
     caption: 'Interrupt the kernel of this notebook',
     describedBy: NO_ARGS,
@@ -66,6 +78,7 @@ export function addKernelMenu(
   });
   // True when the kernel restarted: Restart and Run All runs the cells then.
   commands.addCommand(KernelMenuIDs.restart, {
+    icon: onToolbar(refreshIcon),
     label: 'Restart Kernel…',
     caption: 'Restart the kernel of this notebook',
     describedBy: NO_ARGS,
@@ -129,6 +142,7 @@ export function addKernelMenu(
     }
   });
   commands.addCommand(KernelMenuIDs.runAll, {
+    icon: onToolbar(fastForwardIcon),
     label: 'Run All Cells',
     caption: 'Run every cell of this notebook in order',
     describedBy: NO_ARGS,

@@ -6,8 +6,10 @@ import { ABCWidgetFactory, DocumentWidget } from '@jupyterlab/docregistry';
 import type { INotebookModel } from '@jupyterlab/notebook';
 import type { IRenderMime, IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import type { ServerConnection } from '@jupyterlab/services';
+import type { ITranslator } from '@jupyterlab/translation';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { Message } from '@lumino/messaging';
+import type { Widget } from '@lumino/widgets';
 import type { ISignal } from '@lumino/signaling';
 import { Signal } from '@lumino/signaling';
 import * as React from 'react';
@@ -168,47 +170,103 @@ export class EpiFactory extends ABCWidgetFactory<EpiPanel, INotebookModel> {
     panel.title.icon = epiIcon;
     // The notebook names its kernel, as JupyterLab's notebook panel writes it.
     followKernel(context);
-    // The view's controls sit in the panel's JupyterLab toolbar.
-    const model = content.model;
-    const items: [string, JSX.Element][] = [
-      ['epi-view', <ViewSwitch model={model} />],
-      ['epi-mode', <ModeSwitch model={model} />],
-      ['epi-layout', <LayoutSelect model={model} />],
-      ['epi-detail', <DetailSlider model={model} />],
-      ['epi-run-all', <RunAllButton model={model} />],
-      [
-        'epi-ai',
-        <AIButton model={model} openSettings={this._options.openSettings} />
-      ]
-    ];
-    for (const [name, element] of items) {
-      panel.toolbar.addItem(name, ReactWidget.create(element));
-    }
-    panel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    // JupyterLab's toolbar measures an item once, and keeps that width when
-    // the item's text changes. The kernel's name grows from "No Kernel" once
-    // the kernel starts, and a toolbar with no room left wrapped it onto a
-    // row under the notebook, where it could not be clicked. At a fixed width
-    // (style/base.css) the measure holds, and the name goes into the
-    // toolbar's overflow menu when there is no room for it.
-    const kernelName = Toolbar.createKernelNameItem(
-      context.sessionContext,
-      this._options.sessionDialogs,
-      this.translator
-    );
-    kernelName.addClass('jp-Epi-kernelname');
-    panel.toolbar.addItem('kernelName', kernelName);
-    panel.toolbar.addItem(
-      'kernelStatus',
-      Toolbar.createKernelStatusItem(context.sessionContext, this.translator)
-    );
     return panel;
+  }
+
+  /**
+   * The toolbar when no toolbar factory reads the settings: the items of
+   * schema/toolbar.json, in their order.
+   */
+  protected defaultToolbarFactory(
+    panel: EpiPanel
+  ): DocumentRegistry.IToolbarItem[] {
+    return TOOLBAR_ITEMS.map(name => ({
+      name,
+      widget: createToolbarItem(name, panel, {
+        ...this._options,
+        translator: this.translator
+      })
+    }));
   }
 
   private _options: EpiFactory.IOptions;
 }
 
+/**
+ * The items of the view's toolbar, in their default order, as
+ * schema/toolbar.json lists them. The settings of `whybook:toolbar` leave
+ * items out and add the buttons of commands, through JupyterLab's toolbar
+ * registry (src/index.ts).
+ */
+export const TOOLBAR_ITEMS = [
+  'epi-view',
+  'epi-mode',
+  'epi-layout',
+  'epi-detail',
+  'epi-run-all',
+  'epi-ai',
+  'spacer',
+  'kernelName',
+  'kernelStatus'
+] as const;
+
+/**
+ * Make one item of the view's toolbar: the view, mode, layout, detail, Run
+ * all and AI controls, the spacer, and the kernel's name and status.
+ */
+export function createToolbarItem(
+  name: (typeof TOOLBAR_ITEMS)[number],
+  panel: EpiPanel,
+  options: EpiFactory.IToolbarOptions
+): Widget {
+  const model = panel.content.model;
+  const sessionContext = panel.context.sessionContext;
+  switch (name) {
+    case 'epi-view':
+      return ReactWidget.create(<ViewSwitch model={model} />);
+    case 'epi-mode':
+      return ReactWidget.create(<ModeSwitch model={model} />);
+    case 'epi-layout':
+      return ReactWidget.create(<LayoutSelect model={model} />);
+    case 'epi-detail':
+      return ReactWidget.create(<DetailSlider model={model} />);
+    case 'epi-run-all':
+      return ReactWidget.create(<RunAllButton model={model} />);
+    case 'epi-ai':
+      return ReactWidget.create(
+        <AIButton model={model} openSettings={options.openSettings} />
+      );
+    case 'spacer':
+      return Toolbar.createSpacerItem();
+    case 'kernelName': {
+      // JupyterLab's toolbar measures an item once, and keeps that width
+      // when the item's text changes. The kernel's name grows from "No
+      // Kernel" once the kernel starts, and a toolbar with no room left
+      // wrapped it onto a row under the notebook, where it could not be
+      // clicked. At a fixed width (style/base.css) the measure holds, and the
+      // name goes into the toolbar's overflow menu when there is no room.
+      const kernelName = Toolbar.createKernelNameItem(
+        sessionContext,
+        options.sessionDialogs,
+        options.translator
+      );
+      kernelName.addClass('jp-Epi-kernelname');
+      return kernelName;
+    }
+    case 'kernelStatus':
+      return Toolbar.createKernelStatusItem(sessionContext, options.translator);
+  }
+}
+
 export namespace EpiFactory {
+  /** What the items of the toolbar need beside the panel. */
+  export interface IToolbarOptions {
+    sessionDialogs?: ISessionContext.IDialogs;
+    translator?: ITranslator;
+    /** Open JupyterLab's settings editor at the view's settings. */
+    openSettings: () => void;
+  }
+
   export interface IOptions extends DocumentRegistry.IWidgetFactoryOptions<EpiPanel> {
     rendermime: IRenderMimeRegistry;
     serverSettings: ServerConnection.ISettings;

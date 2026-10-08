@@ -1,0 +1,89 @@
+{
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook toolbar",
+  "title": "Whybook toolbar",
+  "description": "The items of the toolbar of a notebook opened in Whybook.",
+  "jupyter.lab.toolbars": {
+    "Whybook": [
+      { "name": "epi-view", "rank": 10 },
+      { "name": "epi-mode", "rank": 20 },
+      { "name": "epi-layout", "rank": 30 },
+      { "name": "epi-detail", "rank": 40 },
+      { "name": "epi-run-all", "rank": 50 },
+      { "name": "epi-ai", "rank": 60 },
+      { "name": "spacer", "type": "spacer", "rank": 100 },
+      { "name": "kernelName", "rank": 1000 },
+      { "name": "kernelStatus", "rank": 1001 }
+    ]
+  },
+  "jupyter.lab.transform": true,
+  "properties": {
+    "toolbar": {
+      "title": "Whybook toolbar items",
+      "description": "To leave an item out, list it with \"disabled\": true. To add a button, give it a name, a command and a rank: the items of Whybook are ranked 10 (epi-view: Code, Bench, Map), 20 (epi-mode: Wonder, Do, Report), 30 (epi-layout: where the panels go), 40 (epi-detail), 50 (epi-run-all), 60 (epi-ai), 100 (the spacer), 1000 (kernelName) and 1001 (kernelStatus). Whybook's commands act on its view, such as whybook:interrupt-kernel, whybook:restart-kernel, whybook:run-all-cells and docmanager:save; the commands of the buttons of JupyterLab's notebook toolbar act on that view only. For example:\n{\n  \"toolbar\": [\n    { \"name\": \"epi-mode\", \"disabled\": true },\n    { \"name\": \"interrupt\", \"command\": \"whybook:interrupt-kernel\", \"rank\": 55 },\n    { \"name\": \"restart\", \"command\": \"whybook:restart-kernel\", \"rank\": 56 }\n  ]\n}",
+      "items": {
+        "$ref": "#/definitions/toolbarItem"
+      },
+      "type": "array",
+      "default": []
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "toolbarItem": {
+      "properties": {
+        "name": {
+          "title": "Unique name",
+          "type": "string"
+        },
+        "args": {
+          "title": "Command arguments",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command id",
+          "type": "string",
+          "default": ""
+        },
+        "disabled": {
+          "title": "Whether the item is left out",
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "title": "Item icon id",
+          "description": "If given, it replaces the icon of the command.",
+          "type": "string"
+        },
+        "label": {
+          "title": "Item label",
+          "description": "If given, it replaces the label of the command.",
+          "type": "string"
+        },
+        "caption": {
+          "title": "Item caption",
+          "description": "If given, it replaces the caption of the command.",
+          "type": "string"
+        },
+        "type": {
+          "title": "Item type",
+          "type": "string",
+          "oneOf": [
+            { "const": "command", "title": "Command" },
+            { "const": "spacer", "title": "Spacer" }
+          ]
+        },
+        "rank": {
+          "title": "Item rank",
+          "type": "number",
+          "minimum": 0,
+          "default": 50
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

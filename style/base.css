@@ -3986,6 +3986,15 @@ button.jp-Epi-textoutput:hover,
   background: var(--jp-layout-color2);
 }
 
+/*
+ * The caret's box is as tall as its icon, so that the button centres it. As
+ * an inline box it took the height of a line of text, 20 px, with the 16 px
+ * icon at its top, 2 px above the middle of the button.
+ */
+.jp-Epi-aibutton-caret {
+  display: flex;
+}
+
 .jp-Epi-aipanel {
   position: fixed;
   z-index: 10000;

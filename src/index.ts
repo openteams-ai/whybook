@@ -4,9 +4,11 @@ import type {
 } from '@jupyterlab/application';
 import { ILayoutRestorer } from '@jupyterlab/application';
 import {
+  createToolbarFactory,
   ICommandPalette,
   IMovableSectionRegistry,
   ISessionContextDialogs,
+  IToolbarWidgetRegistry,
   WidgetTracker
 } from '@jupyterlab/apputils';
 import type { CodeEditor } from '@jupyterlab/codeeditor';
@@ -19,7 +21,7 @@ import { INotebookTracker } from '@jupyterlab/notebook';
 import { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IStatusBar } from '@jupyterlab/statusbar';
-import { ITranslator } from '@jupyterlab/translation';
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import type { IFormRenderer } from '@jupyterlab/ui-components';
 import { IFormRendererRegistry } from '@jupyterlab/ui-components';
 import type { JSONValue } from '@lumino/coreutils';
@@ -58,8 +60,10 @@ import {
 import type { EpiPanel } from './widgets';
 import {
   CurrentModel,
+  createToolbarItem,
   EpiFactory,
   FACTORY,
+  TOOLBAR_ITEMS,
   AIStatusWidget,
   FollowingWidget,
   StatusWidget,
@@ -78,6 +82,8 @@ const NO_ARGS = { args: { type: 'object', properties: {} } };
 
 // JupyterLab keys the settings by the npm package's name and the schema file.
 const PLUGIN_ID = 'whybook:plugin';
+/** The items of the view's toolbar (schema/toolbar.json), as the notebook keeps them in `...:panel`. */
+const TOOLBAR_SETTINGS = 'whybook:toolbar';
 /** JupyterLab's notebook settings, which hold the cells' editor options. */
 const NOTEBOOK_SETTINGS = '@jupyterlab/notebook-extension:tracker';
 
@@ -103,7 +109,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IFormRendererRegistry,
     IMovableSectionRegistry,
     IAgentRuns,
-    IMainMenu
+    IMainMenu,
+    IToolbarWidgetRegistry
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -120,7 +127,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     formRegistry: IFormRendererRegistry | null,
     movable: IMovableSectionRegistry | null,
     runs: AgentRuns | null,
-    mainMenu: IMainMenu | null
+    mainMenu: IMainMenu | null,
+    toolbarRegistry: IToolbarWidgetRegistry | null
   ) => {
     const settings = new EpiSettings();
     const current = new CurrentModel();
@@ -151,8 +159,38 @@ const plugin: JupyterFrontEndPlugin<void> = {
       void app.commands.execute('settingeditor:open', { query: 'Whybook' });
     };
 
+    // The toolbar's items come from the settings of `whybook:toolbar`, as
+    // the notebook's come from `@jupyterlab/notebook-extension:panel`: an
+    // analyst can leave out an item and add the button of any command. The
+    // spacer is made by the registry's default factory, from its type.
+    const toolbarOptions = {
+      sessionDialogs: sessionDialogs ?? undefined,
+      translator: translator ?? undefined,
+      openSettings
+    };
+    let toolbarFactory: EpiFactory.IOptions['toolbarFactory'];
+    if (toolbarRegistry) {
+      for (const name of TOOLBAR_ITEMS) {
+        if (name !== 'spacer') {
+          toolbarRegistry.addFactory<EpiPanel>(FACTORY, name, panel =>
+            createToolbarItem(name, panel, toolbarOptions)
+          );
+        }
+      }
+      if (settingRegistry) {
+        toolbarFactory = createToolbarFactory(
+          toolbarRegistry,
+          settingRegistry,
+          FACTORY,
+          TOOLBAR_SETTINGS,
+          translator ?? nullTranslator
+        );
+      }
+    }
+
     const factory = new EpiFactory({
       name: FACTORY,
+      toolbarFactory,
       label: 'Whybook',
       fileTypes: ['notebook'],
       modelName: 'notebook',

@@ -110,7 +110,7 @@ export function AIButton(props: {
         onClick={() => (where ? setWhere(null) : open())}
       >
         <span>AI</span>
-        <caretDownIcon.react tag="span" />
+        <caretDownIcon.react tag="span" className="jp-Epi-aibutton-caret" />
       </button>
       {where &&
         ReactDOM.createPortal(
