@@ -274,7 +274,8 @@ TOOLS: dict[str, dict[str, Any]] = {
                     "type": "string",
                     "description": (
                         "The answer in at most 3 sentences, in plain words, citing the cells that show it by"
-                        " label, such as [7]. Cite only cells that ran without an error."
+                        " label, such as [7]. Cite only cells that ran without an error. The questions that"
+                        " the answer raises go in follow_up alone: the view shows them under the answer."
                     ),
                 },
                 "cells": {"type": "array", "items": {"type": "string"}, "description": "The labels of the cells that show the answer."},
@@ -381,6 +382,8 @@ Rules for the analysis:
 - Name a unit, such as kg or years, only when the data, a column's name, a file or an output
   gives it; otherwise write "in the units of" and the column's name. When "files" holds a
   codebook or a data dictionary, read what it says of the columns that the answer reports.
+- A causal diagram names its nodes in words, marks the exposure and the outcome, shows each
+  measure that the analysis adjusts for, and puts each cause left of its effects.
 
 Rules for the code:
 - Use only the variables in "variables" and the packages in "packages".
@@ -392,6 +395,8 @@ Rules for the code:
 - Keep each cell short, at most 30 lines, and end it with the object to show: a figure, a
   table with named columns, or values printed with a label each. Round every number shown, in
   a describe() too, and never show a bare tuple or scientific notation.{show}
+- In a figure or a table, show a coded column by what its codes mean, as a codebook gives
+  them, such as "Several times a day" for 6, and name the axes in words.
 - A file or a database table in "selected" is not in the kernel yet: load it first, with the
   code in its "load" field.
 
@@ -418,7 +423,7 @@ Another notebook:
 
 If "mode" is present, it is how the analyst works: do, the steps the question asks for and
 nothing more; report, end with a figure or a table ready for a report, with each estimate
-and its uncertainty; wonder, finish with 2 follow-up questions that open new directions.{privacy}"""
+and its uncertainty; wonder, give 2 follow-up questions in follow_up that open new directions.{privacy}"""
 
 PRIVACY_PROMPT = """
 
@@ -430,11 +435,15 @@ analyst needs to see; do not try to print data for yourself."""
 ANSWER_TASK = "Answer the question with cells that you add and run."
 TASK = f"{ANSWER_TASK} The question is about the cell in \"cell\" when there is one."
 
-# A question that compares the analyst's notebook with another kernel (``compare``).
+# A question that compares the analyst's notebook with another kernel (``compare``). The
+# new notebook is read as the analyst's is: one step a cell, each with its title, where the
+# agents of the demo videos wrote one cell that read the data, fitted the model and showed it.
 COMPARE_TASK = (
     "The question asks whether the analysis in \"notebook\" gives the same results with the kernel"
-    " named in \"compare\". Make a notebook with that kernel, run the analysis there, and finish"
-    " with a comparison of the estimates of both notebooks."
+    " named in \"compare\". Make a notebook with that kernel and run the analysis there, one step"
+    " a cell, so that a reader can follow it: read the data, prepare it, fit each model, and show"
+    " its estimates, each in a cell of its own. Finish with a comparison of the estimates of both"
+    " notebooks."
 )
 
 

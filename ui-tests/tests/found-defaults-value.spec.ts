@@ -76,6 +76,51 @@ for _name, _library, _picks in _json.loads(${JSON.stringify(JSON.stringify(KEPT)
     _defaults.keep(_function, _picks, _by)
 `;
 
+/**
+ * Take the same answers out of the store again. Every test of a run shares
+ * the test server's store, and signatures.spec.ts expects the model to be
+ * asked about pandas' DataFrame, which this file keeps an answer for.
+ */
+const FORGET = `
+import json as _json
+import pandas as _pandas
+import statsmodels as _statsmodels
+from whybook.server import keystore as _keystore
+from whybook.server import library_defaults as _defaults
+
+_versions = {"pandas": _pandas.__version__, "statsmodels": _statsmodels.__version__}
+_store = _keystore.read_json(_defaults.store_path())
+for _name, _library, _picks in _json.loads(${JSON.stringify(JSON.stringify(KEPT))}):
+    _store.get("libraries", {}).get(_library, {}).get(_versions[_library], {}).pop(_name, None)
+_keystore.write_private(_defaults.store_path(), _store)
+`;
+
+/** Run code in the kernel of the notebook in front, and give the reply's status. */
+async function execute(
+  page: IJupyterLabPageFixture,
+  code: string
+): Promise<string> {
+  return page.evaluate(async (code: string) => {
+    const kernel = (window as any).jupyterapp.shell.currentWidget.context
+      .sessionContext.session.kernel;
+    const reply = await kernel.requestExecute({
+      code,
+      silent: true,
+      store_history: false
+    }).done;
+    return reply.content.status;
+  }, code);
+}
+
+let kept = false;
+
+test.afterEach(async ({ page }) => {
+  if (kept) {
+    kept = false;
+    expect(await execute(page, FORGET)).toBe('ok');
+  }
+});
+
 /** A cell as an analysis of the video wrote it: a copy of the data, a propensity model, a fit with robust errors and its interval. */
 const CELLS = [
   'import numpy as np\nimport pandas as pd\nimport statsmodels.formula.api as smf\n\nrng = np.random.default_rng(0)\ndf = pd.DataFrame({"y": rng.normal(size=200), "x": rng.normal(size=200), "t": rng.integers(0, 2, 200)})',
@@ -165,17 +210,8 @@ test('shows the picks of the takes that are worth a chip, and none of their nois
     { timeout: 120000 }
   );
   // The answers that the server kept while the videos were recorded.
-  const status = await page.evaluate(async (code: string) => {
-    const kernel = (window as any).jupyterapp.shell.currentWidget.context
-      .sessionContext.session.kernel;
-    const reply = await kernel.requestExecute({
-      code,
-      silent: true,
-      store_history: false
-    }).done;
-    return reply.content.status;
-  }, KEEP);
-  expect(status).toBe('ok');
+  kept = true;
+  expect(await execute(page, KEEP)).toBe('ok');
 
   const lookup = page.waitForResponse(/\/whybook\/defaults(\?|$)/);
   await page.locator('.jp-Epi-runall').click();

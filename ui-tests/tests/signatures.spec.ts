@@ -243,12 +243,14 @@ test('shows the defaults that a model picks from the signatures as chips, with t
   await page.mouse.move(2, 2);
 
   // One request per function, with the signature and no code of the notebook.
-  // The model reads one function at a time, and the request about the first
-  // cell's DataFrame can come after the chips of the second cell show.
-  await expect
-    .poll(() => asked.map(body => body.function.name).sort())
-    .toEqual(['DataFrame', 'DataFrame.groupby', 'DataFrame.merge']);
-  const functions = asked.map(body => body.function.name).sort();
+  // The store of kept answers starts empty: found-defaults-value.spec.ts
+  // takes out the answers it keeps, among them one about DataFrame.
+  const functions = asked.map(body => body.function.name);
+  expect(functions.sort()).toEqual([
+    'DataFrame',
+    'DataFrame.groupby',
+    'DataFrame.merge'
+  ]);
   const groupby = asked.find(
     body => body.function.name === 'DataFrame.groupby'
   );

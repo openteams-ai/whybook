@@ -82,7 +82,17 @@ CHOICE_REASONS = {
     ("header", "None"): "reads the first row as data",
     ("header", "0"): "reads the first row as column names",
     ("sep", "None"): "guesses the separator from the first rows of the file",
+    ("cov_type", "nonrobust"): "plain standard errors, which assume the same spread for everyone",
+    ("cov_type", "HC0"): "White's robust standard errors, with no correction for a small sample",
+    ("cov_type", "HC1"): "robust standard errors with a correction for a small sample, as Stata's robust",
+    ("cov_type", "HC2"): "robust standard errors that correct for the leverage of each row",
+    ("cov_type", "HC3"): "robust standard errors that correct more for leverage, safer in a small sample",
 }
+
+# The covariances of a statsmodels fit that the rules know: plain standard
+# errors, and the robust ones of White and of MacKinnon and White. A value of
+# another library's fit, such as linearmodels' "clustered", gets none of them.
+STATSMODELS_COV_TYPES = ("nonrobust", "HC0", "HC1", "HC2", "HC3")
 
 # The parameters that name the file a reader such as read_csv reads: another
 # file is a value the analyst types, not one to guess.
@@ -353,6 +363,25 @@ def _choices(function: str, param: str, value: str, provenance: str, by_model: b
     return _made("choice", label, "its other common values", list(zip(kept, reasons)))
 
 
+def _covariance(param: str, value: str) -> Suggestion | None:
+    """The other standard errors of a statsmodels fit: plain ones for robust ones, robust ones for plain ones.
+
+    With the quotes of the cell, so that the branch reads as the cell does.
+    """
+    current = _unquoted(value)
+    if param != "cov_type" or current not in STATSMODELS_COV_TYPES:
+        return None
+    text = value.strip()
+    quote = text[0] if text[:1] in ("'", '"') else '"'
+    others = ["HC1", "HC3"] if current == "nonrobust" else ["nonrobust", "HC3" if current == "HC1" else "HC1"]
+    return _made(
+        "covariance",
+        "the standard errors of a fit",
+        "plain and robust ones",
+        [(f"{quote}{other}{quote}", CHOICE_REASONS[("cov_type", other)]) for other in others],
+    )
+
+
 def _seed(names: list[str], name: str, function: str, param: str, number: int | float, around: str) -> Suggestion | None:
     named = bool(SEED_WORDS & set(names)) or ("random" in names and "state" in names) or param in ("random_state", "seed", "random_seed")
     used = function in SEED_FUNCTIONS or any(
@@ -567,7 +596,7 @@ def suggest(
     function = short(function)
     param = param or ""
     names = words(name, param)
-    for found in (_choices(function, param, value, provenance, by_model), _flag(param, value)):
+    for found in (_covariance(param, value), _choices(function, param, value, provenance, by_model), _flag(param, value)):
         if found is not None:
             return found
     if reads_file(function, param, value):
@@ -740,17 +769,29 @@ async def model_values(
 ) -> AsyncIterator[dict[str, Any]]:
     """Stream progress events, then a result event with the connected model's values: ``kind`` and ``values``."""
     prompt = json.dumps(prompt_state(name, value, param, function, provenance, where, source, keep_local), indent=1)
-    async for event in connection.structured_call(prompt, schema=SCHEMA, system_prompt=SYSTEM_PROMPT, config=config, effort=config.question_effort):
-        if event["type"] == "result":
-            output = event.pop("output", None)
-            problems = claude.matches(output, SCHEMA)
-            found = None if problems else _result(output, value)
-            if found is None:
-                # What the call cost stays with the error, so the view counts it.
-                yield {"type": "error", "message": NO_VALUES, **{key: event[key] for key in ("cost_usd", "elapsed", "model") if key in event}}
-                return
-            event.update(found)
-        yield event
+    # A fast model answered about one call in five with no value that can go
+    # into the code: such an answer is asked once more, and what both calls
+    # cost goes with the last event, so the view counts it.
+    spent = {"cost_usd": 0.0, "elapsed": 0.0}
+    for attempt in range(2):
+        async for event in connection.structured_call(prompt, schema=SCHEMA, system_prompt=SYSTEM_PROMPT, config=config, effort=config.question_effort):
+            if event["type"] == "result":
+                for key in spent:
+                    if isinstance(event.get(key), (int, float)):
+                        event[key] = round(event[key] + spent[key], 6)
+                output = event.pop("output", None)
+                problems = claude.matches(output, SCHEMA)
+                found = None if problems else _result(output, value)
+                if found is None:
+                    if attempt == 0:
+                        spent = {key: event.get(key) or 0.0 for key in spent}
+                        break
+                    yield {"type": "error", "message": NO_VALUES, **{key: event[key] for key in ("cost_usd", "elapsed", "model") if key in event}}
+                    return
+                event.update(found)
+            yield event
+        else:
+            return
 
 
 async def local_values(

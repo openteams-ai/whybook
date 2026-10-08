@@ -8,6 +8,7 @@ import type { EpiModel } from '../model/epimodel';
 import type { IGuardHeld } from '../model/guard';
 import { heldWords } from '../model/guard';
 import { splitLabels } from '../model/labels';
+import { splitBold, splitCode } from '../model/inlinecode';
 import { followUpOf } from '../model/own';
 import { outputsOf } from '../model/notebook';
 import { keptCells, runWhen } from '../model/runs';
@@ -558,7 +559,11 @@ export function AgentElsewhere(props: {
   );
 }
 
-/** The answer, with each cell label in it, such as [7], a link to that cell. */
+/**
+ * The answer, with each cell label in it, such as [7], a link to that cell,
+ * each name in backticks, such as `psu`, in the code font, and each pair of
+ * two asterisks in bold.
+ */
 function LinkedText(props: {
   model: EpiModel;
   run: IAgentRun;
@@ -610,9 +615,37 @@ function LinkedText(props: {
         return cell ? (
           <CellLink key={index} model={model} cellId={cell.id} />
         ) : (
-          <React.Fragment key={index}>{shown}</React.Fragment>
+          <MarkedText key={index} text={shown} />
         );
       })}
     </span>
+  );
+}
+
+/**
+ * A part of the answer, with each name that it marks with backticks in the
+ * code font, and what it marks with two asterisks in bold.
+ */
+function MarkedText(props: { text: string }): JSX.Element {
+  return (
+    <>
+      {splitCode(props.text).map((part, index) =>
+        index % 2 === 1 ? (
+          <code key={index} className="jp-Epi-inlinecode">
+            {part}
+          </code>
+        ) : (
+          <React.Fragment key={index}>
+            {splitBold(part).map((piece, at) =>
+              at % 2 === 1 ? (
+                <strong key={at}>{piece}</strong>
+              ) : (
+                <React.Fragment key={at}>{piece}</React.Fragment>
+              )
+            )}
+          </React.Fragment>
+        )
+      )}
+    </>
   );
 }

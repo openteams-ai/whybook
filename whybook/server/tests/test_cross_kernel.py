@@ -137,6 +137,15 @@ def test_the_prompt_names_the_kernels_the_folders_files_and_for_a_comparison_the
     assert "When it saved none, say that its side has no results." in system
 
 
+def test_a_comparison_asks_for_the_analysis_one_step_a_cell():
+    # The R notebooks of the demo videos held one cell that read the data, fitted the model and
+    # showed the estimates: the new notebook is read as the analyst's is.
+    task = json.loads(request(kernels=KERNELS, files=FILES, notebook=NOTEBOOK, compare=COMPARE).prompt())["task"]
+    assert "one step a cell" in task
+    assert "read the data, prepare it, fit each model, and show its estimates, each in a cell of its own" in task
+    assert task.endswith("Finish with a comparison of the estimates of both notebooks.")
+
+
 def test_a_request_is_refused_when_its_kernels_files_or_comparison_are_malformed():
     for bad in (
         {"kernels": "xr"},

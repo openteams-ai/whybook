@@ -2342,6 +2342,15 @@ button.jp-Epi-textoutput:hover,
   margin-left: 6px;
 }
 
+/* A name that the answer marks with backticks, as JupyterLab draws inline code in Markdown. */
+.jp-Epi-agentrun-answer .jp-Epi-inlinecode {
+  background-color: var(--jp-layout-color2);
+  font-family: var(--jp-code-font-family);
+  font-size: inherit;
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
+}
+
 .jp-Epi-agentrun-followups {
   display: flex;
   flex-wrap: wrap;

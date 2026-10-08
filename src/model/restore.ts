@@ -210,6 +210,12 @@ export function listing(
       live.delete(variable.name);
     } else if (variable.cell && !hasCell(variable.cell)) {
       continue;
+    } else if (!variable.cell && kernel) {
+      // No cell is known to make it, and the kernel listed its variables
+      // without it: it is gone, and no cell would make it again. A listing
+      // taken while a cell ran keeps the names that the cell then deletes,
+      // such as the temporaries of a bootstrap.
+      continue;
     } else if (!kernel || !(variable.cell && ranHere(variable.cell))) {
       result.push(stale(variable));
     }

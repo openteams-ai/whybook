@@ -22,7 +22,7 @@ import sys
 
 import pytest
 
-from whybook.server import agent
+from whybook.server import agent, solve
 from whybook.server.config import Whybook
 
 from .test_agent import claude_code_sdk, drive, request
@@ -48,6 +48,16 @@ RULES |= {
     ),
     "dropout": "A unit whose follow-up ends when planned has not dropped out: count only early stops.",
 }
+# The YRBS video: a bar chart of social media use with the codes 1 to 8 on its axis, and a
+# causal diagram with grey nodes named as columns, no exposure or outcome marked, and the
+# exposure and the outcome side by side in its middle (design iteration 1.108).
+RULES |= {
+    "codes by what they mean": 'In a figure or a table, show a coded column by what its codes mean, as a codebook gives them, such as "Several times a day" for 6, and name the axes in words.',
+    "causal diagram": (
+        "A causal diagram names its nodes in words, marks the exposure and the outcome, shows each measure that the analysis"
+        " adjusts for, and puts each cause left of its effects."
+    ),
+}
 
 
 def words(text):
@@ -59,6 +69,11 @@ def test_the_prompt_has_the_rule(rule):
     assert RULES[rule] in words(request().system_prompt())
 
 
+def test_a_one_cell_answer_shows_codes_by_what_they_mean_in_every_language():
+    for language in ("python", "r"):
+        assert RULES["codes by what they mean"] in words(solve.system_prompt(language))
+
+
 def test_the_rules_keep_the_prompt_short():
     # Without the privacy part: 4,387 characters before these rules, 5,022 with those of
     # the first pass, and 5,083 with those of the second, which said the tools, the
@@ -67,8 +82,10 @@ def test_the_rules_keep_the_prompt_short():
     # a plot, the units and a codebook (design iteration 1.95); 6,178 with how
     # IPython shows a table, text and a figure (design iteration 1.101). An R
     # kernel's prompt holds R's rules in their place, and has 5,968. Both have
-    # 244 more with how to fix a cell that failed in place (design iteration 1.103).
-    assert len(request().system_prompt()) < 6500
+    # 244 more with how to fix a cell that failed in place (design iteration 1.103),
+    # and 6,428 became 6,765 with the codes in a figure and the causal diagram
+    # (design iteration 1.108).
+    assert len(request().system_prompt()) < 7000
 
 
 async def test_the_rules_reach_the_model_through_the_claude_agent_sdk(monkeypatch):

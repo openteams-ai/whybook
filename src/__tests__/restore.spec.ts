@@ -90,6 +90,23 @@ describe('listing', () => {
     const shown = listing([constant], stored, cell => cell === 'reshape');
     expect(shown.map(v => v.name)).toEqual(['MIN_DAYS', 'weekly']);
   });
+
+  it('drops a kept variable that no cell makes once the kernel lists its variables without it', () => {
+    // A listing taken while a branch's bootstrap ran kept its temporaries,
+    // which the branch then deleted: "13 from the last run, not in the
+    // kernel", in the middle of a session.
+    const temporary = storedVariable(frame('boot_sample', 2), null);
+    const kept = [...stored, temporary];
+    expect(
+      listing(null, kept, () => false).map(v => [v.name, v.stale])
+    ).toContainEqual(['boot_sample', true]);
+    const shown = listing([constant], kept, () => false);
+    expect(shown.map(v => v.name)).not.toContain('boot_sample');
+    expect(shown.filter(v => v.stale).map(v => v.name)).toEqual([
+      'diary',
+      'weekly'
+    ]);
+  });
 });
 
 describe('toStore', () => {

@@ -56,6 +56,8 @@ Rules for the code:
   does, so the cell also runs in a notebook that never did.
 - Keep the cell short: at most 30 lines, and no functions or classes unless the question needs them.
 - End the cell with the object to show: a figure, a table, or a short printed result.{show}
+- In a figure or a table, show a coded column by what its codes mean, as a codebook gives
+  them, such as "Several times a day" for 6, and name the axes in words.
 - If "previous_attempt" is present, that code failed with the given error. Fix it.
 - If "about" is present, it names what the analyst pointed at when asking, such as rows
   picked in a plot: the question is about that, and not about all the data. "rows" then

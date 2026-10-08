@@ -165,7 +165,7 @@ function RunsCount(props: { runs: AgentRuns; open: () => void }): JSX.Element {
       }}
     >
       <TextItem source={count} />
-      <agentRunIcon.react tag="span" top="1px" stylesheet="statusBar" />
+      <agentRunIcon.react verticalAlign="middle" stylesheet="statusBar" />
     </GroupItem>
   );
 }

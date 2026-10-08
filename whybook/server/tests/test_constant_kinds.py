@@ -43,6 +43,9 @@ KINDS = [
     ("reml", "True", "reml", "MixedLM.fit", "library_default", "fit = model.fit()", "flag", ["False"], "the library defaults of analyze_cells.py"),
     ("how", "'inner'", "how", "DataFrame.merge", "library_default", "both = weekly.merge(patients)", "choice", ['"left"', '"outer"'], "the library defaults of analyze_cells.py"),
     ("ci", "'normal'", "ci", "whybook.plots.ribbon", "library_default", "whybook.ribbon(weekly)", "choice", ['"bootstrap"'], "the library defaults of analyze_cells.py"),
+    ("cov_type", "'HC3'", "cov_type", "fit", "agent", "fit = smf.ols(formula, data=model_data).fit(cov_type='HC3')", "covariance", ["'nonrobust'", "'HC1'"], "the NHEFS demo video, take v2take3"),
+    ("cov_type", "'HC1'", "cov_type", "fit", "literal", "fit = smf.ols(formula, data=d).fit(cov_type='HC1')", "covariance", ["'nonrobust'", "'HC3'"], "made up"),
+    ("cov_type", '"nonrobust"', "cov_type", "fit", "library_default", "fit = smf.ols(formula, data=d).fit()", "covariance", ['"HC1"', '"HC3"'], "statsmodels' default"),
 ]
 
 
@@ -122,6 +125,23 @@ def test_the_options_say_the_kind_and_whether_a_model_should_choose():
     assert [o["text"] for o in unknown["options"] if o["template"] == "what_if_value"] == ["What if BASE_TEMP_C were 7.75?", "What if BASE_TEMP_C were 31.0?"]
 
 
+def test_the_standard_errors_of_a_statsmodels_fit_need_no_model():
+    # In two of three takes of the NHEFS video, the model's values for
+    # cov_type='HC3' did not come, and the chip offered no other value.
+    cell = CellInfo("c14", "[14]", "fit = smf.ols(formula, data=model_data).fit(cov_type='HC3')")
+    hc3 = Decision("cov_type", "'HC3'", "agent", param="cov_type", function="fit")
+    result = decision_options(cell, hc3, Context())
+    assert result["ask_model"] is False
+    assert [o["text"] for o in result["options"] if o["template"] == "what_if_value"] == [
+        "What if cov_type were 'nonrobust'?",
+        "What if cov_type were 'HC1'?",
+    ]
+    # A covariance of another library, such as linearmodels', is no
+    # statsmodels one: a model reads it.
+    clustered = Decision("cov_type", "'clustered'", "agent", param="cov_type", function="fit")
+    assert decision_options(cell, clustered, Context())["ask_model"] is True
+
+
 def test_the_values_a_model_suggested_become_branches_and_a_sweep():
     suggested = suggested_values([{"value": "12.0", "why": "the UK convention"}, {"value": "18", "why": "the US convention"}, {"value": "15.5", "why": "the same"}])
     # A sweep sums up the frames that the cell makes, as the kernel lists them.
@@ -176,8 +196,10 @@ def fake_model(monkeypatch):
     async def structured_call(prompt, *, schema, system_prompt, config, effort, images=None):
         seen["prompts"].append(json.loads(prompt))
         seen["system"] = system_prompt
+        # ``answers``, when set, gives one answer for each call in turn.
+        answer = seen["answers"].pop(0) if seen.get("answers") else seen["answer"]
         yield {"type": "progress", "stage": "thinking", "elapsed": 0.1}
-        yield {"type": "result", "output": seen["answer"], "model": "fake-model", "cost_usd": 0.0004, "elapsed": 0.2}
+        yield {"type": "result", "output": answer, "model": "fake-model", "cost_usd": 0.0004, "elapsed": 0.2}
 
     monkeypatch.setattr(claude, "structured_call", structured_call)
     monkeypatch.setattr(claude, "readiness", lambda config: {"available": True, "cli": "claude", "credential": "ANTHROPIC_API_KEY", "reason": None, "setup": None})
@@ -218,10 +240,26 @@ async def test_with_the_data_on_this_machine_the_model_gets_no_value(jp_fetch, f
     assert prompt["cell"] == "BASE_TEMP_C = ...\ndaily = add_degree_days(daily, base=BASE_TEMP_C)"
 
 
-async def test_an_answer_without_a_usable_value_is_an_error_that_keeps_its_cost(jp_fetch, fake_model):
+async def test_two_answers_without_a_usable_value_are_an_error_that_keeps_the_cost_of_both(jp_fetch, fake_model):
     fake_model["answer"] = {"kind": "a temperature", "values": [{"value": "import os", "why": "no value"}, {"value": "15.5", "why": "the same"}]}
     events = [json.loads(line) for line in (await post(jp_fetch, "decision", "values", body=body(model="remote"))).splitlines()]
-    assert events[-1] == {"type": "error", "message": values.NO_VALUES, "cost_usd": 0.0004, "elapsed": 0.2, "model": "fake-model"}
+    assert len(fake_model["prompts"]) == 2
+    assert events[-1] == {"type": "error", "message": values.NO_VALUES, "cost_usd": 0.0008, "elapsed": 0.4, "model": "fake-model"}
+
+
+async def test_an_answer_without_a_usable_value_is_asked_once_more(jp_fetch, fake_model):
+    # The fast model of the demo videos answered 2 calls in 10 with no value
+    # that can go into the code, and the chip's questions fell back to none.
+    fake_model["answers"] = [
+        {"kind": "a covariance", "values": [{"value": "import os", "why": "no value"}]},
+        {"kind": "a base temperature in degrees C", "values": [{"value": "12.0", "why": "the UK convention"}]},
+    ]
+    events = [json.loads(line) for line in (await post(jp_fetch, "decision", "values", body=body(model="remote"))).splitlines()]
+    assert len(fake_model["prompts"]) == 2
+    assert events[-1]["type"] == "result"
+    assert events[-1]["values"] == [{"value": "12.0", "why": "the UK convention"}]
+    # What both calls cost goes to the view.
+    assert (events[-1]["cost_usd"], events[-1]["elapsed"]) == (0.0008, 0.4)
 
 
 async def test_a_local_model_reads_the_value(jp_fetch, monkeypatch):
