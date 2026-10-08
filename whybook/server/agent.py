@@ -54,7 +54,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable
 from . import claude, guard, languages, privacy
 from .config import Whybook
 from .questions.models import InvalidRequest
-from .solve import SolveRequest
+from .solve import SolveRequest, about_task
 
 log = logging.getLogger(__name__)
 
@@ -141,7 +141,8 @@ TOOLS: dict[str, dict[str, Any]] = {
                                 "description": (
                                     "The full code of the branch. Every name it assigns, intermediate values included,"
                                     " is unique to this branch; it never assigns or deletes a name that the notebook"
-                                    " or another branch defines."
+                                    " or another branch defines, except that it imports a module under its usual name,"
+                                    " such as import numpy as np."
                                 ),
                             },
                         },
@@ -235,7 +236,15 @@ TOOLS: dict[str, dict[str, Any]] = {
                     "type": "array",
                     "items": {"type": "string"},
                     "maxItems": 3,
-                    "description": "Up to 3 questions the answer raises, each as its type, a colon and the question.",
+                    # The types, as the one-cell prompt names them: without them, 42 of the 55
+                    # follow-ups of the demo video's runs had none or one of the model's own,
+                    # such as "robustness", and the view showed each as Descriptive
+                    # (design iteration 1.100).
+                    "description": (
+                        "Up to 3 questions the answer raises, each as its type, a colon and the question,"
+                        ' such as "association: Does sleep relate to pain?". The type is association,'
+                        " causal, quality (data quality), model (a model check) or descriptive."
+                    ),
                 },
                 "comparison": {
                     "type": "object",
@@ -317,6 +326,12 @@ Rules for the analysis:
 - A unit whose follow-up ends when planned has not dropped out: count only early stops.
 - A check for impossible values looks at both ends, zeros and negatives included.
 - Read values that a frame holds, such as prices, from that frame: do not type them in.
+- If "about" is present, the question is about what it names, such as rows picked in a plot,
+  and not about all the data. "rows" then gives the frame and the pandas mask of those rows:
+  select them with it, as it is.
+- Name a unit, such as kg or years, only when the data, a column's name, a file or an output
+  gives it; otherwise write "in the units of" and the column's name. When "files" holds a
+  codebook or a data dictionary, read what it says of the columns that the answer reports.
 
 Rules for the code:
 - Use only the variables in "variables" and the packages in "packages".
@@ -363,7 +378,8 @@ names, without values. A tool returns the kind and size of each output and what 
 model wrote about it, and never its values. Write cells that compute and show what the
 analyst needs to see; do not try to print data for yourself."""
 
-TASK = "Answer the question with cells that you add and run. The question is about the cell in \"cell\" when there is one."
+ANSWER_TASK = "Answer the question with cells that you add and run."
+TASK = f"{ANSWER_TASK} The question is about the cell in \"cell\" when there is one."
 
 # A question that compares the analyst's notebook with another kernel (``compare``).
 COMPARE_TASK = (
@@ -535,7 +551,14 @@ class AgentRequest:
         if self.guarded_prompt is not None:
             return self.guarded_prompt
         body = json.loads(self.solve.prompt())
-        body["task"] = COMPARE_TASK if self.compare else TASK
+        if self.compare:
+            body["task"] = COMPARE_TASK
+        elif self.solve.about:
+            # What the analyst picked, such as rows of a plot, is named in the task line:
+            # as a field among many, it went unread (design iteration 1.95).
+            body["task"] = ANSWER_TASK + about_task(self.solve.about, self.solve.rows, self.solve.keep_local)
+        else:
+            body["task"] = TASK
         body.pop("previous_attempt", None)
         if self.kernels:
             body["kernels"] = list(self.kernels)
@@ -771,11 +794,14 @@ class Run:
         """The execution guard on the code of a tool before the view runs it: None lets it run, else what the agent reads instead."""
         if not self.guard_settings.checks_code:
             return None
+        cells: list[str] | None = None
         if name == "run_cell":
             code, what = str(tool_input.get("code") or ""), "a cell"
         elif name == "explore":
             branches = tool_input.get("branches") if isinstance(tool_input.get("branches"), list) else []
-            code = "\n\n".join(str(branch.get("code") or "") for branch in branches if isinstance(branch, dict))
+            # Each branch runs as a cell of its own: the rules read each alone, and one that does not compile stops no other.
+            cells = [str(branch.get("code") or "") for branch in branches if isinstance(branch, dict)]
+            code = "\n\n".join(cells)
             what = "the branches of a cell"
         elif name == "write_file" and str(tool_input.get("path") or "").endswith(".py"):
             code, what = str(tool_input.get("content") or ""), f"the file {str(tool_input.get('path'))[:120]}"
@@ -783,7 +809,7 @@ class Run:
             return None
         if not code.strip():
             return None
-        outcome = await guard.review_code(code, self.guard_settings, self.emit, what=what, threads=self.threads, review=self.review)
+        outcome = await guard.review_code(code, self.guard_settings, self.emit, what=what, threads=self.threads, review=self.review, cells=cells)
         if outcome.go:
             return None
         if outcome.by == "analyst":

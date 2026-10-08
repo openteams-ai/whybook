@@ -112,6 +112,9 @@ def test_a_branch_is_told_to_keep_its_names_apart_from_the_notebook_and_other_br
     assert "unique to this branch" in branch
     assert "intermediate values included" in branch
     assert "Never assign or delete a name that the notebook or another branch defines." in branch
+    # Without the exception, GPT-6 Luna renamed an import's alias, twice for one branch, the second
+    # time after Python's error: import pandas as pd as pd_ipw6b.
+    assert "An import is the exception: import a module under its usual name, such as import numpy as np" in branch
     new = json.loads(SolveRequest.from_json({"question": question, "placement": "new", "cell": cell}).prompt())["task"]
     assert "another branch" not in new
 

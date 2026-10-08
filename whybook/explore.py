@@ -751,45 +751,89 @@ def cross_table(data: Any, a: str, b: str, *, unit: str | None = None):
     return table
 
 
-def who_is_in(data: Any, rows: Any, *, unit: str | None = None, most: int = 8):
+def _holds_levels(values: pd.Series, most: int) -> bool:
+    """Whether a column holds 2 to ``most`` levels: text, true or false, or whole numbers.
+
+    Data from R and Stata often stores a category as whole numbers: in NHEFS,
+    qsmk, sex and race are 0 or 1, and education is 1 to 5. A column of
+    whole numbers with more values, such as an age in years, is a measure.
+    """
+    if not 2 <= values.nunique() <= most:
+        return False
+    if pd.api.types.is_bool_dtype(values) or not pd.api.types.is_numeric_dtype(values):
+        return True
+    if pd.api.types.is_complex_dtype(values):
+        return False
+    return bool((values.dropna() % 1 == 0).all())
+
+
+def _level_text(level: Any) -> str:
+    """A level as the table writes it: 1, not the 1.0 of a column of whole numbers that pandas reads as decimals because a value is missing."""
+    if isinstance(level, (float, np.floating)) and float(level).is_integer():
+        return str(int(level))
+    return str(level)
+
+
+def who_is_in(data: Any, rows: Any, *, unit: str | None = None, most: int = 8, columns: int | None = 10):
     """Who the rows of a selection are, such as a range of weeks on a plot: their rows and units, and the share of each level of a column here and in all rows.
 
-    A column of levels, not of numbers, with ``most`` levels or fewer gets
-    a row per level. With ``unit``, a column that stays the same within
-    each unit, as the arm of a patient does, counts units: the patients with
-    a row here, against all the patients. Any other column counts rows. A
-    range of late weeks asked no question about its rows (design iteration
-    1.85).
+    A column with ``most`` levels or fewer gets a row per level: text, true
+    or false, or whole numbers, as data from R and Stata stores a category
+    (sex 0 or 1, education 1 to 5). With ``unit``, a column that stays the
+    same within each unit, as the arm of a patient does, counts units: the
+    patients with a row here, against all the patients. Any other column
+    counts rows.
+
+    The column whose share of a level here is furthest from its share in all
+    rows comes first, so the column that tells these rows apart leads, and
+    the ``columns`` columns that differ most show (all of them with None).
+    The column that a mask of one column names, as
+    ``frame["week"].between(4, 6)`` names the week, picks the rows: its
+    shares would restate the range, so it gets no rows. A range of late
+    weeks asked no question about its rows (design iteration 1.85), and a
+    range of NHEFS, which stores its categories as whole numbers, got an
+    empty table (1.99).
     """
     frame = _pandas(data)
+    # pandas keeps the column's name on a comparison of the column.
+    picked_on = getattr(rows, "name", None)
     inside = pd.Series(rows, index=frame.index).fillna(False).astype(bool)
     here = frame[inside]
     noun = _noun(unit) if unit and unit in frame.columns else None
     line = f"{len(here):,} of {len(frame):,} rows"
     if noun:
         line += f", {here[unit].nunique():,} of {frame[unit].nunique():,} {noun}s"
-    print(line + ".")
-    entries = []
+    found: list[tuple[float, list[dict[str, str]]]] = []
     for column in frame.columns:
         values = frame[column]
-        numeric = pd.api.types.is_numeric_dtype(values) and not pd.api.types.is_bool_dtype(values)
-        if column == unit or numeric or not (2 <= values.nunique() <= most):
+        if column == unit or column == picked_on or not _holds_levels(values, most):
             continue
         by_unit = bool(noun and (frame.groupby(unit, observed=True)[column].nunique() <= 1).all())
         counted = f"{noun}s" if by_unit else "rows"
         part, whole = (here.drop_duplicates(unit), frame.drop_duplicates(unit)) if by_unit else (here, frame)
         shares_here = part[column].value_counts(normalize=True)
         shares_all = whole[column].value_counts(normalize=True)
-        for level in shares_all.sort_index().index:
-            entries.append(
-                {
-                    "column": str(column),
-                    "level": str(level),
-                    "here": _share(float(shares_here.get(level, 0.0))),
-                    "all": _share(float(shares_all[level])),
-                    "of": counted,
-                }
-            )
+        levels = shares_all.sort_index().index
+        gap = max(abs(float(shares_here.get(level, 0.0)) - float(shares_all[level])) for level in levels)
+        entries = [
+            {
+                "column": str(column),
+                "level": _level_text(level),
+                "here": _share(float(shares_here.get(level, 0.0))),
+                "all": _share(float(shares_all[level])),
+                "of": counted,
+            }
+            for level in levels
+        ]
+        # A tenth of a point: columns whose gaps show the same keep the frame's order.
+        found.append((round(gap, 3), entries))
+    found.sort(key=lambda item: -item[0])
+    kept = found if columns is None else found[: max(columns, 0)]
+    text = line + "."
+    if len(kept) < len(found):
+        text += f" The {len(kept)} columns, of {len(found)}, whose shares here differ most from all rows."
+    print(text)
+    entries = [entry for _, column_entries in kept for entry in column_entries]
     if not entries:
         return WholeTextFrame({"here": []})
     return WholeTextFrame(entries).set_index(["column", "level"])
@@ -836,3 +880,256 @@ def time_profile(data: Any, time: str, y: str, by: str | None = None) -> None:
             )
     # A line for each profile, under its plots: a card shows printed text without wrapping it.
     print("\n".join(lines))
+
+
+# Whether an effect differs by another column: an interaction in a model
+# fitted from a formula (design iteration 1.94).
+
+
+def _top_level(text: str, separator: str) -> list[str]:
+    """``text`` split at ``separator`` where it stands outside brackets and quotes: "qsmk:C(sex)[T.1]" at ":" gives "qsmk" and "C(sex)[T.1]"."""
+    parts, depth, quote, start = [], 0, None, 0
+    for index, char in enumerate(text):
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in "'\"":
+            quote = char
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+        elif char == separator and depth == 0:
+            parts.append(text[start:index])
+            start = index + 1
+    parts.append(text[start:])
+    return parts
+
+
+def _without_level(part: str) -> str:
+    """A factor of a design's column without the level that the formula's library appends: "C(sex)" for "C(sex)[T.1]"."""
+    if not part.endswith("]"):
+        return part
+    depth = 0
+    for index in range(len(part) - 1, -1, -1):
+        if part[index] == "]":
+            depth += 1
+        elif part[index] == "[":
+            depth -= 1
+            if depth == 0:
+                return part[:index]
+    return part
+
+
+def _factor_column(code: str) -> str | None:
+    """The column that a factor of a formula reads as it is: "sex" for "sex", "C(sex)" and "C(sex, Treatment(1))", and "x y" for 'Q("x y")'.
+
+    None for a factor that transforms its column, such as "np.log(dose)".
+    """
+    import ast
+
+    try:
+        node = ast.parse(code.strip(), mode="eval").body
+    except SyntaxError:
+        return None
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "C" and node.args:
+        node = node.args[0]
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "Q" and len(node.args) == 1:
+        argument = node.args[0]
+        if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+            return argument.value
+    return None
+
+
+def _design(spec: Any, frame: Any):
+    """The design matrix of ``frame`` for a model's right side, as patsy or formulaic built it for the fit."""
+    try:
+        from patsy import DesignInfo, build_design_matrices
+    except ImportError:
+        DesignInfo = None
+    if DesignInfo is not None and isinstance(spec, DesignInfo):
+        (matrix,) = build_design_matrices([spec], frame, return_type="dataframe")
+        return matrix
+    return spec.get_model_matrix(frame)
+
+
+def _with_value(frame: Any, column: str, value: Any):
+    """``frame`` with every row of ``column`` set to ``value``, in the column's own type: a category stays a category."""
+    changed = frame.copy()
+    try:
+        changed[column] = pd.Series(value, index=frame.index, dtype=frame[column].dtype)
+    except (TypeError, ValueError):
+        changed[column] = value
+    return changed
+
+
+def _levels_of(values: Any) -> list[Any]:
+    """The levels of a column in the rows of a model, in the order the formula's library codes them: a category's order, else sorted."""
+    present = values.dropna()
+    if isinstance(present.dtype, pd.CategoricalDtype):
+        return [level for level in present.cat.categories if (present == level).any()]
+    return sorted(pd.unique(present).tolist(), key=lambda level: (str(type(level)), level))
+
+
+def _tested(fit: Any, rows: Any, test: str):
+    """``fit.t_test`` or ``fit.wald_test`` of contrasts over the design's columns.
+
+    A mixed model's t test takes the fixed effects alone, and its Wald test,
+    as every other model's tests, all the parameters, the variances too.
+    """
+    matrix = np.atleast_2d(np.asarray(rows, dtype=float))
+    padded = np.zeros((matrix.shape[0], len(fit.params)))
+    padded[:, : matrix.shape[1]] = matrix
+    run = fit.t_test if test == "t" else (lambda r: fit.wald_test(r, scalar=True))
+    try:
+        return run(padded)
+    except (ValueError, IndexError):
+        return run(matrix)
+
+
+def _ratio_name(fit: Any) -> str | None:
+    """What an effect is, exponentiated: an odds ratio for a logistic model, a rate or a risk ratio for a log link; None for the others."""
+    model = fit.model
+    family = getattr(model, "family", None)
+    link = type(getattr(family, "link", None)).__name__.lower() if family is not None else ""
+    kind = type(model).__name__
+    if kind == "Logit" or link == "logit":
+        return "odds ratio"
+    if kind in ("Poisson", "NegativeBinomial", "GeneralizedPoisson"):
+        return "rate ratio"
+    if link == "log":
+        return "risk ratio" if type(family).__name__ == "Binomial" else "rate ratio"
+    return None
+
+
+def effect_by(fit: Any, exposure: str, by: str):
+    """Whether the effect of ``exposure`` differs by ``by``, in a model fitted with the two crossed, such as smf.ols("y ~ x * C(z) + age", data).fit().
+
+    The first line gives the effect of ``exposure`` in each level of ``by``,
+    or at the quartiles of a number of more than two values, and the second
+    the interaction: its estimate with its 95% interval and p value, or a
+    joint Wald test when it has several terms, as a ``by`` of three levels
+    has. The table has a row per level. Each effect is a contrast of the
+    model's coefficients, averaged over the model's rows: ``exposure`` at
+    each of its levels against its reference level, at its two values for a
+    number of two values, and one unit more for any other number, with
+    ``by`` set to the level. So in a model that also crosses ``exposure``
+    with time, it is the effect at the mean time. The effects are on the
+    scale of the model's link; for a logistic model the table adds the odds
+    ratios. The intervals and the tests are the fit's own: t or F for least
+    squares, z or chi-square for the others, with its covariance, robust
+    when the fit is.
+    """
+    model = getattr(fit, "model", None)
+    data = getattr(model, "data", None)
+    spec = getattr(data, "model_spec", None) or getattr(data, "design_info", None)
+    frame = getattr(data, "frame", None)
+    if spec is None or not isinstance(frame, pd.DataFrame):
+        raise ValueError('effect_by reads a model fitted from a formula and a data frame, such as smf.ols("y ~ x * C(z)", data).fit()')
+    names = list(model.exog_names)
+    labels = getattr(data, "row_labels", None)
+    rows = frame.loc[labels] if labels is not None else frame
+    outcome = str(model.endog_names)
+
+    def columns_of(name: str) -> list[str | None]:
+        return [_factor_column(_without_level(part)) for part in _top_level(name, ":")]
+
+    crossed = [index for index, name in enumerate(names) if sorted(map(str, columns_of(name))) == sorted([exposure, by])]
+    if exposure == by or not crossed:
+        raise ValueError(f"The model does not cross {exposure} with {by}: fit it with {exposure} * {by} in its formula.")
+    parts = {_factor_column(_without_level(part)): part for part in _top_level(names[crossed[0]], ":")}
+    exposure_levels = parts[exposure] != _without_level(parts[exposure])
+    by_levels = parts[by] != _without_level(parts[by])
+    main = [index for index, name in enumerate(names) if columns_of(name) == [exposure]]
+
+    # The contrasts of the exposure: (label, value, reference value), or one unit more.
+    values = _levels_of(rows[exposure])
+    if exposure_levels or len(values) == 2:
+        reference = values[0]
+        if exposure_levels and main:
+            # The reference level is the one whose row has no exposure column set: C(arm, Treatment("B")) has B.
+            probe = rows.iloc[:1]
+            for level in values:
+                design = _design(spec, _with_value(probe, exposure, level)).to_numpy()[0]
+                if not np.any(design[main]):
+                    reference = level
+                    break
+        contrasts = [(f"{level} against {reference}" if exposure_levels else "", level, reference) for level in values if level != reference]
+    else:
+        contrasts = [("per unit", None, None)]
+    # Where the effect is taken: each level of by, or the quartiles of a number.
+    by_values = _levels_of(rows[by])
+    quartiles = not by_levels and len(by_values) > 2
+    if quartiles:
+        points = rows[by].astype(float).quantile([0.25, 0.5, 0.75])
+        settings = [(f"{_number(value)} ({int(share * 100)}th percentile)", value) for share, value in points.items()]
+    else:
+        settings = [(str(level), level) for level in by_values]
+
+    contrast_rows, records = [], []
+    for setting_label, setting in settings:
+        at = _with_value(rows, by, setting)
+        for contrast_label, level, reference in contrasts:
+            if level is None:
+                high = at.copy()
+                high[exposure] = at[exposure].astype(float) + 1
+                low = at
+            else:
+                high, low = _with_value(at, exposure, level), _with_value(at, exposure, reference)
+            contrast_rows.append((_design(spec, high) - _design(spec, low)).mean(axis=0).to_numpy())
+            records.append({by: setting_label, "contrast": contrast_label, "rows": int((rows[by] == setting).sum()) if not quartiles else None})
+    result = _tested(fit, contrast_rows, "t")
+    effects = np.atleast_1d(np.asarray(result.effect, dtype=float))
+    intervals = np.atleast_2d(np.asarray(result.conf_int(alpha=0.05), dtype=float))
+    pvalues = np.atleast_1d(np.asarray(result.pvalue, dtype=float))
+    ratio = _ratio_name(fit)
+    for record, effect, (low, high), p in zip(records, effects, intervals, pvalues):
+        record[f"effect of {exposure}"] = float(f"{effect:.4g}") if np.isfinite(effect) else effect
+        record["95% CI"] = f"{_number(low)} to {_number(high)}" if np.isfinite(low) and np.isfinite(high) else ""
+        record["p"] = _p(p).removeprefix("= ") if np.isfinite(p) else ""
+        if ratio:
+            record[ratio] = float(f"{math.exp(effect):.4g}") if np.isfinite(effect) else effect
+            record[f"95% CI of the {ratio}"] = f"{_number(math.exp(low))} to {_number(math.exp(high))}" if np.isfinite(low) and np.isfinite(high) else ""
+
+    # The lines: the effect in each level, then the interaction.
+    places = [f"at {by} {_number(setting)}" if quartiles else f"where {by} is {label}" for label, setting in settings]
+
+    def told(numbers: list[float]) -> str:
+        if len(numbers) > 3 and not quartiles:
+            low, high = int(np.nanargmin(numbers)), int(np.nanargmax(numbers))
+            return f"from {_number(numbers[low])} {places[low]} to {_number(numbers[high])} {places[high]}, over {len(numbers)} levels."
+        return ", ".join(f"{_number(number)} {place}" for number, place in zip(numbers, places)) + (", its quartiles." if quartiles else ".")
+
+    for contrast_label, _, _ in contrasts:
+        mine = [float(effect) for record, effect in zip(records, effects) if record["contrast"] == contrast_label]
+        print(f"Effect of {exposure}" + (f" ({contrast_label})" if contrast_label else "") + f" on {outcome}: " + told(mine))
+        if ratio:
+            print(f"As {ratio}s: " + told([math.exp(effect) for effect in mine]))
+    if len(crossed) == 1:
+        single = np.zeros(len(names))
+        single[crossed[0]] = 1.0
+        found = _tested(fit, single, "t")
+        estimate = float(np.atleast_1d(found.effect)[0])
+        low, high = np.atleast_2d(found.conf_int(alpha=0.05))[0]
+        p = float(np.atleast_1d(found.pvalue)[0])
+        print(f"Interaction of {exposure} and {by}: {_number(estimate)} (95% CI {_number(low)} to {_number(high)}), p {_p(p)}.")
+    else:
+        joint = np.zeros((len(crossed), len(names)))
+        for row, index in enumerate(crossed):
+            joint[row, index] = 1.0
+        test = _tested(fit, joint, "wald")
+        statistic, p = float(np.squeeze(test.statistic)), float(np.squeeze(test.pvalue))
+        if test.distribution == "F":
+            text = f"F = {statistic:.3g} on {int(test.df_num)} and {_number(test.df_denom)} df"
+        else:
+            text = f"chi-square = {statistic:.3g} on {int(test.df_denom)} df"
+        print(f"Interaction of {exposure} and {by}, {len(crossed)} terms: {text}, p {_p(p)}.")
+    table = WholeTextFrame(records)
+    if all(not record["contrast"] for record in records):
+        table = table.drop(columns="contrast")
+    if quartiles:
+        table = table.drop(columns="rows")
+    index = [by] + (["contrast"] if "contrast" in table.columns else [])
+    return table.set_index(index)

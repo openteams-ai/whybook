@@ -179,7 +179,7 @@ import type {
   IGuardHeld,
   IGuardSettings
 } from './guard';
-import { DEFAULT_GUARD, guardBody, heldWords } from './guard';
+import { DEFAULT_GUARD, guardBody, guardColumn, heldWords } from './guard';
 import {
   axisValueText,
   axisValues,
@@ -946,6 +946,16 @@ export class EpiModel implements IDisposable {
         // The cells make their chips again.
         this._version++;
         this._emit();
+        // "Worth asking next" asks about the defaults that a model found as
+        // soon as they come in. A call that starts or fails changes no
+        // default.
+        if (
+          !this._isDisposed &&
+          this.foundDefaults.version !== this._nextFound
+        ) {
+          this._nextFound = this.foundDefaults.version;
+          void this._nextDebouncer.invoke();
+        }
       }
     });
     this.bridge.signatures = this.settings.findDefaults;
@@ -1096,10 +1106,7 @@ export class EpiModel implements IDisposable {
     const columns: IGuardColumn[] = [];
     for (const variable of this.variables()) {
       for (const column of variable.columns ?? []) {
-        columns.push({
-          name: column.label,
-          levels: column.levels?.map(String)
-        });
+        columns.push(guardColumn(column));
       }
     }
     return guardBody(
@@ -4718,8 +4725,8 @@ export class EpiModel implements IDisposable {
       strip.after = code;
       this._keepGuess(strip);
       // The strip shows right above the new cell, under the cell it goes
-      // after, and comes into sight there. While another strip holds that
-      // cell, or with no cell to show it under, it goes with the new cell.
+      // after. While another strip holds that cell, or with no cell to show
+      // it under, it goes with the new cell.
       if (placed ? strip.cellId !== after?.id : !target) {
         const key =
           placed && after && !this.strips.has(after.id)
@@ -4728,8 +4735,13 @@ export class EpiModel implements IDisposable {
         this.strips.delete(strip.cellId);
         strip.cellId = key;
         this.strips.set(key, strip);
-        this._revealStrip(key);
       }
+      // The strip and the new cell come into sight together, also when the
+      // cell goes right after the cell asked about: its strip and the new
+      // cell are at the bottom of that cell's card, which can be below the
+      // fold, and a drop in the Whybook panel asks about a cell that the
+      // analyst may not be looking at (design iteration 1.93).
+      this._revealStrip(strip.cellId, inserted.id);
       this._emit();
       const label = this.cell(inserted.id)?.label ?? '[ ]';
       const result = await this._run(
@@ -4738,6 +4750,15 @@ export class EpiModel implements IDisposable {
         option.text,
         where.kind === 'branch'
       );
+      // The run brought the cell's outputs, or its error: they come into
+      // sight under the strip too, unless the analyst has moved the view
+      // since, or another strip waits to come into sight.
+      if (
+        this.strips.get(strip.cellId) === strip &&
+        (this._stripToShow === null || this._stripFollow)
+      ) {
+        this._revealStrip(strip.cellId, inserted.id, true);
+      }
       if (!result.ok) {
         strip.status = 'error';
         strip.error = firstLine(result.error ?? 'The cell failed');
@@ -4900,12 +4921,17 @@ export class EpiModel implements IDisposable {
    * request, its cell goes where the request's questions go, and the AI
    * model is told what the request is about; from the follow-ups of a cell,
    * after that cell; from the notebook, at its end. With Alt+drop it joins
-   * the checklist of branches.
+   * the checklist of branches. `how.type` is the type that a model's
+   * follow-up showed, which the question keeps; else the words decide.
    */
   async askOwn(
     text: string,
     from: 'request' | 'notebook' | { cellId: string } = 'request',
-    how: { place?: IPlacement | null; parallel?: boolean } = {}
+    how: {
+      place?: IPlacement | null;
+      parallel?: boolean;
+      type?: QuestionType;
+    } = {}
   ): Promise<void> {
     const question = text.trim();
     if (!question) {
@@ -4941,7 +4967,11 @@ export class EpiModel implements IDisposable {
         : how.place !== undefined
           ? how.place
           : this.ownPlace(question, this.ownPlaces(ask)).place;
-    const option = ownOption(question, placement, this.ownType(question).type);
+    const option = ownOption(
+      question,
+      placement,
+      how.type ?? this.ownType(question).type
+    );
     if (ask?.kind === 'drop' && ask.result?.mode === 'parallel') {
       if (!ask.result.options.some(known => known.id === option.id)) {
         ask.result.options = [...ask.result.options, option];
@@ -5633,6 +5663,24 @@ export class EpiModel implements IDisposable {
   }
 
   /**
+   * The frame and the pandas mask of the rows picked in a plot, which
+   * Keep selection keeps: a range, or the bars picked. Null for a plot
+   * without its frame, or of a polars frame, which a pandas mask cannot
+   * select.
+   */
+  private _pickedRows(ask: IRegionAsk): { frame: string; mask: string } | null {
+    const frame = ask.plot.source.frame;
+    if (!frame || this.variable(frame)?.type?.startsWith('polars.')) {
+      return null;
+    }
+    const x = ask.plot.source.x;
+    const mask = ask.values
+      ? barFilter(frame, x, ask.values, this._columnTag(frame, x))
+      : regionMask(frame, ask);
+    return { frame, mask };
+  }
+
+  /**
    * What the remote model reads to write a cell for an option: the question,
    * what it is about, the cell, the variables, the packages and the cells so
    * far. An agent's run reads the same.
@@ -5665,12 +5713,20 @@ export class EpiModel implements IDisposable {
           : ask?.kind === 'table' || ask?.kind === 'image'
             ? ask.about
             : null;
+    const language = (this.languageName() ?? 'python').toLowerCase();
     return {
       question: { text: option.text, type: option.type },
       // The model writes the cell in the kernel's language.
-      language: (this.languageName() ?? 'python').toLowerCase(),
+      language,
       selection: selection?.source ? selection : null,
       about,
+      // The rows picked in a plot, as the pandas mask of Keep selection:
+      // a model answered about every row of the frame, where the question
+      // was about 65 of them (design iteration 1.95).
+      rows:
+        ask?.kind === 'region' && language === 'python'
+          ? this._pickedRows(ask)
+          : undefined,
       // A point or an area of a picture: the AI reads the picture itself.
       image: ask?.kind === 'image' ? imageRequest(ask.pick) : undefined,
       placement: where.kind,
@@ -6026,6 +6082,8 @@ export class EpiModel implements IDisposable {
     }
     this._stripToShow = run.stripId;
     this._stripIfHidden = false;
+    this._stripCell = null;
+    this._stripFollow = false;
     if (this.cell(run.stripId)) {
       this.setCurrentCell(run.stripId);
     }
@@ -6037,17 +6095,43 @@ export class EpiModel implements IDisposable {
    * the view scrolls to its strip and outlines it for a moment, when the
    * strip is out of sight (design iteration 1.73). The strip of a question
    * asked from the kernel's menu or the Check-up goes at the end of the
-   * notebook, far from where the analyst was.
+   * notebook, far from where the analyst was. `cell` is the cell that the
+   * answer added, which comes into sight with the strip (1.93); `follow`
+   * brings it into sight again once it ran, with its outputs.
    */
-  private _revealStrip(key: string): void {
+  private _revealStrip(
+    key: string,
+    cell: string | null = null,
+    follow = false
+  ): void {
     this._stripToShow = key;
     this._stripIfHidden = true;
+    this._stripCell = cell;
+    this._stripFollow = follow;
     this._emit();
   }
 
   /** The strip of a run to bring into sight, until the view has shown it. */
   get stripToShow(): string | null {
     return this._stripToShow;
+  }
+
+  /**
+   * The cell that comes into sight with the strip to show, right under it:
+   * the new cell of a template's answer, or of a model's one-cell answer
+   * (design iteration 1.93). Null for the strip of an agent's run.
+   */
+  get stripCellToShow(): string | null {
+    return this._stripToShow !== null ? this._stripCell : null;
+  }
+
+  /**
+   * Whether the strip to show came into sight already with its cell, which
+   * has run since: the view brings the cell's outputs into sight under it,
+   * unless the analyst has moved the view in the meantime (1.93).
+   */
+  get stripFollows(): boolean {
+    return this._stripToShow !== null && this._stripFollow;
   }
 
   /**
@@ -6062,6 +6146,8 @@ export class EpiModel implements IDisposable {
   stripShown(): void {
     this._stripToShow = null;
     this._stripIfHidden = false;
+    this._stripCell = null;
+    this._stripFollow = false;
   }
 
   /**
@@ -8893,6 +8979,10 @@ export class EpiModel implements IDisposable {
   private _stripToShow: string | null = null;
   /** The strip to show stays where it is when it is in sight: see `stripIfHidden`. */
   private _stripIfHidden = false;
+  /** The cell that comes into sight with the strip to show: see `stripCellToShow`. */
+  private _stripCell: string | null = null;
+  /** The strip to show came into sight already: see `stripFollows`. */
+  private _stripFollow = false;
   /** The kernel that "Would I get the same results in R?" names, by its strip. Made when first used. */
   private _kernelAsked?: WeakMap<IStrip, IKernelChoice>;
   /** The view models of the notebooks that this view's runs made, by path. Made when first used. */
@@ -8976,6 +9066,8 @@ export class EpiModel implements IDisposable {
   // When the analyst last used the view, or it was shown.
   private _usedAt = Date.now();
   private _nextDebouncer = new Debouncer(() => this._refreshNext(), 1500);
+  // The version of the found defaults that "Worth asking next" was asked for.
+  private _nextFound = 0;
   private _changed = new Signal<this, void>(this);
   private _cellShown = new Signal<this, string>(this);
   private _litType: QuestionType | null = null;

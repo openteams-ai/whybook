@@ -15,6 +15,7 @@ import * as React from 'react';
 import { epiIcon } from './icons';
 import type { EpiSettings } from './model/epimodel';
 import { EpiModel } from './model/epimodel';
+import { followKernel } from './model/kernelmeta';
 import type { AgentRuns } from './model/runs';
 import { aiSummary, modelName, TASKS } from './model/models';
 import type { IPlotPayload } from './tokens';
@@ -165,6 +166,8 @@ export class EpiFactory extends ABCWidgetFactory<EpiPanel, INotebookModel> {
     const content = new EpiContent({ ...this._options, context });
     const panel = new EpiPanel({ context, content });
     panel.title.icon = epiIcon;
+    // The notebook names its kernel, as JupyterLab's notebook panel writes it.
+    followKernel(context);
     // The view's controls sit in the panel's JupyterLab toolbar.
     const model = content.model;
     const items: [string, JSX.Element][] = [

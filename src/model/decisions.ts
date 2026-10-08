@@ -103,10 +103,27 @@ export function readsFile(decision: IDecision): boolean {
 }
 
 /**
+ * The words for a text of one sign, which a chip cannot show on its own:
+ * the separator of a read, `sep comma`, or its decimal mark, `decimal point`
+ * (design iteration 1.91). The keys are the texts as code writes them, so a
+ * tab is `\t`.
+ */
+const SIGNS = new Map([
+  [',', 'comma'],
+  [';', 'semicolon'],
+  ['\\t', 'tab'],
+  [' ', 'space'],
+  ['|', 'pipe'],
+  [':', 'colon'],
+  ['.', 'point'],
+  ['', 'empty text']
+]);
+
+/**
  * The words of a chip: the name and the value, without "=" or quotes, as
  * `BASE_TEMP_C 15.5`. The value of `how` of a merge is a join, `inner join`,
  * as is `all = FALSE` of R's merge, and the file that a read reads is its
- * file name, `homes.csv`.
+ * file name, `homes.csv`. A text of one sign is its name, `sep comma`.
  */
 export function chipText(decision: IDecision): string {
   const value = unquote(decision.value);
@@ -119,6 +136,10 @@ export function chipText(decision: IDecision): string {
   }
   if (readsFile(decision)) {
     return value.split(/[\\/]/).pop() || value;
+  }
+  const sign = SIGNS.get(value);
+  if (sign && /^(['"]).*\1$/s.test(decision.value.trim())) {
+    return `${decision.name} ${sign}`;
   }
   return `${decision.name} ${value}`;
 }

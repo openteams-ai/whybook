@@ -26,6 +26,16 @@ import {
 
 export { pythonString };
 
+/** The analysis of a cell that the kernel could not read. */
+const UNREAD: ICellAnalysis = {
+  defs: [],
+  uses: [],
+  formulas: [],
+  columns: {},
+  decisions: [],
+  attachments: []
+};
+
 /**
  * Code that defines a kernel snippet's function, calls it with JSON
  * arguments, and deletes it again.
@@ -566,7 +576,9 @@ export class KernelBridge implements IDisposable {
         const { signatures: read, ...rest } = analysis;
         this._analysis.set(cell.id, {
           source: cell.source,
-          result: rest,
+          // A cell that the kernel could not parse comes back as its error
+          // alone: it reads as a cell that defines, uses and decides nothing.
+          result: rest.error ? { ...UNREAD, error: rest.error } : rest,
           stale: false,
           // A cell that the kernel could not parse lists none.
           signatures: signatures ? (read ?? []) : null

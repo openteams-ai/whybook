@@ -470,8 +470,11 @@ def test_who_is_in_the_rows_of_a_range_counts_rows_units_and_levels(capsys):
     frame = frame[(frame["treatment_arm"] == "B") | (frame["week"] <= 3)].reset_index(drop=True)
     table = explore.who_is_in(frame, frame["week"].between(4, 6), unit="patient_id")
     assert capsys.readouterr().out == "126 of 378 rows, 6 of 12 patients.\n"
-    # Levels of the patients count patients; numbers, such as the week, get no rows.
-    assert list(table.index) == [("treatment_arm", "A"), ("treatment_arm", "B"), ("site", "east"), ("site", "west")]
+    # Levels of the patients count patients. The week picks the rows and gets none, and an age
+    # of 10 values is a measure; the day, 1 to 7, counts rows (design iteration 1.99). The arm
+    # differs most, then the day and the site, which do not differ, keep the frame's order.
+    days = [("day", str(day)) for day in range(1, 8)]
+    assert list(table.index) == [("treatment_arm", "A"), ("treatment_arm", "B"), *days, ("site", "east"), ("site", "west")]
     assert table.loc[("treatment_arm", "B")].to_dict() == {"here": "100%", "all": "50%", "of": "patients"}
     explore.compare_levels(frame[frame["week"].between(4, 6)], "pain", "treatment_arm", unit="patient_id")
     assert "over the 1 level of treatment_arm, one mean per patient." in capsys.readouterr().out

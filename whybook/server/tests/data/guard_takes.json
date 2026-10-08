@@ -1,0 +1,4064 @@
+{
+ "about": "The tool results of agents' cells that the privacy guard asked about in the takes of the demo video of 7 October 2026 (NHEFS, 1,629 smokers, 64 columns), with the words of each dialog, and records of people from the same data. The results are rebuilt from the takes' notebooks as the view builds them; the table of dry1's [7] is the text that its dialog showed. The dataset is what the view sends the guard: every column, with its tag and its range.",
+ "dataset": {
+  "synthetic": false,
+  "unit": null,
+  "columns": [
+   {
+    "name": "seqn",
+    "tag": "int",
+    "min": 233,
+    "max": 25061
+   },
+   {
+    "name": "qsmk",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "death",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "yrdth",
+    "tag": "num",
+    "min": 83,
+    "max": 92
+   },
+   {
+    "name": "modth",
+    "tag": "num",
+    "min": 1,
+    "max": 12
+   },
+   {
+    "name": "dadth",
+    "tag": "num",
+    "min": 1,
+    "max": 31
+   },
+   {
+    "name": "sbp",
+    "tag": "num",
+    "min": 87,
+    "max": 229
+   },
+   {
+    "name": "dbp",
+    "tag": "num",
+    "min": 47,
+    "max": 130
+   },
+   {
+    "name": "sex",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "age",
+    "tag": "int",
+    "min": 25,
+    "max": 74
+   },
+   {
+    "name": "race",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "income",
+    "tag": "num",
+    "min": 11,
+    "max": 22
+   },
+   {
+    "name": "marital",
+    "tag": "int",
+    "min": 2,
+    "max": 8
+   },
+   {
+    "name": "school",
+    "tag": "int",
+    "min": 0,
+    "max": 17
+   },
+   {
+    "name": "education",
+    "tag": "int",
+    "min": 1,
+    "max": 5
+   },
+   {
+    "name": "ht",
+    "tag": "num",
+    "min": 142.875,
+    "max": 198.094
+   },
+   {
+    "name": "wt71",
+    "tag": "num",
+    "min": 36.17,
+    "max": 169.19
+   },
+   {
+    "name": "wt82",
+    "tag": "num",
+    "min": 35.3802,
+    "max": 136.531
+   },
+   {
+    "name": "wt82_71",
+    "tag": "num",
+    "min": -41.2805,
+    "max": 48.5384
+   },
+   {
+    "name": "birthplace",
+    "tag": "num",
+    "min": 1,
+    "max": 56
+   },
+   {
+    "name": "smokeintensity",
+    "tag": "int",
+    "min": 1,
+    "max": 80
+   },
+   {
+    "name": "smkintensity82_71",
+    "tag": "int",
+    "min": -80,
+    "max": 50
+   },
+   {
+    "name": "smokeyrs",
+    "tag": "int",
+    "min": 1,
+    "max": 64
+   },
+   {
+    "name": "asthma",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "bronch",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "tb",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "hf",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "hbp",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "pepticulcer",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "colitis",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "hepatitis",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "chroniccough",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "hayfever",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "diabetes",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "polio",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "tumor",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "nervousbreak",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "alcoholpy",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "alcoholfreq",
+    "tag": "int",
+    "min": 0,
+    "max": 5
+   },
+   {
+    "name": "alcoholtype",
+    "tag": "int",
+    "min": 1,
+    "max": 4
+   },
+   {
+    "name": "alcoholhowmuch",
+    "tag": "num",
+    "min": 1,
+    "max": 48
+   },
+   {
+    "name": "pica",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "headache",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "otherpain",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "weakheart",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "allergies",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "nerves",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "lackpep",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "hbpmed",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "boweltrouble",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "wtloss",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "infection",
+    "tag": "int",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "active",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "exercise",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "birthcontrol",
+    "tag": "int",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "name": "pregnancies",
+    "tag": "num",
+    "min": 1,
+    "max": 15
+   },
+   {
+    "name": "cholesterol",
+    "tag": "num",
+    "min": 78,
+    "max": 416
+   },
+   {
+    "name": "hightax82",
+    "tag": "num",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "price71",
+    "tag": "num",
+    "min": 1.50659,
+    "max": 2.69287
+   },
+   {
+    "name": "price82",
+    "tag": "num",
+    "min": 1.4519,
+    "max": 2.10303
+   },
+   {
+    "name": "tax71",
+    "tag": "num",
+    "min": 0.524902,
+    "max": 1.52246
+   },
+   {
+    "name": "tax82",
+    "tag": "num",
+    "min": 0.219971,
+    "max": 0.747925
+   },
+   {
+    "name": "price71_82",
+    "tag": "num",
+    "min": -0.202698,
+    "max": 0.612061
+   },
+   {
+    "name": "tax71_82",
+    "tag": "num",
+    "min": 0.0359955,
+    "max": 0.884399
+   }
+  ]
+ },
+ "statistics": [
+  {
+   "take": "dry1",
+   "cell": "[4]",
+   "dialog": "Likely wrong: 7 personal details together, which could point to one person: age, birthcontrol, date, health. Flagged: 6 marital, income 12, age 49, diabetes, race 2, birthcontrol 3. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[4]",
+    "title": "Identify candidate confounders",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 56,
+      "cols": 5,
+      "columns": [
+       "candidate",
+       "levels",
+       "n_complete",
+       "qsmk_assoc",
+       "wt_change_assoc"
+      ],
+      "text": "            candidate  levels  n_complete  qsmk_assoc  wt_change_assoc\n6             marital       6        1566       0.818            4.199\n13  smkintensity82_71      63        1566      -0.608           -0.076\n17                 tb       2        1566       0.174            1.684\n5              income      12        1507       0.148            4.952\n40             hbpmed       3        1566       0.146            2.915\n8           education       5        1566       0.133            2.961\n3                 age      49        1566       0.123           -0.227\n28       nervousbreak       2        1566       0.121            1.516\n25           diabetes       3        1566       0.103            8.009\n33               pica       3        1566       0.103            5.973\n12     smokeintensity      37        1566      -0.096            0.029\n4                race       2        1566       0.095            0.392\n29          alcoholpy       3        1566       0.092            1.414\n30        alcoholfreq       6        1566       0.092            1.772\n15             asthma       2        1566       0.089            0.047\n42             wtloss       2        1566       0.089            1.350\n19                hbp       3        1566       0.088            2.867\n0                 sbp     107        1537       0.087           -0.002\n21            colitis       2        1566       0.075            3.419\n14           smokeyrs      60        1566       0.071           -0.177\n26              polio       2        1566       0.062            0.122\n46       birthcontrol       3        1566       0.062            1.173\n2                 sex       2        1566       0.061            0.351\n45           exercise       3        1566       0.061            0.854\n44             active       3        1566       0.060            1.535\n1                 dbp      69        1533       0.059            0.126\n10               wt71     527        1566       0.059           -0.147\n39          \u2026"
+     }
+    ],
+    "defines": [
+     {
+      "name": "candidate_cols",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "confounder_scan",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 56,
+      "columns": [
+       {
+        "label": "candidate",
+        "tag": "text"
+       },
+       {
+        "label": "levels",
+        "tag": "int"
+       },
+       {
+        "label": "n_complete",
+        "tag": "int"
+       },
+       {
+        "label": "qsmk_assoc",
+        "tag": "num"
+       },
+       {
+        "label": "wt_change_assoc",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "col",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "x",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 1629
+     },
+     {
+      "name": "valid",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1476,
+      "columns": [
+       {
+        "label": "tax71_82",
+        "tag": "num"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "q_assoc",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "wt_assoc",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "g",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 2,
+      "columns": [
+       {
+        "label": "n",
+        "tag": "int"
+       },
+       {
+        "label": "quit_rate",
+        "tag": "num"
+       },
+       {
+        "label": "wt_change",
+        "tag": "num"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "dry1",
+   "cell": "[7]",
+   "dialog": "Likely wrong: 3 personal details together, which could point to one person: age, race, sex. Flagged: sex 0, race 0, age 0. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[7]",
+    "title": "Missing outcomes by variable",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 12,
+      "cols": 2,
+      "columns": [
+       "missing_n",
+       "observed_n"
+      ],
+      "text": "                missing_n  observed_n\nwt82_71                63        1566\nalcoholfreq             0        1629\nqsmk                    0        1629\nsex                     0        1629\nrace                    0        1629\nage                     0        1629\neducation               0        1629\nsmokeintensity          0        1629\nsmokeyrs                0        1629\nexercise                0        1629\nactive                  0        1629\nwt71                    0        1629"
+     }
+    ],
+    "defines": []
+   }
+  },
+  {
+   "take": "dry2",
+   "cell": "[4]",
+   "dialog": "Likely wrong: 6 personal details together, which could point to one person: age, health, income, pregnancy or children. Flagged: diabetes, tumor, pregnancies, age 0, sex 0, race 0. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[4]",
+    "title": "Identify plausible confounders",
+    "outputs": [
+     {
+      "kind": "text",
+      "lines": 17,
+      "text": "Columns: ['seqn', 'qsmk', 'death', 'yrdth', 'modth', 'dadth', 'sbp', 'dbp', 'sex', 'age', 'race', 'income', 'marital', 'school', 'education', 'ht', 'wt71', 'wt82', 'wt82_71', 'birthplace', 'smokeintensity', 'smkintensity82_71', 'smokeyrs', 'asthma', 'bronch', 'tb', 'hf', 'hbp', 'pepticulcer', 'colitis', 'hepatitis', 'chroniccough', 'hayfever', 'diabetes', 'polio', 'tumor', 'nervousbreak', 'alcoholpy', 'alcoholfreq', 'alcoholtype', 'alcoholhowmuch', 'pica', 'headache', 'otherpain', 'weakheart', 'allergies', 'nerves', 'lackpep', 'hbpmed', 'boweltrouble', 'wtloss', 'infection', 'active', 'exercise', 'birthcontrol', 'pregnancies', 'cholesterol', 'hightax82', 'price71', 'price82', 'tax71', 'tax82', 'price71_82', 'tax71_82']\n\nCandidate baseline variables and missingness:\nage                0\nsex                0\nrace               0\neducation          0\nschool             0\nincome            62\nmarital            0\nwt71               0\nsmokeintensity     0\nsmokeyrs           0\nexercise           0\nactive             0\nqsmk               0\nwt82_71           63"
+     }
+    ],
+    "defines": [
+     {
+      "name": "candidates",
+      "kind": "other",
+      "type": "builtins.list"
+     }
+    ]
+   }
+  },
+  {
+   "take": "dry2",
+   "cell": "[5]",
+   "dialog": "Likely wrong: 5 personal details together, which could point to one person: age, health, income, race. Flagged: age 1566, sex 1566, race 1566, income 1507, diabetes. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[5]",
+    "title": "Check shared-cause candidates",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 12,
+      "cols": 4,
+      "columns": [
+       "baseline candidate",
+       "n",
+       "corr with quitting",
+       "corr with weight change"
+      ],
+      "text": "   baseline candidate     n  corr with quitting  corr with weight change\n0                 age  1566               0.123                   -0.227\n1                 sex  1566              -0.070                   -0.022\n2                race  1566              -0.074                   -0.017\n3              income  1507               0.035                    0.065\n4           education  1566               0.039                    0.063\n5                wt71  1566               0.059                   -0.147\n6      smokeintensity  1566              -0.096                    0.029\n7            smokeyrs  1566               0.071                   -0.177\n8              active  1566               0.039                   -0.072\n9            exercise  1566               0.045                   -0.041\n10       chroniccough  1566               0.016                   -0.030\n11           diabetes  1566              -0.028                    0.022"
+     }
+    ],
+    "defines": [
+     {
+      "name": "covariates",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "c",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "d",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1566,
+      "columns": [
+       {
+        "label": "diabetes",
+        "tag": "int"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "shared_cause_checks",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 12,
+      "columns": [
+       {
+        "label": "baseline candidate",
+        "tag": "cat"
+       },
+       {
+        "label": "n",
+        "tag": "int"
+       },
+       {
+        "label": "corr with quitting",
+        "tag": "num"
+       },
+       {
+        "label": "corr with weight change",
+        "tag": "num"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "dry3",
+   "cell": "[4]",
+   "dialog": "Likely wrong: 7 personal details together, which could point to one person: age, birthcontrol, birthplace, date. Flagged: age 46.17, birthplace 30.77, income 18.15, birthcontrol 1.19, 10 marital, sex 0.45. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[4]",
+    "title": "Identify potential shared causes",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 60,
+      "cols": 5,
+      "columns": [
+       "variable",
+       "qsmk1_mean",
+       "qsmk0_mean",
+       "weight_change_corr",
+       "complete_n"
+      ],
+      "text": "             variable  qsmk1_mean  qsmk0_mean  weight_change_corr  complete_n\n17  smkintensity82_71      -18.60        0.21               -0.08        1566\n52        cholesterol      223.07      218.78               -0.09        1550\n4                 sbp      131.49      127.67               -0.00        1537\n7                 age       46.17       42.79               -0.23        1566\n16     smokeintensity       18.60       21.19                0.03        1566\n14               wt71       72.35       70.30               -0.15        1566\n18           smokeyrs       26.03       24.09               -0.18        1566\n5                 dbp       78.83       77.38                0.13        1533\n15         birthplace       30.77       31.99                0.04        1476\n13                 ht      169.49      168.44                0.04        1566\n1               yrdth       87.19       87.84                0.13         291\n3               dadth       16.38       15.98                0.00         295\n36     alcoholhowmuch        3.10        3.36               -0.01        1169\n9              income       18.15       17.94                0.06        1507\n11             school       11.29       11.13                0.08        1566\n50       birthcontrol        1.19        1.04                0.03        1566\n10            marital        2.40        2.53                0.03        1566\n12          education        2.79        2.69                0.06        1566\n2               modth        6.31        6.42                0.04         295\n6                 sex        0.45        0.53               -0.02        1566\n49           exercise        1.25        1.18               -0.04        1566\n35        alcoholtype        2.52        2.45               -0.07        1566\n29           diabetes        0.94        1.01                0.02        1566\n37               pica        0.94        1.00                0.03        1566\n48             active        0.69        0.63     \u2026"
+     }
+    ],
+    "defines": [
+     {
+      "name": "candidate_cols",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "c",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "x",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1629,
+      "columns": [
+       {
+        "label": "tax71_82",
+        "tag": "num"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "z",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1476,
+      "columns": [
+       {
+        "label": "tax71_82",
+        "tag": "num"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "q1",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 378
+     },
+     {
+      "name": "q0",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 1098
+     },
+     {
+      "name": "shared_cause_screen",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 60,
+      "columns": [
+       {
+        "label": "variable",
+        "tag": "text"
+       },
+       {
+        "label": "qsmk1_mean",
+        "tag": "num"
+       },
+       {
+        "label": "qsmk0_mean",
+        "tag": "num"
+       },
+       {
+        "label": "weight_change_corr",
+        "tag": "num"
+       },
+       {
+        "label": "complete_n",
+        "tag": "int"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "dry3",
+   "cell": "[5]",
+   "dialog": "Likely wrong: 4 personal details together, which could point to one person: age, income, race, sex. Flagged: age 46.17, sex 0.45, race 0.09, income 18.15. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[5]",
+    "title": "Summarize plausible baseline confounders",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 10,
+      "cols": 6,
+      "columns": [
+       "baseline_factor",
+       "mean_qsmk1",
+       "mean_qsmk0",
+       "diff",
+       "corr_with_weight_change",
+       "n"
+      ],
+      "text": "  baseline_factor  mean_qsmk1  mean_qsmk0  diff  corr_with_weight_change     n\n0             age       46.17       42.79  3.39                    -0.23  1566\n1            wt71       72.35       70.30  2.05                    -0.15  1566\n2  smokeintensity       18.60       21.19 -2.59                     0.03  1566\n3        smokeyrs       26.03       24.09  1.94                    -0.18  1566\n4             sex        0.45        0.53 -0.08                    -0.02  1566\n5            race        0.09        0.15 -0.06                    -0.02  1566\n6       education        2.79        2.69  0.11                     0.06  1566\n7          income       18.15       17.94  0.21                     0.06  1507\n8        exercise        1.25        1.18  0.08                    -0.04  1566\n9          active        0.69        0.63  0.06                    -0.07  1566"
+     }
+    ],
+    "defines": [
+     {
+      "name": "plausible",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "summary_rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "v",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "d",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1566,
+      "columns": [
+       {
+        "label": "active",
+        "tag": "int"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "q1_mean",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "q0_mean",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "plausible_confounders",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 10,
+      "columns": [
+       {
+        "label": "baseline_factor",
+        "tag": "cat"
+       },
+       {
+        "label": "mean_qsmk1",
+        "tag": "num"
+       },
+       {
+        "label": "mean_qsmk0",
+        "tag": "num"
+       },
+       {
+        "label": "diff",
+        "tag": "num"
+       },
+       {
+        "label": "corr_with_weight_change",
+        "tag": "num"
+       },
+       {
+        "label": "n",
+        "tag": "int"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "take1",
+   "cell": "[5]",
+   "dialog": "Likely wrong: 6 personal details together, which could point to one person: age, birthplace, date, health. Flagged: age 1629, race 1629, sex 1629, birthplace 1537, 4 marital 1629, diabetes. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[5]",
+    "title": "Rank baseline covariate associations",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 18,
+      "cols": 4,
+      "columns": [
+       "covariate",
+       "nonmissing_n",
+       "quit_vs_continue_SMD",
+       "corr_with_weight_change"
+      ],
+      "text": "         covariate  nonmissing_n  quit_vs_continue_SMD  \\\n0              age          1629                  0.31   \n10  smokeintensity          1629                 -0.20   \n11        smokeyrs          1629                  0.19   \n2             race          1629                 -0.18   \n1              sex          1629                 -0.17   \n8             wt71          1629                  0.14   \n7               ht          1629                  0.11   \n9       birthplace          1537                 -0.10   \n31        exercise          1629                  0.10   \n14              tb          1629                  0.10   \n32     cholesterol          1613                  0.09   \n29  alcoholhowmuch          1212                 -0.09   \n12          asthma          1629                  0.09   \n18         colitis          1629                 -0.08   \n4          marital          1629                 -0.08   \n30          active          1629                  0.07   \n17     pepticulcer          1629                  0.07   \n25    nervousbreak          1629                 -0.07   \n\n    corr_with_weight_change  \n0                     -0.23  \n10                     0.03  \n11                    -0.18  \n2                     -0.02  \n1                     -0.02  \n8                     -0.15  \n7                      0.04  \n9                      0.04  \n31                    -0.04  \n14                     0.02  \n32                    -0.09  \n29                    -0.01  \n12                     0.00  \n18                    -0.08  \n4                      0.03  \n30                    -0.07  \n17                    -0.04  \n25                    -0.03  "
+     }
+    ],
+    "defines": [
+     {
+      "name": "baseline",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "d",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1629,
+      "columns": [
+       {
+        "label": "age",
+        "tag": "int"
+       },
+       {
+        "label": "sex",
+        "tag": "int"
+       },
+       {
+        "label": "race",
+        "tag": "int"
+       },
+       {
+        "label": "income",
+        "tag": "num"
+       },
+       {
+        "label": "marital",
+        "tag": "int"
+       },
+       {
+        "label": "school",
+        "tag": "int"
+       },
+       {
+        "label": "education",
+        "tag": "int"
+       },
+       {
+        "label": "ht",
+        "tag": "num"
+       },
+       {
+        "label": "wt71",
+        "tag": "num"
+       },
+       {
+        "label": "birthplace",
+        "tag": "num"
+       },
+       {
+        "label": "smokeintensity",
+        "tag": "int"
+       },
+       {
+        "label": "smokeyrs",
+        "tag": "int"
+       },
+       {
+        "label": "asthma",
+        "tag": "int"
+       },
+       {
+        "label": "bronch",
+        "tag": "int"
+       },
+       {
+        "label": "tb",
+        "tag": "int"
+       },
+       {
+        "label": "hf",
+        "tag": "int"
+       },
+       {
+        "label": "hbp",
+        "tag": "int"
+       },
+       {
+        "label": "pepticulcer",
+        "tag": "int"
+       },
+       {
+        "label": "colitis",
+        "tag": "int"
+       },
+       {
+        "label": "hepatitis",
+        "tag": "int"
+       },
+       {
+        "label": "chroniccough",
+        "tag": "int"
+       },
+       {
+        "label": "hayfever",
+        "tag": "int"
+       },
+       {
+        "label": "diabetes",
+        "tag": "int"
+       },
+       {
+        "label": "polio",
+        "tag": "int"
+       },
+       {
+        "label": "tumor",
+        "tag": "int"
+       },
+       {
+        "label": "nervousbreak",
+        "tag": "int"
+       },
+       {
+        "label": "alcoholpy",
+        "tag": "int"
+       },
+       {
+        "label": "alcoholfreq",
+        "tag": "int"
+       },
+       {
+        "label": "alcoholtype",
+        "tag": "int"
+       },
+       {
+        "label": "alcoholhowmuch",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "c",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "x",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 1629
+     },
+     {
+      "name": "a",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 426
+     },
+     {
+      "name": "b",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 1187
+     },
+     {
+      "name": "pooled",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "smd",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "assoc",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 33,
+      "columns": [
+       {
+        "label": "covariate",
+        "tag": "cat"
+       },
+       {
+        "label": "nonmissing_n",
+        "tag": "int"
+       },
+       {
+        "label": "quit_vs_continue_SMD",
+        "tag": "num"
+       },
+       {
+        "label": "corr_with_weight_change",
+        "tag": "num"
+       },
+       {
+        "label": "abs_smd",
+        "tag": "num"
+       },
+       {
+        "label": "abs_corr",
+        "tag": "num"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "take1",
+   "cell": "[7]",
+   "dialog": "Likely wrong: 3 personal details together, which could point to one person: age, race, sex. Flagged: sex 0, race 0, age 0. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[7]",
+    "title": "Check adjustment variables",
+    "outputs": [
+     {
+      "kind": "text",
+      "lines": 17,
+      "text": "Levels for coded covariates:\neducation: [1, 2, 3, 4, 5]\nexercise: [0, 1, 2]\nactive: [0, 1, 2]\n\nMissing values in requested fields:\nwt82_71           63\nqsmk               0\nsex                0\nrace               0\nage                0\neducation          0\nsmokeintensity     0\nsmokeyrs           0\nexercise           0\nactive             0\nwt71               0"
+     }
+    ],
+    "defines": [
+     {
+      "name": "cols",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "col",
+      "kind": "constant",
+      "type": "builtins.str"
+     }
+    ]
+   }
+  },
+  {
+   "take": "take2",
+   "cell": "[5]",
+   "dialog": "Likely wrong: 5 personal details together, which could point to one person: age, health, income, race. Flagged: age 1566, race 1566, sex 1566, income 1507, diabetes. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[5]",
+    "title": "Screen baseline confounders",
+    "outputs": [
+     {
+      "kind": "table",
+      "rows": 18,
+      "cols": 6,
+      "columns": [
+       "baseline factor",
+       "n",
+       "r with qsmk",
+       "p qsmk",
+       "r with weight change",
+       "p weight change"
+      ],
+      "text": "   baseline factor     n  r with qsmk  p qsmk  r with weight change  \\\n0              age  1566        0.123   0.000                -0.227   \n7   smokeintensity  1566       -0.096   0.000                 0.029   \n2             race  1566       -0.074   0.004                -0.017   \n8         smokeyrs  1566        0.071   0.005                -0.177   \n1              sex  1566       -0.070   0.006                -0.022   \n6             wt71  1566        0.059   0.020                -0.147   \n5               ht  1566        0.051   0.044                 0.043   \n15        exercise  1566        0.045   0.077                -0.041   \n9           asthma  1566        0.044   0.083                 0.001   \n4        education  1566        0.039   0.119                 0.063   \n14          active  1566        0.039   0.122                -0.072   \n3           income  1507        0.035   0.173                 0.065   \n16       alcoholpy  1566       -0.031   0.222                 0.034   \n13        diabetes  1566       -0.028   0.273                 0.022   \n17     alcoholfreq  1566        0.019   0.451                 0.002   \n12             hbp  1566       -0.013   0.601                 0.004   \n10          bronch  1566        0.007   0.788                -0.008   \n11              hf  1566       -0.001   0.962                -0.026   \n\n    p weight change  \n0             0.000  \n7             0.247  \n2             0.506  \n8             0.000  \n1             0.378  \n6             0.000  \n5             0.091  \n15            0.106  \n9             0.960  \n4             0.012  \n14            0.004  \n3             0.012  \n16            0.175  \n13            0.379  \n17            0.929  \n12            0.864  \n10            0.765  \n11            0.298  "
+     }
+    ],
+    "defines": [
+     {
+      "name": "candidates",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "x",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "d",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1566,
+      "columns": [
+       {
+        "label": "alcoholfreq",
+        "tag": "int"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "rq",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "pq",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "rw",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "pw",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "screen",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 18,
+      "columns": [
+       {
+        "label": "baseline factor",
+        "tag": "cat"
+       },
+       {
+        "label": "n",
+        "tag": "int"
+       },
+       {
+        "label": "r with qsmk",
+        "tag": "num"
+       },
+       {
+        "label": "p qsmk",
+        "tag": "num"
+       },
+       {
+        "label": "r with weight change",
+        "tag": "num"
+       },
+       {
+        "label": "p weight change",
+        "tag": "num"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "v2dry2",
+   "cell": "[13]",
+   "dialog": "Likely wrong: 3 personal details together, which could point to one person: birthplace, race, sex. Flagged: sex 0.0, sex 1.0, race 1.0, race 0.0, birthplace 54.0. Found by the rules.",
+   "result": {
+    "status": "ok",
+    "cell": "[13]",
+    "title": "Highlight the largest baseline differences",
+    "outputs": [
+     {
+      "kind": "text",
+      "lines": 12,
+      "text": "Largest numeric mean gaps:\n       Measure   Summary      Continuer        Quitter Difference  N (C/Q)\n   cholesterol mean (SD) 218.90 (45.13) 222.96 (46.22)      +4.06 1187/426\n           age mean (SD)  42.92 (11.89)  46.70 (12.52)      +3.77 1201/428\nsmokeintensity mean (SD)  21.18 (11.58)  18.79 (12.26)      -2.38 1201/428\n      smokeyrs mean (SD)  24.25 (11.83)  26.61 (13.03)      +2.36 1201/428\n          wt71 mean (SD)  70.49 (15.57)  72.63 (16.08)      +2.14 1201/428\n            ht mean (SD)  168.48 (9.00)  169.48 (9.17)      +1.00 1201/428\nalcoholhowmuch mean (SD)    3.35 (3.13)    3.09 (2.53)      -0.26  896/316\n        income mean (SD)   17.90 (2.71)   18.07 (2.52)      +0.17 1164/403\n\nLargest categorical share gaps:"
+     },
+     {
+      "kind": "text",
+      "lines": 1,
+      "text": "'   Measure  Level  Continuer %  Quitter %  Difference pp\\n       sex    0.0         46.8       55.4            8.6\\n       sex    1.0         53.2       44.6           -8.6\\n      race    1.0         14.7        8.9           -5.9\\n      race    0.0         85.3       91.1            5.9\\n education    5.0          9.9       14.7            4.8\\n education    2.0         22.7       18.2           -4.5\\n  exercise    0.0         20.6       16.4           -4.2\\nbirthplace   54.0          4.8        1.2           -3.6'"
+     }
+    ],
+    "defines": [
+     {
+      "name": "numeric_rows",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 12,
+      "columns": [
+       {
+        "label": "Measure",
+        "tag": "cat"
+       },
+       {
+        "label": "Summary",
+        "tag": "cat"
+       },
+       {
+        "label": "Continuer",
+        "tag": "cat"
+       },
+       {
+        "label": "Quitter",
+        "tag": "cat"
+       },
+       {
+        "label": "Difference",
+        "tag": "cat"
+       },
+       {
+        "label": "N (C/Q)",
+        "tag": "cat"
+       },
+       {
+        "label": "abs_gap",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "cat_diffs",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "cat_diffs2",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 138,
+      "columns": [
+       {
+        "label": "Measure",
+        "tag": "cat"
+       },
+       {
+        "label": "Level",
+        "tag": "num"
+       },
+       {
+        "label": "Continuer %",
+        "tag": "num"
+       },
+       {
+        "label": "Quitter %",
+        "tag": "num"
+       },
+       {
+        "label": "Difference pp",
+        "tag": "num"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "take": "explore",
+   "cell": "[5]",
+   "dialog": "Likely wrong: 5 personal details together, which could point to one person: age, health, income, race (the findings of the recording)",
+   "result": {
+    "status": "ok",
+    "cell": "[5]",
+    "title": "Screen baseline confounders",
+    "outputs": [
+     {
+      "kind": "text",
+      "lines": 1,
+      "text": "'baseline factor  quit-group SMD  corr with weight change    n\\n            age            0.28                    -0.23 1566\\n smokeintensity           -0.22                     0.03 1566\\n            sbp            0.20                    -0.00 1537\\n           race           -0.17                    -0.02 1566\\n       smokeyrs            0.16                    -0.18 1566\\n            sex           -0.16                    -0.02 1566\\n            dbp            0.14                     0.13 1533\\n           wt71            0.13                    -0.15 1566\\n             ht            0.12                     0.04 1566\\n       exercise            0.10                    -0.04 1566\\n         asthma            0.10                     0.00 1566\\n    cholesterol            0.09                    -0.09 1550\\n      education            0.09                     0.06 1566\\n         active            0.09                    -0.07 1566\\n         income            0.08                     0.06 1507\\n      alcoholpy           -0.07                     0.03 1566\\n       diabetes           -0.06                     0.02 1566\\n         school            0.05                     0.08 1566\\n    alcoholfreq            0.04                     0.00 1566\\n   chroniccough            0.04                    -0.03 1566\\n            hbp           -0.03                     0.00 1566\\n         bronch            0.02                    -0.01 1566'"
+     }
+    ],
+    "defines": [
+     {
+      "name": "candidates",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "rows",
+      "kind": "other",
+      "type": "builtins.list"
+     },
+     {
+      "name": "v",
+      "kind": "constant",
+      "type": "builtins.str"
+     },
+     {
+      "name": "d",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 1533,
+      "columns": [
+       {
+        "label": "dbp",
+        "tag": "num"
+       },
+       {
+        "label": "qsmk",
+        "tag": "int"
+       },
+       {
+        "label": "wt82_71",
+        "tag": "num"
+       }
+      ]
+     },
+     {
+      "name": "q1",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 385
+     },
+     {
+      "name": "q0",
+      "kind": "numeric",
+      "type": "pandas.Series",
+      "rows": 1148
+     },
+     {
+      "name": "sd",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "smd",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "r",
+      "kind": "constant",
+      "type": "numpy.float64"
+     },
+     {
+      "name": "confounder_screen",
+      "kind": "dataframe",
+      "type": "pandas.DataFrame",
+      "rows": 22,
+      "columns": [
+       {
+        "label": "baseline factor",
+        "tag": "cat"
+       },
+       {
+        "label": "quit-group SMD",
+        "tag": "num"
+       },
+       {
+        "label": "corr with weight change",
+        "tag": "num"
+       },
+       {
+        "label": "n",
+        "tag": "int"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "people": {
+  "the first rows of the frame": {
+   "status": "ok",
+   "cell": "[1]",
+   "title": "",
+   "outputs": [
+    {
+     "kind": "table",
+     "rows": 5,
+     "cols": 64,
+     "columns": [
+      "seqn",
+      "qsmk",
+      "death",
+      "yrdth",
+      "modth",
+      "dadth",
+      "sbp",
+      "dbp",
+      "sex",
+      "age",
+      "...",
+      "birthcontrol",
+      "pregnancies",
+      "cholesterol",
+      "hightax82",
+      "price71",
+      "price82",
+      "tax71",
+      "tax82",
+      "price71_82",
+      "tax71_82"
+     ],
+     "text": "   seqn  qsmk  death  yrdth  modth  dadth    sbp   dbp  sex  age  ...  \\\n0   233     0      0    NaN    NaN    NaN  175.0  96.0    0   42  ...   \n1   235     0      0    NaN    NaN    NaN  123.0  80.0    0   36  ...   \n2   244     0      0    NaN    NaN    NaN  115.0  75.0    1   56  ...   \n3   245     0      1   85.0    2.0   14.0  148.0  78.0    0   68  ...   \n4   252     0      0    NaN    NaN    NaN  118.0  77.0    0   40  ...   \n\n   birthcontrol  pregnancies  cholesterol  hightax82   price71   price82  \\\n0             2          NaN        197.0        0.0  2.183594  1.739990   \n1             2          NaN        301.0        0.0  2.346680  1.797363   \n2             0          2.0        157.0        0.0  1.569580  1.513428   \n3             2          NaN        174.0        0.0  1.506592  1.451904   \n4             2          NaN        216.0        0.0  2.346680  1.797363   \n\n      tax71     tax82  price71_82  tax71_82  \n0  1.102295  0.461975    0.443787  0.640381  \n1  1.364990  0.571899    0.549316  0.792969  \n2  0.551270  0.230988    0.056198  0.320251  \n3  0.524902  0.219971    0.054794  0.304993  \n4  1.364990  0.571899    0.549316  0.792969  \n\n[5 rows x 64 columns]"
+    }
+   ],
+   "defines": [
+    {
+     "name": "nhefs",
+     "kind": "dataframe",
+     "type": "pandas.DataFrame",
+     "rows": 1629,
+     "columns": [
+      {
+       "label": "seqn",
+       "tag": "int"
+      },
+      {
+       "label": "qsmk",
+       "tag": "int"
+      },
+      {
+       "label": "death",
+       "tag": "int"
+      },
+      {
+       "label": "yrdth",
+       "tag": "num"
+      },
+      {
+       "label": "modth",
+       "tag": "num"
+      },
+      {
+       "label": "dadth",
+       "tag": "num"
+      },
+      {
+       "label": "sbp",
+       "tag": "num"
+      },
+      {
+       "label": "dbp",
+       "tag": "num"
+      },
+      {
+       "label": "sex",
+       "tag": "int"
+      },
+      {
+       "label": "age",
+       "tag": "int"
+      },
+      {
+       "label": "race",
+       "tag": "int"
+      },
+      {
+       "label": "income",
+       "tag": "num"
+      },
+      {
+       "label": "marital",
+       "tag": "int"
+      },
+      {
+       "label": "school",
+       "tag": "int"
+      },
+      {
+       "label": "education",
+       "tag": "int"
+      },
+      {
+       "label": "ht",
+       "tag": "num"
+      },
+      {
+       "label": "wt71",
+       "tag": "num"
+      },
+      {
+       "label": "wt82",
+       "tag": "num"
+      },
+      {
+       "label": "wt82_71",
+       "tag": "num"
+      },
+      {
+       "label": "birthplace",
+       "tag": "num"
+      },
+      {
+       "label": "smokeintensity",
+       "tag": "int"
+      },
+      {
+       "label": "smkintensity82_71",
+       "tag": "int"
+      },
+      {
+       "label": "smokeyrs",
+       "tag": "int"
+      },
+      {
+       "label": "asthma",
+       "tag": "int"
+      },
+      {
+       "label": "bronch",
+       "tag": "int"
+      },
+      {
+       "label": "tb",
+       "tag": "int"
+      },
+      {
+       "label": "hf",
+       "tag": "int"
+      },
+      {
+       "label": "hbp",
+       "tag": "int"
+      },
+      {
+       "label": "pepticulcer",
+       "tag": "int"
+      },
+      {
+       "label": "colitis",
+       "tag": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "a printed list of people with their age and diagnoses": {
+   "status": "ok",
+   "cell": "[9]",
+   "title": "People with diabetes",
+   "outputs": [
+    {
+     "kind": "text",
+     "lines": 4,
+     "text": " seqn  age  sex  race  diabetes  hbp\n  233   42    0     1         1    1\n  262   56    1     0         1    0\n  457   56    0     0         1    0"
+    }
+   ],
+   "defines": []
+  },
+  "one person's record": {
+   "status": "ok",
+   "cell": "[9]",
+   "title": "The first person",
+   "outputs": [
+    {
+     "kind": "text",
+     "lines": 64,
+     "text": "seqn                 233.000000\nqsmk                   0.000000\ndeath                  0.000000\nyrdth                       NaN\nmodth                       NaN\ndadth                       NaN\nsbp                  175.000000\ndbp                   96.000000\nsex                    0.000000\nage                   42.000000\nrace                   1.000000\nincome                19.000000\nmarital                2.000000\nschool                 7.000000\neducation              1.000000\nht                   174.187500\nwt71                  79.040000\nwt82                  68.946040\nwt82_71              -10.093960\nbirthplace            47.000000\nsmokeintensity        30.000000\nsmkintensity82_71    -10.000000\nsmokeyrs              29.000000\nasthma                 0.000000\nbronch                 0.000000\ntb                     0.000000\nhf                     0.000000\nhbp                    1.000000\npepticulcer            1.000000\ncolitis                0.000000\nhepatitis              0.000000\nchroniccough           0.000000\nhayfever               0.000000\ndiabetes               1.000000\npolio                  0.000000\ntumor                  0.000000\nnervousbreak           0.000000\nalcoholpy              1.000000\nalcoholfreq            1.000000\nalcoholtype            3.000000\nalcoholhowmuch         7.000000\npica                   0.000000\nheadache               1.000000\notherpain              0.000000\nweakheart              0.000000\nallergies              0.000000\nnerves                 0.000000\nlackpep                0.000000\nhbpmed                 1.000000\nboweltrouble           0.000000\nwtloss                 0.000000\ninfection              0.000000\nactive                 0.000000\nexercise               2.000000\nbirthcontrol           2.000000\npregnancies                 NaN\ncholesterol          197.000000\nhightax82              0.000000\nprice71                2.183594\nprice82                1.739990\ntax71                  1.102295\ntax82                  0.461975\nprice71_82             0.443787\ntax71_82               0.640381"
+    }
+   ],
+   "defines": []
+  }
+ },
+ "yrbs": {
+  "about": "The 2025 Youth Risk Behavior Survey of the second video (10,710 students, 110 columns of codes, and its codebook as a frame). The result of the agent's cell [10] of its first dry run, rebuilt from the take's notebook; the levels of the loop variable r that the agent's first prompt carried, the lines that the guard's dialog showed; and the result of cell [23] of the recorded take2, from the text that its dialog showed.",
+  "dataset": {
+   "synthetic": false,
+   "unit": null,
+   "columns": [
+    {
+     "name": "age",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "sex",
+     "tag": "num",
+     "min": 1,
+     "max": 2
+    },
+    {
+     "name": "grade",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "height_m",
+     "tag": "num",
+     "min": 1.32,
+     "max": 2.03
+    },
+    {
+     "name": "weight_kg",
+     "tag": "num",
+     "min": 25.4,
+     "max": 180.99
+    },
+    {
+     "name": "seat_belt_use",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "rode_with_drinking_driver",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "drove_after_drinking",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "texted_while_driving",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "carried_weapon_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "carried_gun",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "missed_school_feeling_unsafe",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "threatened_with_weapon_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "physical_fights",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "physical_fights_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "saw_violence_in_neighborhood",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "forced_sexual_intercourse",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "sexual_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "sexual_dating_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "physical_dating_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "treated_unfairly_for_race",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "bullied_at_school",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "electronic_bullying",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "self_harm",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "sad_or_hopeless",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "considered_suicide",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "made_suicide_plan",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "suicide_attempts",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "injury_from_suicide_attempt",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "ever_smoked_cigarette",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "age_first_cigarette",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_smoked_cigarettes",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "cigarettes_per_day",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "ever_vaped",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "days_vaped",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "vape_source",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "days_smokeless_tobacco",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_smoked_cigars_or_cigarillos",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "age_first_drink",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_drank_alcohol",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "most_drinks_in_a_row",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "alcohol_source",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "marijuana_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "age_first_marijuana",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "marijuana_past_30_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "pain_medicine_misuse_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "cocaine_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "inhalants_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "heroin_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "methamphetamine_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "ecstasy_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "injected_drugs_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "ever_had_intercourse",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "age_first_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "intercourse_partners_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "intercourse_partners_3_months",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "alcohol_or_drugs_before_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "condom_at_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "birth_control_at_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "sexual_contacts_with",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "sexual_identity",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "describes_own_weight",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "trying_to_lose_or_gain",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "fruit_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "green_salad_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "potatoes_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "carrots_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "other_vegetables_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "soda_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "breakfast_days",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "days_active_60_minutes",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "pe_class_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sports_teams",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "concussions",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "social_media",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "hiv_test_ever",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "sti_test_12_months",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "last_dentist_visit",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "mental_health_not_good",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "got_help_with_emotions",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sleep_on_school_night",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "usual_place_to_sleep",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "worried_food_would_run_out",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "food_ran_out_no_money",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "time_to_get_loaded_gun",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "adult_at_home_insulted_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "adult_at_home_hurt_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "pain_medicine_misuse_past_30_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "hallucinogens_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sports_drinks_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "water_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "binge_eating_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "muscle_strengthening_days",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "talked_to_doctor_without_parent",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "sunburns",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "counseling_or_therapy",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "adult_met_basic_needs",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "worried_about_climate_change",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "worried_about_extreme_heat",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "feel_close_to_people_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "unfairly_disciplined_at_school",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "parents_know_where_you_are",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "difficulty_concentrating",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "speaks_english",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "weight",
+     "tag": "num",
+     "min": 0.0246,
+     "max": 3.943
+    },
+    {
+     "name": "stratum",
+     "tag": "int",
+     "min": 102,
+     "max": 214
+    },
+    {
+     "name": "psu",
+     "tag": "int",
+     "min": 15194,
+     "max": 788193
+    },
+    {
+     "name": "race_ethnicity",
+     "tag": "num",
+     "min": 1,
+     "max": 9
+    },
+    {
+     "name": "bmi_percentile",
+     "tag": "num",
+     "min": 0,
+     "max": 100
+    },
+    {
+     "name": "student",
+     "tag": "int",
+     "min": 1,
+     "max": 11097
+    },
+    {
+     "name": "variable",
+     "tag": "text"
+    },
+    {
+     "name": "question",
+     "tag": "text"
+    },
+    {
+     "name": "answers",
+     "tag": "text"
+    },
+    {
+     "name": "cdc_variable",
+     "tag": "text"
+    },
+    {
+     "name": "notes",
+     "tag": "text"
+    },
+    {
+     "name": "sad_or_hopeless",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "sex",
+     "tag": "num",
+     "min": 1,
+     "max": 2
+    },
+    {
+     "name": "weight",
+     "tag": "num",
+     "min": 0.0246,
+     "max": 3.943
+    },
+    {
+     "name": "stratum",
+     "tag": "int",
+     "min": 102,
+     "max": 214
+    },
+    {
+     "name": "psu",
+     "tag": "int",
+     "min": 15194,
+     "max": 788193
+    },
+    {
+     "name": "valid_y",
+     "tag": "bool",
+     "levels": [
+      "False",
+      "True"
+     ]
+    },
+    {
+     "name": "group",
+     "tag": "cat",
+     "levels": [
+      "Boys",
+      "Girls",
+      "Overall"
+     ]
+    },
+    {
+     "name": "weighted_percent",
+     "tag": "num",
+     "min": 23.8937,
+     "max": 43.4182
+    },
+    {
+     "name": "SE_percentage_points",
+     "tag": "num",
+     "min": 1.01013,
+     "max": 1.63713
+    },
+    {
+     "name": "CI95_low",
+     "tag": "num",
+     "min": 21.9138,
+     "max": 40.2095
+    },
+    {
+     "name": "CI95_high",
+     "tag": "num",
+     "min": 25.8735,
+     "max": 46.627
+    },
+    {
+     "name": "n_unweighted",
+     "tag": "int",
+     "min": 5132,
+     "max": 10483
+    },
+    {
+     "name": "variable",
+     "tag": "cat"
+    },
+    {
+     "name": "question",
+     "tag": "cat"
+    },
+    {
+     "name": "answers",
+     "tag": "cat"
+    },
+    {
+     "name": "cdc_variable",
+     "tag": "cat"
+    },
+    {
+     "name": "notes",
+     "tag": "cat"
+    },
+    {
+     "name": "age",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "sex",
+     "tag": "num",
+     "min": 1,
+     "max": 2
+    },
+    {
+     "name": "grade",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "height_m",
+     "tag": "num",
+     "min": 1.4,
+     "max": 2.01
+    },
+    {
+     "name": "weight_kg",
+     "tag": "num",
+     "min": 29.48,
+     "max": 180.99
+    },
+    {
+     "name": "seat_belt_use",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "rode_with_drinking_driver",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "drove_after_drinking",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "texted_while_driving",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "carried_weapon_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "carried_gun",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "missed_school_feeling_unsafe",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "threatened_with_weapon_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "physical_fights",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "physical_fights_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "saw_violence_in_neighborhood",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "forced_sexual_intercourse",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "sexual_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "sexual_dating_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "physical_dating_violence",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "treated_unfairly_for_race",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "bullied_at_school",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "electronic_bullying",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "self_harm",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "sad_or_hopeless",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "considered_suicide",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "made_suicide_plan",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "suicide_attempts",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "injury_from_suicide_attempt",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "ever_smoked_cigarette",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "age_first_cigarette",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_smoked_cigarettes",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "cigarettes_per_day",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "ever_vaped",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "days_vaped",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "vape_source",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "days_smokeless_tobacco",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_smoked_cigars_or_cigarillos",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "age_first_drink",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "days_drank_alcohol",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "most_drinks_in_a_row",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "alcohol_source",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "marijuana_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "age_first_marijuana",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "marijuana_past_30_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "pain_medicine_misuse_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "cocaine_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "inhalants_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "heroin_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "methamphetamine_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "ecstasy_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "injected_drugs_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "ever_had_intercourse",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "age_first_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "intercourse_partners_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "intercourse_partners_3_months",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "alcohol_or_drugs_before_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "condom_at_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "birth_control_at_last_intercourse",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "sexual_contacts_with",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "sexual_identity",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "describes_own_weight",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "trying_to_lose_or_gain",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "fruit_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "green_salad_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "potatoes_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "carrots_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "other_vegetables_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "soda_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "breakfast_days",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "days_active_60_minutes",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "pe_class_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sports_teams",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "concussions",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "social_media",
+     "tag": "num",
+     "min": 8,
+     "max": 8
+    },
+    {
+     "name": "hiv_test_ever",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "sti_test_12_months",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "last_dentist_visit",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "mental_health_not_good",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "got_help_with_emotions",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sleep_on_school_night",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "usual_place_to_sleep",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "worried_food_would_run_out",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "food_ran_out_no_money",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "time_to_get_loaded_gun",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "adult_at_home_insulted_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "adult_at_home_hurt_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "pain_medicine_misuse_past_30_days",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "hallucinogens_lifetime",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "sports_drinks_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "water_past_7_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "binge_eating_days",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "muscle_strengthening_days",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "talked_to_doctor_without_parent",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "sunburns",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "counseling_or_therapy",
+     "tag": "num",
+     "min": 1,
+     "max": 3
+    },
+    {
+     "name": "adult_met_basic_needs",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "worried_about_climate_change",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "worried_about_extreme_heat",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "feel_close_to_people_at_school",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "unfairly_disciplined_at_school",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "parents_know_where_you_are",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "difficulty_concentrating",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "speaks_english",
+     "tag": "num",
+     "min": 1,
+     "max": 4
+    },
+    {
+     "name": "weight",
+     "tag": "num",
+     "min": 0.0246,
+     "max": 3.943
+    },
+    {
+     "name": "stratum",
+     "tag": "int",
+     "min": 102,
+     "max": 214
+    },
+    {
+     "name": "psu",
+     "tag": "int",
+     "min": 15194,
+     "max": 788193
+    },
+    {
+     "name": "race_ethnicity",
+     "tag": "num",
+     "min": 1,
+     "max": 9
+    },
+    {
+     "name": "bmi_percentile",
+     "tag": "num",
+     "min": 0,
+     "max": 100
+    },
+    {
+     "name": "student",
+     "tag": "int",
+     "min": 10,
+     "max": 11097
+    },
+    {
+     "name": "item",
+     "tag": "cat"
+    },
+    {
+     "name": "response",
+     "tag": "cat"
+    },
+    {
+     "name": "selected_%",
+     "tag": "num",
+     "min": 0.2,
+     "max": 81.9
+    },
+    {
+     "name": "all_%",
+     "tag": "num",
+     "min": 0.2,
+     "max": 86.5
+    },
+    {
+     "name": "selected_valid_n",
+     "tag": "int",
+     "min": 2061,
+     "max": 3072
+    },
+    {
+     "name": "all_valid_n",
+     "tag": "int",
+     "min": 6538,
+     "max": 10687
+    },
+    {
+     "name": "item",
+     "tag": "cat"
+    },
+    {
+     "name": "selected_missing",
+     "tag": "int",
+     "min": 5,
+     "max": 1016
+    },
+    {
+     "name": "selected_n",
+     "tag": "int",
+     "min": 3077,
+     "max": 3077
+    },
+    {
+     "name": "all_missing",
+     "tag": "int",
+     "min": 23,
+     "max": 4172
+    },
+    {
+     "name": "all_n",
+     "tag": "int",
+     "min": 10710,
+     "max": 10710
+    },
+    {
+     "name": "social_media_code",
+     "tag": "int",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "unweighted_n",
+     "tag": "int",
+     "min": 116,
+     "max": 4151
+    },
+    {
+     "name": "weighted_prevalence_%",
+     "tag": "num",
+     "min": 23.0373,
+     "max": 39.9195
+    },
+    {
+     "name": "CI95_low_%",
+     "tag": "num",
+     "min": 18.8877,
+     "max": 37.2498
+    },
+    {
+     "name": "CI95_high_%",
+     "tag": "num",
+     "min": 27.7864,
+     "max": 42.6506
+    },
+    {
+     "name": "variable",
+     "tag": "text"
+    },
+    {
+     "name": "question",
+     "tag": "text"
+    },
+    {
+     "name": "answers",
+     "tag": "text"
+    },
+    {
+     "name": "cdc_variable",
+     "tag": "text"
+    },
+    {
+     "name": "notes",
+     "tag": "text"
+    },
+    {
+     "name": "variable",
+     "tag": "cat"
+    },
+    {
+     "name": "question",
+     "tag": "cat"
+    },
+    {
+     "name": "answers",
+     "tag": "cat"
+    },
+    {
+     "name": "notes",
+     "tag": "cat"
+    },
+    {
+     "name": "item",
+     "tag": "num",
+     "min": 1,
+     "max": 28
+    },
+    {
+     "name": "item",
+     "tag": "num",
+     "min": 1,
+     "max": 28
+    },
+    {
+     "name": "variable",
+     "tag": "cat"
+    },
+    {
+     "name": "question",
+     "tag": "cat"
+    },
+    {
+     "name": "variable",
+     "tag": "cat",
+     "levels": [
+      "adult_at_home_hurt_you",
+      "adult_at_home_insulted_you"
+     ]
+    },
+    {
+     "name": "question",
+     "tag": "cat",
+     "levels": [
+      "During your life, how often has a parent or other adult in your home hit, beat, kicked, or physically hurt you in any way?",
+      "During your life, how often has a parent or other adult in your home insulted you or put you down?"
+     ]
+    },
+    {
+     "name": "answers",
+     "tag": "cat",
+     "levels": [
+      "1: Never, 2: Rarely, 3: Sometimes, 4: Most of the time, 5: Always"
+     ]
+    },
+    {
+     "name": "notes",
+     "tag": "cat",
+     "levels": [
+      "During the student's whole life (an adverse childhood experience). The user's guide's list of add-on questions numbers it Q90; the file holds it in Q89. The CDC's QN89 ('Reported that a parent or other adult in their home most of the time or always hit, beat, kicked, or physically hurt them in any way') counts answers 4 and 5 as Yes (1) and answers 1 to 3 as No (2). 1,869 blank; 1,806 of them are in 13 of the 108 schools where 80% or more of the students left it blank: those students probably got only their state or district questionnaire, which lacked this question (CDC, Technical Notes for Youth Health in Focus, 2026).",
+      "During the student's whole life (an adverse childhood experience). The user's guide's list of national add-on questions numbers them differently from the file (its Q90 is the question held in Q89); this codebook follows the file's SAS labels and formats. The CDC's QN88 ('Reported that a parent or other adult in their home most of the time or always insulted them or put them down') counts answers 4 and 5 as Yes (1) and answers 1 to 3 as No (2). 388 blank; 219 of them are in 3 of the 108 schools where 80% or more of the students left it blank: those students probably got only their state or district questionnaire, which lacked this question (CDC, Technical Notes for Youth Health in Focus, 2026)."
+     ]
+    },
+    {
+     "name": "sad_or_hopeless",
+     "tag": "num",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "social_media",
+     "tag": "num",
+     "min": 1,
+     "max": 8
+    },
+    {
+     "name": "weight",
+     "tag": "num",
+     "min": 0.035,
+     "max": 3.943
+    },
+    {
+     "name": "stratum",
+     "tag": "int",
+     "min": 102,
+     "max": 214
+    },
+    {
+     "name": "psu",
+     "tag": "int",
+     "min": 15194,
+     "max": 701757
+    },
+    {
+     "name": "sex",
+     "tag": "num",
+     "min": 1,
+     "max": 2
+    },
+    {
+     "name": "grade",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "race_ethnicity",
+     "tag": "num",
+     "min": 1,
+     "max": 9
+    },
+    {
+     "name": "sexual_identity",
+     "tag": "num",
+     "min": 1,
+     "max": 6
+    },
+    {
+     "name": "adult_at_home_insulted_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "adult_at_home_hurt_you",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "adult_met_basic_needs",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "worried_food_would_run_out",
+     "tag": "num",
+     "min": 1,
+     "max": 5
+    },
+    {
+     "name": "usual_place_to_sleep",
+     "tag": "num",
+     "min": 1,
+     "max": 7
+    },
+    {
+     "name": "frequent_social_media",
+     "tag": "int",
+     "min": 0,
+     "max": 1
+    },
+    {
+     "name": "0",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.48352
+    },
+    {
+     "name": "1",
+     "tag": "num",
+     "min": -2.53858,
+     "max": 3.48352
+    },
+    {
+     "name": "2",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 3.10384
+    },
+    {
+     "name": "3",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.25173
+    },
+    {
+     "name": "4",
+     "tag": "num",
+     "min": -3.14051,
+     "max": 3.48352
+    },
+    {
+     "name": "5",
+     "tag": "num",
+     "min": -1.19694,
+     "max": 0.990636
+    },
+    {
+     "name": "6",
+     "tag": "num",
+     "min": -1.48587,
+     "max": 3.48352
+    },
+    {
+     "name": "7",
+     "tag": "num",
+     "min": -2.07203,
+     "max": 2.42171
+    },
+    {
+     "name": "8",
+     "tag": "num",
+     "min": -2.48529,
+     "max": 2.86702
+    },
+    {
+     "name": "9",
+     "tag": "num",
+     "min": -0.786221,
+     "max": 2.55047
+    },
+    {
+     "name": "10",
+     "tag": "num",
+     "min": -0.531913,
+     "max": 0.885116
+    },
+    {
+     "name": "11",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.46579
+    },
+    {
+     "name": "12",
+     "tag": "num",
+     "min": -2.53858,
+     "max": 2.45727
+    },
+    {
+     "name": "13",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 2.78761
+    },
+    {
+     "name": "14",
+     "tag": "num",
+     "min": -2.56913,
+     "max": 3.24215
+    },
+    {
+     "name": "15",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 2.5469
+    },
+    {
+     "name": "16",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 2.1204
+    },
+    {
+     "name": "17",
+     "tag": "num",
+     "min": -1.94476,
+     "max": 2.42389
+    },
+    {
+     "name": "18",
+     "tag": "num",
+     "min": -1.60948,
+     "max": 2.34082
+    },
+    {
+     "name": "19",
+     "tag": "num",
+     "min": -1.89226,
+     "max": 3.11566
+    },
+    {
+     "name": "20",
+     "tag": "num",
+     "min": -3.14051,
+     "max": 2.64098
+    },
+    {
+     "name": "21",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 1.92127
+    },
+    {
+     "name": "22",
+     "tag": "num",
+     "min": -2.5174,
+     "max": 1.88397
+    },
+    {
+     "name": "23",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 3.37874
+    },
+    {
+     "name": "24",
+     "tag": "num",
+     "min": -3.12149,
+     "max": 2.67625
+    },
+    {
+     "name": "25",
+     "tag": "num",
+     "min": -2.24875,
+     "max": 1.69361
+    },
+    {
+     "name": "26",
+     "tag": "num",
+     "min": -1.29149,
+     "max": 0.940508
+    },
+    {
+     "name": "27",
+     "tag": "num",
+     "min": -1.56234,
+     "max": 3.25173
+    },
+    {
+     "name": "28",
+     "tag": "num",
+     "min": -1.44247,
+     "max": 1.95838
+    },
+    {
+     "name": "29",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 3.48352
+    },
+    {
+     "name": "30",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.46579
+    },
+    {
+     "name": "31",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.31958
+    },
+    {
+     "name": "32",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 3.1076
+    },
+    {
+     "name": "33",
+     "tag": "num",
+     "min": -3.12149,
+     "max": 2.92204
+    },
+    {
+     "name": "34",
+     "tag": "num",
+     "min": -2.53858,
+     "max": 2.89708
+    },
+    {
+     "name": "35",
+     "tag": "num",
+     "min": -2.53858,
+     "max": 1.76317
+    },
+    {
+     "name": "36",
+     "tag": "num",
+     "min": -3.12149,
+     "max": 1.65239
+    },
+    {
+     "name": "37",
+     "tag": "num",
+     "min": -1.1656,
+     "max": 1.95838
+    },
+    {
+     "name": "38",
+     "tag": "num",
+     "min": -0.205089,
+     "max": 0.700905
+    },
+    {
+     "name": "39",
+     "tag": "num",
+     "min": -1.3327,
+     "max": 1.82603
+    },
+    {
+     "name": "40",
+     "tag": "num",
+     "min": -1.11116,
+     "max": 1.25929
+    },
+    {
+     "name": "41",
+     "tag": "num",
+     "min": -3.31579,
+     "max": 3.48352
+    },
+    {
+     "name": "0",
+     "tag": "num",
+     "min": -35.8181,
+     "max": 14.2689
+    },
+    {
+     "name": "1",
+     "tag": "num",
+     "min": -20.2108,
+     "max": 14.9627
+    },
+    {
+     "name": "2",
+     "tag": "num",
+     "min": -6.23932,
+     "max": 7.10424
+    },
+    {
+     "name": "3",
+     "tag": "num",
+     "min": -9.53268,
+     "max": 13.499
+    },
+    {
+     "name": "4",
+     "tag": "num",
+     "min": -11.8391,
+     "max": 6.2412
+    },
+    {
+     "name": "5",
+     "tag": "num",
+     "min": -1.19694,
+     "max": 0.990636
+    },
+    {
+     "name": "6",
+     "tag": "num",
+     "min": -5.50377,
+     "max": 6.6891
+    },
+    {
+     "name": "7",
+     "tag": "num",
+     "min": -4.64764,
+     "max": 6.71455
+    },
+    {
+     "name": "8",
+     "tag": "num",
+     "min": -9.86458,
+     "max": 9.14337
+    },
+    {
+     "name": "9",
+     "tag": "num",
+     "min": -3.22854,
+     "max": 2.29466
+    },
+    {
+     "name": "10",
+     "tag": "num",
+     "min": -1.12506,
+     "max": 0.772973
+    },
+    {
+     "name": "11",
+     "tag": "num",
+     "min": -16.3686,
+     "max": 13.0143
+    },
+    {
+     "name": "12",
+     "tag": "num",
+     "min": -5.49143,
+     "max": 7.1663
+    },
+    {
+     "name": "13",
+     "tag": "num",
+     "min": -5.30529,
+     "max": 4.96126
+    },
+    {
+     "name": "14",
+     "tag": "num",
+     "min": -5.21484,
+     "max": 4.04139
+    },
+    {
+     "name": "15",
+     "tag": "num",
+     "min": -8.98101,
+     "max": 7.22325
+    },
+    {
+     "name": "16",
+     "tag": "num",
+     "min": -3.29311,
+     "max": 2.982
+    },
+    {
+     "name": "17",
+     "tag": "num",
+     "min": -6.4198,
+     "max": 3.23391
+    },
+    {
+     "name": "18",
+     "tag": "num",
+     "min": -2.22013,
+     "max": 2.98736
+    },
+    {
+     "name": "19",
+     "tag": "num",
+     "min": -11.7853,
+     "max": 16.0939
+    },
+    {
+     "name": "20",
+     "tag": "num",
+     "min": -9.89455,
+     "max": 6.7051
+    },
+    {
+     "name": "21",
+     "tag": "num",
+     "min": -4.53512,
+     "max": 3.80721
+    },
+    {
+     "name": "22",
+     "tag": "num",
+     "min": -4.21231,
+     "max": 3.16804
+    },
+    {
+     "name": "23",
+     "tag": "num",
+     "min": -7.00164,
+     "max": 7.21116
+    },
+    {
+     "name": "24",
+     "tag": "num",
+     "min": -4.10757,
+     "max": 7.50604
+    },
+    {
+     "name": "25",
+     "tag": "num",
+     "min": -2.39725,
+     "max": 2.18455
+    },
+    {
+     "name": "26",
+     "tag": "num",
+     "min": -1.29149,
+     "max": 1.24183
+    },
+    {
+     "name": "27",
+     "tag": "num",
+     "min": -2.38481,
+     "max": 3.25173
+    },
+    {
+     "name": "28",
+     "tag": "num",
+     "min": -3.42278,
+     "max": 2.56029
+    },
+    {
+     "name": "29",
+     "tag": "num",
+     "min": -7.711,
+     "max": 12.054
+    },
+    {
+     "name": "30",
+     "tag": "num",
+     "min": -29.4222,
+     "max": 14.158
+    },
+    {
+     "name": "31",
+     "tag": "num",
+     "min": -8.27508,
+     "max": 8.11064
+    },
+    {
+     "name": "32",
+     "tag": "num",
+     "min": -3.11745,
+     "max": 5.22154
+    },
+    {
+     "name": "33",
+     "tag": "num",
+     "min": -4.79442,
+     "max": 4.9087
+    },
+    {
+     "name": "34",
+     "tag": "num",
+     "min": -4.72208,
+     "max": 4.6785
+    },
+    {
+     "name": "35",
+     "tag": "num",
+     "min": -3.00808,
+     "max": 2.94853
+    },
+    {
+     "name": "36",
+     "tag": "num",
+     "min": -3.12149,
+     "max": 1.86009
+    },
+    {
+     "name": "37",
+     "tag": "num",
+     "min": -1.1656,
+     "max": 1.95838
+    },
+    {
+     "name": "38",
+     "tag": "num",
+     "min": -0.196563,
+     "max": 0.495816
+    },
+    {
+     "name": "39",
+     "tag": "num",
+     "min": -2.0465,
+     "max": 2.51914
+    },
+    {
+     "name": "40",
+     "tag": "num",
+     "min": -1.11116,
+     "max": 1.25929
+    },
+    {
+     "name": "41",
+     "tag": "num",
+     "min": -28.0227,
+     "max": 15.6253
+    },
+    {
+     "name": "0",
+     "tag": "num",
+     "min": -12.4632,
+     "max": 7.39454
+    },
+    {
+     "name": "1",
+     "tag": "num",
+     "min": -9.07809,
+     "max": 2.66474
+    },
+    {
+     "name": "2",
+     "tag": "num",
+     "min": -4.27243,
+     "max": 2.47129
+    },
+    {
+     "name": "3",
+     "tag": "num",
+     "min": -4.08535,
+     "max": 1.9689
+    },
+    {
+     "name": "4",
+     "tag": "num",
+     "min": -4.57093,
+     "max": 5.64405
+    },
+    {
+     "name": "5",
+     "tag": "num",
+     "min": 0,
+     "max": 0.376318
+    },
+    {
+     "name": "6",
+     "tag": "num",
+     "min": -1.45001,
+     "max": 3.11973
+    },
+    {
+     "name": "7",
+     "tag": "num",
+     "min": -1.52982,
+     "max": 0.848694
+    },
+    {
+     "name": "8",
+     "tag": "num",
+     "min": -9.86458,
+     "max": 6.96141
+    },
+    {
+     "name": "9",
+     "tag": "num",
+     "min": -3.22854,
+     "max": 0.280418
+    },
+    {
+     "name": "10",
+     "tag": "num",
+     "min": 0,
+     "max": 0.518759
+    },
+    {
+     "name": "11",
+     "tag": "num",
+     "min": -0.917953,
+     "max": 0.945095
+    },
+    {
+     "name": "12",
+     "tag": "num",
+     "min": -2.45366,
+     "max": 1.57297
+    },
+    {
+     "name": "13",
+     "tag": "num",
+     "min": -5.07318,
+     "max": 0.197314
+    },
+    {
+     "name": "14",
+     "tag": "num",
+     "min": -0.695135,
+     "max": 0.769419
+    },
+    {
+     "name": "15",
+     "tag": "num",
+     "min": -0.68665,
+     "max": 5.06768
+    },
+    {
+     "name": "16",
+     "tag": "num",
+     "min": -0.645417,
+     "max": 1.61816
+    },
+    {
+     "name": "17",
+     "tag": "num",
+     "min": -2.67896,
+     "max": 0.53281
+    },
+    {
+     "name": "18",
+     "tag": "num",
+     "min": -1.44305,
+     "max": 2.26878
+    },
+    {
+     "name": "19",
+     "tag": "num",
+     "min": -2.18325,
+     "max": 4.30217
+    },
+    {
+     "name": "20",
+     "tag": "num",
+     "min": -4.47964,
+     "max": 3.5851
+    },
+    {
+     "name": "21",
+     "tag": "num",
+     "min": -3.09935,
+     "max": 0.967051
+    },
+    {
+     "name": "22",
+     "tag": "num",
+     "min": -2.17807,
+     "max": 2.35406
+    },
+    {
+     "name": "23",
+     "tag": "num",
+     "min": -6.31198,
+     "max": 2.33154
+    },
+    {
+     "name": "24",
+     "tag": "num",
+     "min": -3.79298,
+     "max": 2.20133
+    },
+    {
+     "name": "25",
+     "tag": "num",
+     "min": -0.807959,
+     "max": 0.249472
+    }
+   ]
+  },
+  "statistics": [
+   {
+    "take": "yrbs dry1",
+    "cell": "[10]",
+    "dialog": "Likely wrong: 6 personal details together, which could point to one person: age, age first intercourse, forced sexual intercourse, sex. Flagged: sex: Item, forced_sexual_intercourse: Item, sexual_violence: Item, sexual_dating_violence: Item, age_first_intercourse: Item, 11 years old. Found by the rules.",
+    "result": {
+     "status": "ok",
+     "cell": "[10]",
+     "title": "Inspect coding for comparison items",
+     "outputs": [
+      {
+       "kind": "text",
+       "lines": 26,
+       "text": "sex: Item 2. What is your sex? | 1: Female, 2: Male\ngrade: Item 3. In what grade are you? | 1: 9th grade, 2: 10th grade, 3: 11th grade, 4: 12th grade, 5: Ungraded or other grade\nforced_sexual_intercourse: Item 19. Have you ever been physically forced to have sexual intercourse when you did not want to? | 1: Yes, 0: No\nsexual_violence: Item 20. During the past 12 months, how many times did anyone force you to do sexual things that you did not want to do? (Count such things as kissing, touching, or being physically forced to have sexual intercourse.) | 1: 0 times, 2: 1 time, 3: 2 or 3 times, 4: 4 or 5 times, 5: 6 or more times\nsexual_dating_violence: Item 21. During the past 12 months, how many times did someone you were dating or going out with force you to do sexual things that you did not want to do? (Count such things as kissing, touching, or being physically forced to have sexual intercourse.) | 1: I did not date or go out with anyone during the past 12 months, 2: 0 times, 3: 1 time, 4: 2 or 3 times, 5: 4 or 5 times, 6: 6 or more times\nbullied_at_school: Item 26. During the past 12 months, have you ever been bullied on school property? | 1: Yes, 0: No\nelectronic_bullying: Item 27. During the past 12 months, have you ever been electronically bullied? (Count being bullied through texting, Instagram, Facebook, or other social media.) | 1: Yes, 0: No\never_had_intercourse: Item 59. Have you ever had sexual intercourse? | 1: Yes, 0: No\nage_first_intercourse: Item 60. How old were you when you had sexual intercourse for the first time? | 1: I have never had sexual intercourse, 2: 11 years old or younger, 3: 12 years old, 4: 13 years old, 5: 14 years old, 6: 15 years old, 7: 16 years old, 8: 17 years old or older\nintercourse_partners_lifetime: Item 61. During your life, with how many people have you had sexual intercourse? | 1: I have never had sexual intercourse, 2: 1 person, 3: 2 people, 4: 3 people, 5: 4 people, 6: 5 people, 7: 6 or more people\nintercourse_partners_3_\u2026"
+      }
+     ],
+     "defines": [
+      {
+       "name": "r",
+       "kind": "categorical",
+       "type": "pandas.Series",
+       "rows": 5
+      }
+     ]
+    }
+   },
+   {
+    "take": "yrbs dry1",
+    "cell": "the question and the notebook",
+    "dialog": "Might be fine: an identifier of a person or a household. Flagged: QN104, Q104. Found by the rules.",
+    "prompt": "{\n \"task\": \"Answer the question with cells.\",\n \"question\": {\n  \"text\": \"Who is most at risk of persistent sadness?\",\n  \"type\": \"\"\n },\n \"selected\": [],\n \"variables\": [\n  {\n   \"dtype\": \"String\",\n   \"missing\": 0,\n   \"tag\": \"cat\",\n   \"kind\": \"categorical\",\n   \"unique\": 5,\n   \"levels\": [\n    \"1: Never, 2: Rarely, 3: Sometimes, 4: Most of the time, 5: Always\",\n    \"Higher codes mean more parental monitoring. The CDC's QN104 ('reported that their parents or other adults in their family most of the time or always know where they are going or with whom they will be') counts answers 4 and 5 as Yes (1) and answers 1 to 3 as No (2). 4,172 blank; 3,701 of them are in 27 of the 108 schools where 80% or more of the students left it blank: those students probably got only their state or district questionnaire, which lacked this question (CDC, Technical Notes for Youth Health in Focus, 2026).\",\n    \"Item 104. How often do your parents or other adults in your family know where you are going or with whom you will be?\",\n    \"Q104\",\n    \"parents_know_where_you_are\"\n   ],\n   \"name\": \"r\",\n   \"type\": \"pandas.Series\",\n   \"rows\": 5\n  }\n ],\n \"packages\": {\n  \"pandas\": \"2.3.3\"\n },\n \"analysis_so_far\": [\n  \"[10] Print the codebook rows of the terms\"\n ],\n \"language\": \"python\"\n}"
+   },
+   {
+    "take": "yrbs take2",
+    "cell": "[23]",
+    "dialog": "Likely wrong: 4 personal details together, which could point to one person: race ethnicity, sex, sexual identity, weight. Flagged: sex': True, race_ethnicity': True, sexual_identity': True, weight': True. Found by the rules.",
+    "result": {
+     "status": "ok",
+     "cell": "[23]",
+     "title": "Check the model's columns",
+     "outputs": [
+      {
+       "kind": "text",
+       "lines": 20,
+       "text": "Present columns: {'social_media': True, 'sad_or_hopeless': True, 'sex': True, 'grade': True, 'race_ethnicity': True, 'sexual_identity': True, 'adult_at_home_insulted_you': True, 'adult_at_home_hurt_you': True, 'adult_met_basic_needs': True, 'worried_food_would_run_out': True, 'usual_place_to_sleep': True, 'weight': True, 'stratum': True, 'psu': True}\nMatching codebook rows:\n                  variable                                                                                             question                                                                                              answers                                                                                                notes\n                 weight_kg                                                 Item 6. How much do you weigh without your shoes on?                                             Kilograms, to 2 decimals (25.40 to 180.99 in this file). Body weight. The survey weight is the column weight. Students typed pounds. The CDC converts: pou...\n treated_unfairly_for_race Item 25. During your life, how often have you felt that you were treated badly or unfairly in sch...                                    1: Never, 2: Rarely, 3: Sometimes, 4: Most of the time, 5: Always During the student's whole life. The CDC's QN22 ('Felt that they were ever treated badly or unfai...\n           sad_or_hopeless Item 29. During the past 12 months, did you ever feel so sad or hopeless almost every day for two...                                                                                        1: Yes, 0: No Recoded: Yes is 1 and No is 0 (the CDC codes No as 2). Past 12 months; mental_health_not_good ask...\n           sexual_identity                                                  Item 67. Which of the following best describes you? 1: Heterosexual (straight), 2: Gay or lesbian, 3: Bisexual, 4: I describe my sexual identity some... Code 5 is 'not sure (questioning)'; code 6 is 'I do not know what this que\u2026"
+      }
+     ],
+     "defines": []
+    }
+   }
+  ]
+ }
+}

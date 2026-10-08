@@ -131,6 +131,61 @@ describe('the questions about a region', () => {
   });
 });
 
+describe('the rows picked, in what the model reads', () => {
+  // A question about 65 rows picked on a histogram was answered about all
+  // 1,629 rows of the frame (design iteration 1.95): the model gets the mask
+  // of the rows, as Keep selection writes it.
+  function bodyFor(ask: IRegionAsk, type: string | null, language?: string) {
+    const { model } = fakeModel([{ id: 'c1', count: 1 }]);
+    model.bridge.snapshot = { variables: [], packages: {} };
+    if (language) {
+      model.bridge.languageName = language;
+    }
+    model.variable = (name: string) =>
+      name === 'df'
+        ? {
+            name,
+            label: name,
+            kind: 'dataframe',
+            type,
+            columns: [{ label: 'p', kind: 'categorical', tag: 'cat' }]
+          }
+        : null;
+    return model._solveBody(
+      { id: 'q', text: 'How many of them quit?', type: 'descriptive' },
+      { kind: 'new', cell: 'c1', label: '' },
+      null,
+      ask
+    );
+  }
+
+  it('sends the mask of a range brushed in a plot of a pandas frame', () => {
+    const body = bodyFor(
+      regionAsk({ x0: 15.604805330000012, x1: 48.53838568000002 }),
+      'pandas.core.frame.DataFrame'
+    );
+    expect(body.rows).toEqual({
+      frame: 'df',
+      mask: 'df["p"].between(15.604805330000012, 48.53838568000002)'
+    });
+  });
+
+  it('sends the mask of the bars picked', () => {
+    const ask = { ...regionAsk({ x0: 0, x1: 0 }), values: ['A', 'B'] };
+    expect(
+      bodyFor(ask as IRegionAsk, 'pandas.core.frame.DataFrame').rows
+    ).toEqual({ frame: 'df', mask: 'df["p"].isin(["A", "B"])' });
+  });
+
+  it('sends no mask for a polars frame, or for a kernel of another language', () => {
+    const ask = regionAsk({ x0: 1, x1: 2 });
+    expect(bodyFor(ask, 'polars.dataframe.frame.DataFrame').rows).toBeNull();
+    expect(
+      bodyFor(ask, 'pandas.core.frame.DataFrame', 'R').rows
+    ).toBeUndefined();
+  });
+});
+
 describe('regionWhere', () => {
   it('says which rows a region keeps, rounded for reading', () => {
     expect(regionWhere(regionAsk({ x0: 0.0012, x1: 0.0048 }))).toBe(

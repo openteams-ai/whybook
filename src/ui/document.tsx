@@ -445,6 +445,170 @@ function inSight(root: HTMLElement | null, element: Element): boolean {
   return box.top >= view.top && box.bottom <= view.bottom;
 }
 
+/**
+ * The room above the strip of an answer that the view scrolls near its top,
+ * in pixels: the bottom of the card that holds the strip still shows.
+ */
+const ABOVE_ANSWER = 24;
+
+/**
+ * Scroll the view so that the element is near its top. The position that the
+ * scroll ends at: the view scrolls no further than its end.
+ */
+function showNearTop(root: HTMLElement, element: Element): number {
+  const offset =
+    element.getBoundingClientRect().top - root.getBoundingClientRect().top;
+  const wanted = root.scrollTop + offset - ABOVE_ANSWER;
+  root.scrollTo({ top: wanted, behavior: scrollBehavior() });
+  return Math.max(0, Math.min(wanted, root.scrollHeight - root.clientHeight));
+}
+
+/**
+ * How long the view follows the outputs of a new cell after its run ends,
+ * in milliseconds: tables, plots and pictures draw after the run, and the
+ * card grows as they do.
+ */
+const FOLLOW_AFTER_RUN = 2000;
+
+/** The answer that the view follows: its strip, and its new cell. */
+interface IFollow {
+  key: string;
+  cell: string;
+  sizes: ResizeObserver | null;
+  timer: number | null;
+  /** Where the view's own scroll goes, and where it was at its last step. */
+  aim: { top: number; last: number } | null;
+}
+
+/**
+ * Follow the new cell of a template's or a model's one-cell answer while its
+ * outputs come (design iteration 1.93). Each time its card grows, its strip
+ * goes near the top of the view again, unless the strip and the card are in
+ * sight: the view can scroll no further than the notebook below the cell,
+ * which is short before the outputs come. It stops when the analyst
+ * scrolls, clicks or types in the view, when anything else scrolls the
+ * view, when a drag starts, when another answer comes into sight, and
+ * FOLLOW_AFTER_RUN after the cell ran. `movedSince` says whether the
+ * analyst scrolled, clicked or typed in the view after a time.
+ */
+function useFollowAnswer(main: React.RefObject<HTMLDivElement>): {
+  start: (
+    key: string,
+    cell: string,
+    element: Element,
+    strip: Element
+  ) => boolean;
+  ran: (cell: string | null) => void;
+  movedSince: (time: number) => boolean;
+} {
+  const following = React.useRef<IFollow | null>(null);
+  // Date.now() when the analyst last scrolled, clicked or typed in the view.
+  const moved = React.useRef(0);
+  const stop = React.useCallback(() => {
+    const now = following.current;
+    following.current = null;
+    now?.sizes?.disconnect();
+    if (now?.timer) {
+      window.clearTimeout(now.timer);
+    }
+  }, []);
+  // The strip near the top, unless the strip and the cell are in sight; the
+  // view remembers where it scrolls, to tell its own scroll from another's.
+  const show = React.useCallback(
+    (root: HTMLElement, strip: Element, cell: Element): boolean => {
+      if (inSight(root, strip) && inSight(root, cell)) {
+        return false;
+      }
+      const top = showNearTop(root, strip);
+      if (following.current) {
+        following.current.aim = { top, last: root.scrollTop };
+      }
+      return true;
+    },
+    []
+  );
+  const keep = React.useCallback(() => {
+    const now = following.current;
+    const root = main.current;
+    if (!now || !root) {
+      return;
+    }
+    const strip = root.querySelector(
+      `[data-strip-id="${CSS.escape(now.key)}"]`
+    );
+    const cell = cellElement(root, now.cell);
+    if (!strip || !cell) {
+      stop();
+      return;
+    }
+    show(root, strip, cell);
+  }, [main, show, stop]);
+  React.useEffect(() => {
+    const node = main.current;
+    if (!node) {
+      return;
+    }
+    const events = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+    const take = () => {
+      moved.current = Date.now();
+      stop();
+    };
+    // A scroll away from where the view's own scroll goes, or any scroll
+    // once it got there, comes from the analyst or another part of the view.
+    const scrolled = () => {
+      const now = following.current;
+      if (!now) {
+        return;
+      }
+      const aim = now.aim;
+      const top = node.scrollTop;
+      if (!aim || Math.abs(aim.top - top) > Math.abs(aim.top - aim.last) + 1) {
+        stop();
+        return;
+      }
+      aim.last = top;
+      if (Math.abs(aim.top - top) < 1) {
+        now.aim = null;
+      }
+    };
+    for (const name of events) {
+      node.addEventListener(name, take, { passive: true });
+    }
+    node.addEventListener('scroll', scrolled, { passive: true });
+    document.addEventListener('dragstart', stop, true);
+    return () => {
+      for (const name of events) {
+        node.removeEventListener(name, take);
+      }
+      node.removeEventListener('scroll', scrolled);
+      document.removeEventListener('dragstart', stop, true);
+      stop();
+    };
+  }, [main, stop]);
+  return {
+    start: (key, cell, element, strip) => {
+      stop();
+      const sizes =
+        typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(keep);
+      sizes?.observe(element);
+      following.current = { key, cell, sizes, timer: null, aim: null };
+      const root = main.current;
+      return !!root && show(root, strip, element);
+    },
+    ran: cell => {
+      const now = following.current;
+      if (!now || now.cell !== cell) {
+        return;
+      }
+      keep();
+      if (now.timer === null) {
+        now.timer = window.setTimeout(stop, FOLLOW_AFTER_RUN);
+      }
+    },
+    movedSince: time => moved.current > time
+  };
+}
+
 export interface IDocumentProps {
   model: EpiModel;
   editorServices: IEditorServices | null;
@@ -612,6 +776,8 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
       requestAnimationFrame(() => model.showCell(cellId));
     }
   }, [model, model.view]);
+  // The new cell of a template's answer, while its outputs come (1.93).
+  const follow = useFollowAnswer(main);
   // The strip of an agent's run that the Running panel or the history of
   // runs opened the view on, once the view has drawn it: after the notebook
   // loads, in a view that opened for it. The strip of a run that the analyst
@@ -623,7 +789,15 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
       return;
     }
     const ifHidden = model.stripIfHidden;
+    const follows = model.stripFollows;
     const cell = model.cell(key);
+    if (follows) {
+      // The new cell ran: the view follows its outputs a moment longer.
+      const added = model.stripCellToShow;
+      model.stripShown();
+      follow.ran(added);
+      return;
+    }
     if (model.view === 'map') {
       model.stripShown();
       if (cell && !ifHidden) {
@@ -635,8 +809,26 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
       `[data-strip-id="${CSS.escape(key)}"]`
     );
     if (strip) {
+      // The cell that the answer added, right under its strip (1.93).
+      const added = model.stripCellToShow;
       model.stripShown();
-      if (ifHidden && inSight(main.current, strip)) {
+      const root = main.current;
+      const addedCell = added ? cellElement(root, added) : null;
+      if (root && added && addedCell) {
+        // It comes into sight, and its outputs as they come, unless the
+        // analyst has scrolled, clicked or typed in the view since asking,
+        // as while a model wrote its code.
+        if (follow.movedSince(model.strips.get(key)?.started ?? 0)) {
+          return;
+        }
+        // The strip near the top, and the new cell under it, with the room
+        // below for the outputs that its run brings.
+        if (follow.start(key, added, addedCell, strip)) {
+          flash(strip);
+        }
+        return;
+      }
+      if (ifHidden && inSight(root, strip)) {
         return;
       }
       // A strip taller than the view shows its head.

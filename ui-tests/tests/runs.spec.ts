@@ -256,7 +256,7 @@ test.describe('1.56 an agent run that goes on after its view closes', () => {
     // No run goes on: the status bar has no item for runs.
     await expect(status).toBeHidden();
 
-    const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+    const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
     await own.fill(QUESTION);
     await own.press('Enter');
     const run = page.locator('.jp-Epi-agentrun');

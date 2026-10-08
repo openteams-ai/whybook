@@ -416,14 +416,37 @@ async def check_prompt(text: str, settings: Settings, emit: Emit, to: str, what:
     return await _decide("privacy", what, text, finding, settings, emit, extra, maskable=True)
 
 
-async def check_code(code: str, settings: Settings, emit: Emit, what: str = "a cell", threads: int = 4, review: Callable[[str], Any] | None = None) -> Outcome:
+async def check_code(
+    code: str, settings: Settings, emit: Emit, what: str = "a cell", threads: int = 4, review: Callable[[str], Any] | None = None, cells: list[str] | None = None
+) -> Outcome:
     """The execution guard on code that a model wrote, before the view runs it.
 
-    ``review`` is the remote model's review in a call of its own, when the analyst turned it on.
+    ``review`` is the remote model's review in a call of its own, when the analyst turned it on. ``cells`` are the
+    cells that ``code`` joins when each runs on its own, as the branches of a cell do: the rules read each alone.
     """
     if not settings.checks_code:
         return Outcome(True, code)
-    finding = code_rules(code, sandboxed=settings.sandboxed, language=settings.language)
+    parts = cells or [code]
+    findings = [code_rules(part, sandboxed=settings.sandboxed, language=settings.language) for part in parts]
+    unrun = [found.note for found in findings if found.note and not found.flags]
+    if unrun:
+        # A cell that does not compile runs no line: it goes without a question, the kernel sends back Python's
+        # error, and the next cell is read again. Not silent: the run's progress and the log say so.
+        log.info("the execution guard lets %s go unread: %s", what, "; ".join(unrun))
+        if len(unrun) == len(parts):
+            emit({"type": "progress", "stage": "guard", "message": f"The guard lets {what} go: {unrun[0]}, and Python's error comes back", "elapsed": 0.0})
+            return Outcome(True, code, Finding(note="; ".join(unrun)), by="rules", reason="; ".join(unrun))
+        emit({"type": "progress", "stage": "guard", "message": f"{len(unrun)} of the {len(parts)} cells do not compile, so they run no line: the guard reads the others", "elapsed": 0.0})
+    finding = findings[0]
+    if cells:
+        running = [part for part, found in zip(parts, findings) if not (found.note and not found.flags)]
+        # Read together, the cells resolve the names that one imports for another. A joined text that does not
+        # compile, as when IPython removes the indentation of one cell, is read cell by cell.
+        finding = code_rules("\n\n".join(running), sandboxed=settings.sandboxed, language=settings.language)
+        if finding.note:
+            finding = Finding()
+            for found in findings:
+                finding = finding + Finding(found.flags)
     notes: list[str] = []
     if finding.decision != "reject" and settings.execution_model:
         parts = models.code_parts(code, settings.sandboxed, settings.folder, settings.language)

@@ -1,6 +1,5 @@
 import {
   Button,
-  InputGroup,
   caretDownIcon,
   closeIcon,
   copyIcon
@@ -829,7 +828,7 @@ export function useQuestionFocus(
       return;
     }
     const field = node.querySelector<HTMLElement>(
-      '.jp-Epi-ownbox input:not(:disabled)'
+      '.jp-Epi-ownbox textarea:not(:disabled), .jp-Epi-ownbox input:not(:disabled)'
     );
     const target = lastInput === 'keyboard' ? (first ?? field) : null;
     if (target) {
@@ -963,6 +962,11 @@ function VoiceButton(props: { voice: IVoice }): JSX.Element {
  * it, and its cell goes where the box says; the menu of the Ask button picks
  * another place. Shift+Enter makes it a branch and Alt+Enter explores it in
  * parallel, as Shift and Alt do on a drop. An AI model writes the cell.
+ *
+ * The question is one paragraph: the box wraps it and grows with it, a line
+ * at a time, up to the lines of `--epi-own-lines` in style/base.css, and
+ * then scrolls (design iteration 1.90). No key adds a line, and a line break
+ * that is pasted becomes a space.
  */
 export function OwnQuestion(props: {
   model: EpiModel;
@@ -998,7 +1002,7 @@ export function OwnQuestion(props: {
   const field = React.useRef<HTMLSpanElement>(null);
   const available = model.aiReady('cells');
   const question = text.trim();
-  const input = () => field.current?.querySelector('input') ?? null;
+  const input = () => field.current?.querySelector('textarea') ?? null;
   const voice = useVoice({
     model,
     enabled: available,
@@ -1044,35 +1048,49 @@ export function OwnQuestion(props: {
         ask(places.length ? { place } : {});
       }}
     >
-      <div className="jp-Epi-own-row">
-        <span className="jp-Epi-own-field" ref={field}>
-          <InputGroup
-            className="jp-Epi-own-input"
-            type="text"
-            value={text}
-            disabled={!available}
-            aria-label="Your own question"
-            placeholder={
-              available
-                ? (props.placeholder ?? 'Your own question')
-                : model.settings.models.cells === 'off'
-                  ? 'AI is off for cells and answers in the settings'
-                  : 'Needs an AI model on the server'
-            }
-            onChange={event => setText(event.target.value)}
-            onKeyDown={event => {
-              if (event.key !== 'Enter') {
-                return;
+      <div className="jp-Epi-own-row jp-mod-grows">
+        <span
+          className={`jp-Epi-own-field${available ? '' : ' jp-mod-disabled'}`}
+          ref={field}
+        >
+          {/* A copy of the text that nobody sees wraps as the text does, and
+              gives the box its height. */}
+          <span className="jp-Epi-own-grow" data-text={text}>
+            <textarea
+              className="jp-Epi-own-input"
+              rows={1}
+              value={text}
+              disabled={!available}
+              aria-label="Your own question"
+              placeholder={
+                available
+                  ? (props.placeholder ?? 'Your own question')
+                  : model.settings.models.cells === 'off'
+                    ? 'AI is off for cells and answers in the settings'
+                    : 'Needs an AI model on the server'
               }
-              if (event.shiftKey && branch) {
+              onChange={event => setText(oneLine(event.target.value))}
+              onKeyDown={event => {
+                if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+                  return;
+                }
+                // Enter asks, and so does Shift+Enter where no branch is
+                // offered. Alt+Enter explores in parallel where the request
+                // offers it, and Ctrl or Meta with Enter ask nothing. No key
+                // adds a line.
                 event.preventDefault();
-                ask({ place: branch });
-              } else if (event.altKey && props.parallel) {
-                event.preventDefault();
-                ask({ parallel: true });
-              }
-            }}
-          />
+                if (event.shiftKey && branch) {
+                  ask({ place: branch });
+                } else if (event.altKey) {
+                  if (props.parallel) {
+                    ask({ parallel: true });
+                  }
+                } else if (!event.ctrlKey && !event.metaKey) {
+                  ask(places.length ? { place } : {});
+                }
+              }}
+            />
+          </span>
           <VoiceButton voice={voice} />
         </span>
         <span className="jp-Epi-split" ref={split}>
@@ -1082,7 +1100,15 @@ export function OwnQuestion(props: {
             className="jp-Epi-button jp-mod-styled jp-mod-accept"
             disabled={!available || !question}
           >
-            {askLabel(place)}
+            {/* The button takes the width of its widest word, so that the
+                box keeps its width, and its lines, when the place changes
+                the word. */}
+            <span
+              className="jp-Epi-asklabel"
+              data-labels={askLabels(places).join('\n')}
+            >
+              {askLabel(place)}
+            </span>
           </Button>
           {places.length > 1 && (
             <Button
@@ -1176,6 +1202,19 @@ function askLabel(place: IPlacement | null): string {
     default:
       return 'Ask';
   }
+}
+
+/** Every word that the Ask button can show for these places, each once. */
+export function askLabels(places: IPlacement[]): string[] {
+  return [...new Set([askLabel(null), ...places.map(askLabel)])];
+}
+
+/**
+ * A question as one paragraph: each line break, with the spaces around it,
+ * becomes one space, as a one-line box takes pasted lines.
+ */
+export function oneLine(text: string): string {
+  return text.replace(/[^\S\r\n]*[\r\n]+[^\S\r\n]*/g, ' ');
 }
 
 /**

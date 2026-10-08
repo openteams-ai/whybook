@@ -13,7 +13,9 @@ on. A decision is a value that changes the result:
 A library default also names its ``library`` and that library's ``version``
 when it is known, for the popover that says "default in pandas 3.0.6". A
 keyword argument that keeps the books, such as ``drop=True`` of
-``reset_index``, makes no ``literal`` decision (``bookkeeping`` below).
+``reset_index``, makes no ``literal`` decision (``bookkeeping`` below), and
+neither does a call that picks the rows that the cell only shows, such as the
+``head()`` that ends it (``showing_functions``).
 
 Each decision of a call is keyed by that call: where the cell names the
 function, its line and column. Calls that leave the same parameter at the
@@ -32,7 +34,10 @@ the library's version, each parameter of its signature that has a default,
 with the default as code, and each call with the parameters that it leaves at
 their defaults. A default that holds data, such as a frame, says what it is
 (``<DataFrame 3 × 2>``, ``"data": true``), and one that looks like a key is
-left out. Builtins, the notebook's own functions and those of the analyst's
+left out. A marker that no code can write, such as pandas' ``<no_default>``,
+gives way to the default that the function's documentation gives, ``','``
+for the separator of ``read_csv``, and without one its parameter is left
+out. Builtins, the notebook's own functions and those of the analyst's
 modules are left out too, a cell lists at most ``max_signatures`` functions,
 and what was read of each function stays on the shell for the kernel's
 session. The analysis is the same with or without them.
@@ -164,6 +169,16 @@ def _whybook_analyze_cells(args):
         r"|scatterplot|barplot|histplot|kdeplot|regplot|lmplot|catplot|relplot|pointplot|stripplot|swarmplot"
         r"|heatmap|pairplot|jointplot|displot|countplot|ggplot|aes|labs|ggtitle|xlab|ylab|theme|geom_\w+)"
     )
+    # The calls that pick the rows that a cell shows, or write a value out as
+    # text to show it: the first rows of a frame, its last rows, a few rows
+    # at random. When the cell only shows their value, their arguments change
+    # what the analyst sees and nothing that a later cell reads, so they make
+    # no decision, and their signatures go to no model: the 5 rows that
+    # head() shows make no chip (design iteration 1.91). top = df.head(12)
+    # keeps its chip.
+    showing_functions = {"head", "tail", "sample", "show", "glimpse", "to_string", "to_markdown", "to_html", "round"}
+    # The calls that show their arguments.
+    display_functions = {"print", "display"}
     frame_methods = {
         "pipe", "merge", "assign", "query", "dropna", "fillna", "sort_values", "rename", "drop",
         "reset_index", "set_index", "copy", "astype", "join", "loc", "head", "tail", "sample",
@@ -270,6 +285,36 @@ def _whybook_analyze_cells(args):
 
     plain_types = (type(None), bool, int, float, complex, str)
     address = re.compile(r" at 0x[0-9A-Fa-f]+")
+    # A default that no code can write, such as pandas' <no_default> or
+    # numpy's <no value>: a marker that the parameter was not given, for
+    # which the function uses a value of its own.
+    marker = re.compile(r"<[^<>]*>")
+    # The value of a default as numpydoc writes it, after "default": a
+    # string in quotes, a number, True, False or None.
+    doc_value = re.compile(r"""'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|True\b|False\b|None\b""")
+
+    def documented(target, name):
+        """The default that a function's documentation gives one of its parameters, as code; None when it gives none.
+
+        numpydoc writes it after the type, "sep : str, default ','", and
+        scikit-learn and SciPy as "default=1.0" and "default: 0". The value
+        that a marker stands for is there: the separator of read_csv, whose
+        signature holds <no_default>, is the comma of "default ','" (design
+        iteration 1.91).
+        """
+        try:
+            doc = inspect.getdoc(target) or ""
+        except Exception:
+            return None
+        line = re.search(rf"^\s*{re.escape(name)}\s*:\s*(.+)$", doc, re.M)
+        found = line and re.search(r"\bdefault\b\s*(?:[:=]\s*)?(.+)$", line.group(1))
+        value = found and doc_value.match(found.group(1).strip())
+        if not value:
+            return None
+        try:
+            return repr(ast.literal_eval(value.group(0)))
+        except (ValueError, SyntaxError):
+            return None
 
     def default_of(name, value):
         """A default as code, and whether it holds data rather than code; None for a key, a token or a password.
@@ -328,6 +373,11 @@ def _whybook_analyze_cells(args):
                 if param.default is inspect.Parameter.empty or param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
                     continue
                 found = default_of(param.name, param.default)
+                if found is not None and not found[1] and marker.fullmatch(found[0]):
+                    # A marker is no value: the default that the documentation
+                    # gives, or no parameter, so no chip says <no_default>.
+                    text = documented(target, param.name)
+                    found = (text, False) if text is not None else None
                 if found is not None:
                     params.append({"name": param.name, "default": found[0], **({"data": True} if found[1] else {})})
             name = getattr(target, "__qualname__", key)
@@ -516,6 +566,43 @@ def _whybook_analyze_cells(args):
             return name_site(call.args[0])
         return name_site(func)
 
+    def shown_calls(tree):
+        """The calls of showing_functions whose value the cell only shows, by their ids.
+
+        A value is shown, or thrown away, when it is an expression statement,
+        such as the cell's last line, or what print or display gets. The walk
+        goes down a chain while its calls only show: in ``df.head(3).round(2)``
+        both calls show, and in ``df.sort_values("x").head(3)`` the sort is
+        a choice. A value that goes into a file, ``df.sample(9).to_csv(...)``,
+        is no value that the cell shows.
+        """
+        found = set()
+
+        def walk(node):
+            while True:
+                if isinstance(node, (ast.Attribute, ast.Subscript)):
+                    node = node.value
+                    continue
+                if not isinstance(node, ast.Call):
+                    return
+                func = node.func
+                name = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else None
+                if name in display_functions:
+                    for argument in node.args:
+                        walk(argument)
+                    return
+                if name not in showing_functions:
+                    return
+                found.add(id(node))
+                if not isinstance(func, ast.Attribute):
+                    return
+                node = func.value
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Expr):
+                walk(node.value)
+        return found
+
     def root(node):
         """The name an expression starts from: ``homes`` for ``homes[["home_id"]]`` or ``homes.drop(...)``."""
         while node is not None:
@@ -591,6 +678,7 @@ def _whybook_analyze_cells(args):
         decisions, attachments, seen = [], [], set()
         # The library functions that the cell calls, by qualified name, with their calls.
         signatures = {}
+        shown = shown_calls(tree)
 
         def short(function):
             return (function or "").rsplit(".", 1)[-1]
@@ -642,7 +730,7 @@ def _whybook_analyze_cells(args):
             if receiver_slots and params:
                 passed.add(params[0].name)
             function_name = getattr(func, "__name__", "?")
-            if function_name in skipped_functions:
+            if function_name in skipped_functions or id(node) in shown:
                 continue
             # The file that a reader such as read_csv or read_parquet reads, even
             # where its parameter is named "path", a name kept out below.
@@ -727,9 +815,19 @@ def _whybook_analyze_cells(args):
                 add({"name": name, "value": text, "provenance": "literal", "param": name, "function": function_name}, call)
         for node in tree.body:
             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                name = node.targets[0].id
                 found = literal(node.value)
-                if found is not None:
-                    add({"name": node.targets[0].id, "value": found[1], "provenance": "literal", "param": None, "function": None})
+                # A helper of one cell, named with an underscore by Python's
+                # custom and by the cells that Whybook and its agents write,
+                # holds no constant to try; and a string that names a column,
+                # a variable or a model, y = "wt82_71" or a formula, names
+                # data, as a keyword argument does (design iteration 1.91).
+                if found is None or name.startswith("_"):
+                    continue
+                if isinstance(found[0], str) and isinstance(node.value, ast.Constant):
+                    if found[0] in known_names or any(found[0] in cols for cols in frames.values()) or "~" in found[0]:
+                        continue
+                add({"name": name, "value": found[1], "provenance": "literal", "param": None, "function": None})
         order = {"defaulted": 0, "library_default": 1, "literal": 2}
         decisions.sort(key=lambda d: order[d["provenance"]])
         for decision in decisions:

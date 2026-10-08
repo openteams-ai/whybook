@@ -30,6 +30,8 @@ MAX_VARIABLES = 25
 MAX_COLUMNS = 30
 MAX_TERMS = 12
 MAX_CODE_CHARS = 4000
+# The mask of the rows picked in a plot: two ranges of a brush, or a dozen bars.
+MAX_MASK_CHARS = 1000
 # The Messages API takes pictures of up to 5 MB, and reads these types.
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 IMAGE_TYPES = ("image/png", "image/jpeg", "image/gif", "image/webp")
@@ -56,7 +58,10 @@ Rules for the code:
 - End the cell with the object to show: a figure, a table, or a short printed result.
 - If "previous_attempt" is present, that code failed with the given error. Fix it.
 - If "about" is present, it names what the analyst pointed at when asking, such as rows
-  picked in a plot: the question is about that.
+  picked in a plot: the question is about that, and not about all the data. "rows" then
+  gives the frame and the pandas mask of those rows: select them with it, as it is.
+- Name a unit, such as kg or years, only when the data, a column's name, a file or an
+  output gives it. Otherwise write "in the units of" and the column's name.
 - If "image" is present, the picture sent with the request is an output of the notebook, and
   "image" gives the point or the area of it that the analyst picked, in pixels from its top
   left corner and as fractions of its width and height. Read what the picture shows there,
@@ -110,7 +115,9 @@ PLACEMENT_PROMPTS = {
         "It runs at the same time as the original and as other branches, and they all share one namespace. "
         "Give every name that the branch assigns, intermediate values included, a sensible name that says what it holds "
         "and is unique to this branch, made from its change: lmm_fit_with_il6 and _model_data_with_il6 for a branch that adds IL6. "
-        "Never assign or delete a name that the notebook or another branch defines."
+        "Never assign or delete a name that the notebook or another branch defines. "
+        "An import is the exception: import a module under its usual name, such as import numpy as np, "
+        "even when the notebook imports it already."
     ),
     "new": "Write a new cell that goes after the cell in \"cell\".",
     "preview": "Write a short cell whose output shows the answer. It is shown in a sidebar and not saved in the notebook.",
@@ -233,6 +240,36 @@ def _image(data: Any) -> dict[str, Any] | None:
     return image
 
 
+def _rows(data: Any) -> dict[str, str] | None:
+    """The frame and the pandas mask of the rows picked in a plot, checked; None when the view sends none."""
+    if data is None:
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("frame"), str) or not isinstance(data.get("mask"), str):
+        raise InvalidRequest("rows needs a frame and a mask")
+    frame, mask = data["frame"].strip(), data["mask"].strip()
+    if not frame.isidentifier() or not mask or len(mask) > MAX_MASK_CHARS:
+        raise InvalidRequest(f"rows needs the name of a frame, and a mask of at most {MAX_MASK_CHARS} characters")
+    return {"frame": frame, "mask": mask}
+
+
+def about_task(about: str | None, rows: dict[str, str] | None, keep_local: bool = False) -> str:
+    """What the task line adds when the analyst pointed at part of the data, such as rows picked in a plot.
+
+    An agent answered "How many of them quit smoking?", asked about 65 rows
+    picked on a histogram, about all 1,629 rows of the frame: "about" was a
+    field among many, which the system prompt explained (design iteration
+    1.95). The task line names it, and the code that selects the rows.
+    """
+    if not about:
+        return ""
+    if keep_local:
+        return " The question is about the part of a table or a plot that the analyst picked, not about all the data."
+    if rows:
+        frame = rows["frame"]
+        return f" The question is about {about}: answer it for those rows alone, not for every row of {frame}. Select them with {frame}[{rows['mask']}]."
+    return f" The question is about {about}."
+
+
 def _labelled(item: Any, labels: tuple[str, ...], default: str, key: str) -> dict[str, str] | None:
     """"modelling: REML fit" as {"text": "REML fit", "kind": "modelling"}, as the view keeps it."""
     if isinstance(item, dict) and isinstance(item.get("text"), str):
@@ -260,6 +297,9 @@ class SolveRequest:
     defined: frozenset[str] = frozenset()
     # What the analyst pointed at when asking, in words: rows picked in a plot.
     about: str | None = None
+    # The rows picked in a plot, as their frame and the pandas mask that
+    # selects them: {"frame": "nhefs", "mask": 'nhefs["wt82_71"].between(15.6, 48.5)'}.
+    rows: dict[str, str] | None = None
     # The columns of a dragged file or table and the code that loads it, by name.
     sources: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
     # Do, Report or Wonder: how the analyst works, which the system prompt explains.
@@ -321,6 +361,7 @@ class SolveRequest:
             previous_attempt=previous,
             defined=frozenset(str(name) for name in (data.get("defined") or [])[:2000]),
             about=str(data["about"])[:500] if data.get("about") else None,
+            rows=_rows(data.get("rows")) if data.get("about") else None,
             mode=mode,
             image=_image(data.get("image")),
             language=str(data.get("language") or "python").strip().lower() or "python",
@@ -351,6 +392,7 @@ class SolveRequest:
         branch = languages.language(self.language).branch
         if self.placement == "branch" and branch and not about_text:
             task = f"{task} {branch}"
+        task += about_task(self.about, self.rows, self.keep_local)
         body: dict[str, Any] = {
             "task": task,
             "question": self.question,
@@ -364,6 +406,8 @@ class SolveRequest:
             body["cell"] = self.cell
         if self.about:
             body["about"] = self.about
+        if self.rows:
+            body["rows"] = self.rows
         if self.mode:
             body["mode"] = self.mode
         if self.image:

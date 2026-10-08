@@ -366,7 +366,7 @@ test.describe('the pain diary', () => {
     ];
     for (const question of questions) {
       await dropColumns(page, 'visits', 'week', 'analgesic_dose_mg');
-      const own = popover(page).locator('.jp-Epi-own input');
+      const own = popover(page).locator('.jp-Epi-own textarea');
       await own.fill(question);
       await own.press('Enter');
       await expect(

@@ -5,6 +5,7 @@
  */
 
 import type { IOption, IPlacement, QuestionType } from '../tokens';
+import { QUESTION_TYPES } from '../tokens';
 
 /**
  * The type of a typed question, from its words: it sorts the question in
@@ -15,40 +16,83 @@ export function guessType(text: string): QuestionType {
 }
 
 /**
+ * The words of each type, in the order that the rules read them: a question
+ * with words of two types, such as "How robust is the adjusted estimate to
+ * missing-data handling?", takes the first.
+ */
+const TYPE_WORDS: [QuestionType, RegExp[]][] = [
+  [
+    'causal',
+    [
+      /\b(cause[sd]?|causing|because|effects? of|due to|leads? to|led to|confound\w*|mediat\w*|counterfactual\w*|(treatment|causal) effects?)\b/,
+      // The methods that estimate an effect, by their names (design
+      // iteration 1.100): "Estimate it with inverse probability weighting"
+      // was typed Descriptive.
+      /\b(inverse[- ]probability|ipt?w|aipw|tmle|g[- ]?(formula|computation|estimation|methods?)|standardi[sz]ation|doubly[- ]robust|propensit\w*|instrumental[- ]variables?|diff(erence)?s?[- ]in[- ]diff(erence)?s?|regression[- ]discontinuity|synthetic[- ]controls?)\b/,
+      // Matching on the confounders, and not ids that match.
+      /\bmatch(ed|ing) on\b|\bmatched (pairs?|controls?|samples?|cohorts?|analys[ie]s)\b|\b(by|with|using|via) ([\w-]+ )?matching\b(?! (ids?|keys?|rows?|records?|names?|values?|columns?)\b)/,
+      // An effect adjusted for other variables, and not p-values adjusted
+      // for multiple tests.
+      /\b(adjust(ed|ing|ment|s)?|control(led|ling|s)?) for\b(?! multiple| multiplicity)|\badjusted (effects?|estimates?)\b/
+    ]
+  ],
+  [
+    'quality',
+    [
+      /\b(missing\w*|dropouts?|drop(?:ped)? out|attrition|duplicat\w*|outliers?|errors?|wrong|quality|clean\w*|valid\w*|impossible)\b/,
+      // Values never measured, and the people left out for it: "Does
+      // leaving out the 63 people with no 1982 weight bias the effect?"
+      /\b(imput\w*|complete[- ]cases?|non-?respon\w*|censor\w*|lost to follow-?up|loss to follow-?up)\b/,
+      /\b(leav(e|es|ing)|left) out (the )?([\d,]+ )?(people|persons?|participants?|patients?|subjects?|respondents?|rows?|records?|cases?|observations?)\b/
+    ]
+  ],
+  [
+    'model',
+    [
+      /\b(models?|fit|fits|fitted|residuals?|coefficients?|interactions?|predict\w*|regression)\b/
+    ]
+  ],
+  [
+    'association',
+    [
+      /\b(associat\w*|correlat\w*|relates?|related|relationship|differ\w*|compar\w*|versus|vs)\b/
+    ]
+  ]
+];
+
+/**
  * The type the keywords of a question give, or null when none matches: then
  * the model chosen for typed questions in the settings can give it.
  */
 export function keywordType(text: string): QuestionType | null {
   const words = text.toLowerCase();
-  if (
-    /\b(cause[sd]?|causing|because|effect of|due to|leads? to|led to|confound\w*)\b/.test(
-      words
-    )
-  ) {
-    return 'causal';
+  return (
+    TYPE_WORDS.find(([, patterns]) =>
+      patterns.some(pattern => pattern.test(words))
+    )?.[0] ?? null
+  );
+}
+
+/**
+ * A follow-up question that a model wrote, "association: Does sleep relate
+ * to pain?", as its type and its question. A type of the five stands: the
+ * model wrote the question, and why it asks it. A follow-up without one, or
+ * with a label of the model's own such as "robustness", gets the type of its
+ * words, as a typed question does, else descriptive (design iteration 1.100).
+ */
+export function followUpOf(item: string): {
+  type: QuestionType;
+  text: string;
+} {
+  const [head, ...rest] = item.split(':');
+  const type = QUESTION_TYPES.find(
+    known => known.id === head.trim().toLowerCase()
+  )?.id;
+  if (type && rest.length) {
+    return { type, text: rest.join(':').trim() };
   }
-  if (
-    /\b(missing|dropouts?|drop(?:ped)? out|attrition|duplicat\w*|outliers?|errors?|wrong|quality|clean\w*|valid\w*|impossible)\b/.test(
-      words
-    )
-  ) {
-    return 'quality';
-  }
-  if (
-    /\b(models?|fit|fits|fitted|residuals?|coefficients?|interactions?|predict\w*|regression)\b/.test(
-      words
-    )
-  ) {
-    return 'model';
-  }
-  if (
-    /\b(associat\w*|correlat\w*|relates?|related|relationship|differ\w*|compar\w*|versus|vs)\b/.test(
-      words
-    )
-  ) {
-    return 'association';
-  }
-  return null;
+  const text = item.trim();
+  return { type: guessType(text), text };
 }
 
 // Where a typed question's cell goes, by its first words, as

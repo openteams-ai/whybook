@@ -40,6 +40,10 @@ WHAT_IF_CHOICES = {
     ("read_csv", "header"): ["None", "0"],
     ("read_table", "header"): ["None", "0"],
     ("read_excel", "header"): ["None"],
+    # The separator that the file uses, which pandas guesses from its first
+    # rows when sep is None (design iteration 1.92).
+    ("read_csv", "sep"): ["None"],
+    ("read_table", "sep"): ["None"],
 }
 
 # The other value of a library default, by parameter, when the function has
@@ -77,6 +81,7 @@ CHOICE_REASONS = {
     ("missing", "raise"): "stops with an error where a formula variable is missing",
     ("header", "None"): "reads the first row as data",
     ("header", "0"): "reads the first row as column names",
+    ("sep", "None"): "guesses the separator from the first rows of the file",
 }
 
 # The parameters that name the file a reader such as read_csv reads: another
@@ -325,10 +330,17 @@ def _flag(param: str, value: str) -> Suggestion | None:
     return _made("flag", "a flag", "its other value", [(other, CHOICE_REASONS.get((param, other), "the other value"))])
 
 
-def _choices(function: str, param: str, value: str, provenance: str) -> Suggestion | None:
-    """A library's own other values: by function and parameter, else by parameter for a value that is not a number."""
+def _choices(function: str, param: str, value: str, provenance: str, by_model: bool = False) -> Suggestion | None:
+    """A library's own other values: by function and parameter, else by parameter for a value that is not a number.
+
+    The values by parameter alone are written for the functions of the
+    kernel's own list, so a default that a model found gets none of them:
+    "spearman" is no other optimizer of a logit fit.
+    """
     chosen = WHAT_IF_CHOICES.get((function, param))
     if chosen is None:
+        if by_model:
+            return None
         other = LIBRARY_ALTERNATIVES.get(param)
         # A flag has its rule, and so has a number, unless a library chose it: C=1.0 of a logistic regression.
         if other is None or value in ("True", "False") or (provenance != "library_default" and _number(value) is not None):
@@ -541,18 +553,21 @@ def fallback_rule(value: str) -> str:
     return "half its value below and above it" if whole else "half and double its value"
 
 
-def suggest(name: str, value: str, param: str | None = None, function: str | None = None, provenance: str = "literal", source: str = "") -> Suggestion:
+def suggest(
+    name: str, value: str, param: str | None = None, function: str | None = None, provenance: str = "literal", source: str = "", by_model: bool = False
+) -> Suggestion:
     """The kind of a constant and two values to try, each with a reason.
 
     ``source`` is the code of the cell: how it uses the name tells a
     significance level from an opacity, and a seed from a count. With no rule
     for the kind, the values are ``fallback``'s and the kind is None.
+    ``by_model`` marks a default that a model found in the function's signature.
     """
     value = value.strip()
     function = short(function)
     param = param or ""
     names = words(name, param)
-    for found in (_choices(function, param, value, provenance), _flag(param, value)):
+    for found in (_choices(function, param, value, provenance, by_model), _flag(param, value)):
         if found is not None:
             return found
     if reads_file(function, param, value):

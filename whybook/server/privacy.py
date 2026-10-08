@@ -197,7 +197,10 @@ def local_state(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def local_request(request: Any) -> Any:
-    """A request for one cell (``solve.SolveRequest``) without values: variables and selection cut back, no picture, no range picked."""
+    """A request for one cell (``solve.SolveRequest``) without values: variables and selection cut back, no picture, no range picked.
+
+    The mask of the rows picked in a plot goes too: its bounds are values.
+    """
     about = request.about
     if about:
         about = "The analyst picked part of a table or a plot. The values of what was picked stay on this machine."
@@ -206,6 +209,7 @@ def local_request(request: Any) -> Any:
         keep_local=True,
         variables=[local_variable(variable) for variable in request.variables],
         about=about,
+        rows=None,
         image=None,
         previous_attempt=(
             {**request.previous_attempt, "error": error_type(request.previous_attempt.get("error", ""))}

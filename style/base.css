@@ -1014,8 +1014,23 @@
   gap: 8px;
 }
 
-/* A question of one's own, typed beside the questions offered. */
+/*
+ * A question of one's own, typed beside the questions offered. Its box wraps
+ * the question and grows with it, a line at a time, up to
+ * --epi-own-lines lines, and then scrolls (design iteration 1.90).
+ * Four lines show the longest question of the demo video, 124 characters,
+ * whole in the popover of a drop, and move the questions offered under the
+ * box down by 60 px at most.
+ */
 .jp-Epi-own {
+  --epi-own-lines: 4;
+  --epi-own-line: 20px;
+
+  /* One line with its padding and border: 30 px, as JupyterLab's input. */
+  --epi-own-height: calc(
+    var(--epi-own-line) + 8px + 2 * var(--jp-border-width)
+  );
+
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1045,22 +1060,120 @@
   padding-right: 26px;
 }
 
-/* The microphone stays grey while the engine of Spoken questions cannot listen. */
-.jp-Epi-voice {
-  position: absolute;
-  top: 50%;
-  right: 3px;
+/* The Ask button and its menu stay level with the first line of the box. */
+.jp-Epi-own-row.jp-mod-grows {
+  align-items: flex-start;
+}
+
+.jp-Epi-own-row.jp-mod-grows > .jp-Epi-split {
+  align-items: center;
+  height: var(--epi-own-height);
+}
+
+/* The box looks as JupyterLab's input, with the microphone beside the text. */
+.jp-Epi-own-row.jp-mod-grows > .jp-Epi-own-field {
   display: flex;
+  align-items: flex-start;
+  border: var(--jp-border-width) solid var(--jp-input-border-color);
+  border-radius: var(--jp-border-radius);
+}
+
+.jp-Epi-own-row.jp-mod-grows > .jp-Epi-own-field:focus-within {
+  border-color: var(--jp-input-active-box-shadow-color);
+  box-shadow: inset 0 0 0 2px var(--jp-input-active-box-shadow-color);
+}
+
+.jp-Epi-own-field.jp-mod-disabled {
+  background: var(--jp-layout-color2);
+  cursor: not-allowed;
+}
+
+/*
+ * A grid of one cell: the field, and a copy of its text that nobody sees.
+ * The copy wraps as the text does and gives the cell its height, so the box
+ * grows only when the text takes one more line.
+ */
+.jp-Epi-own-grow {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.jp-Epi-own-grow::after,
+.jp-Epi-own-grow > .jp-Epi-own-input {
+  grid-area: 1 / 1;
+  box-sizing: border-box;
+  max-height: calc(var(--epi-own-lines) * var(--epi-own-line) + 8px);
+  margin: 0;
+  padding: 4px 4px 4px 10px;
+  border: none;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-content-font-size1);
+  font-weight: 400;
+  line-height: var(--epi-own-line);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.jp-Epi-own-grow::after {
+  content: attr(data-text) ' ';
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.jp-Epi-own-grow > .jp-Epi-own-input {
+  width: 100%;
+  overflow-y: auto;
+  resize: none;
+  outline: none;
+  background: transparent;
+  color: var(--jp-ui-font-color0);
+  appearance: none;
+}
+
+.jp-Epi-own-grow > .jp-Epi-own-input::placeholder {
+  overflow: hidden;
+  color: var(--jp-ui-font-color2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jp-Epi-own-grow > .jp-Epi-own-input:disabled {
+  color: var(--jp-ui-font-color2);
+  cursor: not-allowed;
+}
+
+/* The Ask button takes the width of its widest word: see OwnQuestion. */
+.jp-Epi-asklabel {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.jp-Epi-asklabel::after {
+  content: attr(data-labels);
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre;
+}
+
+/* The microphone stays grey while the engine of Spoken questions cannot
+   listen. It sits beside the text, level with the first line: under the
+   4 px of padding above the text, 20 px high as a line is. */
+.jp-Epi-voice {
+  display: flex;
+  flex: none;
+  margin: 4px 3px 0 0;
   padding: 3px;
   border: none;
   background: none;
-  transform: translateY(-50%);
   opacity: 0.45;
   cursor: not-allowed;
 }
 
 /* The glyph as a block, so that no line box adds room under it and the
-   microphone sits in the middle of the field; 14 px, the weight of its text. */
+   microphone sits in the middle of the first line; 14 px, the weight of its
+   text. */
 .jp-Epi-voice > span,
 .jp-Epi-voice svg {
   display: block;
@@ -3642,8 +3755,12 @@ button.jp-Epi-textoutput:hover,
 
 .jp-Epi-next-why {
   flex: 1;
+  min-width: 0;
   font-size: var(--jp-ui-font-size0);
   color: var(--jp-ui-font-color2);
+
+  /* A long name of a column wraps, rather than push Ask and Not now out. */
+  overflow-wrap: anywhere;
 }
 
 .jp-Epi-fullplot {

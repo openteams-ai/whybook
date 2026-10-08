@@ -533,6 +533,33 @@ describe('the kernel bridge', () => {
     // Another source has none until the kernel reads it.
     expect(bridge.signaturesOf('g', 'totals = 1')).toBeNull();
   });
+
+  it('reads a cell that the kernel could not parse as one that uses nothing, and merges it with the kept analysis', async () => {
+    // A branch that a model wrote as `import pandas as pd as pd_ipw6b` came
+    // back as its error alone, and the merge below threw "fresh.uses is not
+    // iterable": the bench went blank in the middle of the demo's take.
+    const bridge = new KernelBridge(pythonSession());
+    jest.spyOn(bridge, 'run').mockImplementation(
+      async () =>
+        ({
+          cells: { broken: { error: 'SyntaxError: invalid syntax' } }
+        }) as any
+    );
+    const source = 'import pandas as pd as pd_ipw6b';
+    await bridge.refreshAnalysis([{ id: 'broken', source }]);
+    expect(bridge.freshAnalysis('broken', source)).toEqual({
+      defs: [],
+      uses: [],
+      formulas: [],
+      columns: {},
+      decisions: [],
+      attachments: [],
+      error: 'SyntaxError: invalid syntax'
+    });
+    // Once the code ran in this kernel, the fresh analysis is merged with the kept one.
+    (bridge as any)._ranCode.add(source);
+    expect(bridge.analysis('broken', source, ANALYSIS)?.uses).toEqual(['df']);
+  });
 });
 
 describe('the view with "Find more defaults with AI"', () => {

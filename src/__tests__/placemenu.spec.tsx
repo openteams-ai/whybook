@@ -64,10 +64,10 @@ async function mount(): Promise<void> {
     );
   });
   // Some text, so that the Ask button can be pressed.
-  const input = host.querySelector('input')!;
+  const input = host.querySelector('textarea')!;
   await act(async () => {
     const setter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
+      HTMLTextAreaElement.prototype,
       'value'
     )!.set!;
     setter.call(input, 'what if pain is log scaled');

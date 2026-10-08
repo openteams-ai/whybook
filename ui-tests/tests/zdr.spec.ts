@@ -225,7 +225,7 @@ test('the box is on by default and usable while the server leaves it to the anal
 
   // A question for one cell asks for every provider.
   await setSetting(page, 'answers', 'cell');
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('What is twice x?');
   await own.press('Enter');
   // The view reads the kernel's packages before its first request to a model.

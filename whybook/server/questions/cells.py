@@ -59,6 +59,9 @@ class Decision:
     # that an older version kept has none, and its what-if values change every
     # call of its function, as they did in that version.
     calls: tuple[DecisionCall, ...] = ()
+    # A default that a model found in the function's signature ("Find more
+    # defaults with AI"), not one of the kernel's own list.
+    found: bool = False
 
     @classmethod
     def from_json(cls, data: Any) -> Decision:
@@ -72,6 +75,7 @@ class Decision:
             param=data.get("param"),
             function=data.get("function"),
             note=data.get("note"),
+            found=isinstance(data.get("found"), dict),
             source_file=source.get("file") if isinstance(source, dict) else None,
             source_line=source.get("line") if isinstance(source, dict) else None,
             # A call that metadata keeps in another form is left out, rather
@@ -235,7 +239,7 @@ def group_column(context: Context) -> str | None:
 
 def suggestion(decision: Decision, source: str = "") -> values.Suggestion:
     """The kind of a decision's constant, read by the rules from its name, its value and ``source``, the code of its cell, and the values to try."""
-    return values.suggest(decision.name, decision.value, decision.param, decision.function, decision.provenance, source)
+    return values.suggest(decision.name, decision.value, decision.param, decision.function, decision.provenance, source, by_model=decision.found)
 
 
 def what_if_values(decision: Decision, source: str = "") -> list[str]:
@@ -520,7 +524,10 @@ def alternative_value(decision: Decision) -> str | None:
     if chosen is not None:
         value = decision.value.strip().strip("'\"")
         return next((choice for choice in chosen if choice.strip("'\"") != value), None)
-    return LIBRARY_ALTERNATIVES.get(decision.param or "")
+    # A value by the parameter's name alone is written for the functions of
+    # the kernel's own list: a default that a model found elsewhere gets none,
+    # as "spearman" for the optimizer `method` of a logit fit.
+    return None if decision.found else LIBRARY_ALTERNATIVES.get(decision.param or "")
 
 
 def alternative_code(cell: CellInfo, decision: Decision) -> str | None:
@@ -887,19 +894,100 @@ def cell_questions(cells: list[CellInfo], context: Context) -> list[Candidate]:
 # A cell's label, as the view writes it: [4], [4b], [ ] for a cell that has not run, [·b] for its branch.
 _LABEL = re.compile(r"\[(?:\d+|·)?[a-z]?\]|\[ \]")
 
+# The functions that read a file, as the view names them (READER in
+# src/model/decisions.ts): pandas' read_csv and polars' scan_csv, R's
+# read.csv and readRDS.
+READER = re.compile(r"^(read|scan)[_.]|^readRDS$")
+# The signs that split the values of a delimited file, with their names: the
+# comma last, since a read with pandas' defaults splits at commas already.
+SEPARATORS = ((";", "semicolons"), ("\t", "tabs"), ("|", "pipes"), (",", "commas"))
+# A column's name that is a number: a row of data read as the header. A
+# year is a name, as the columns of a wide table of years have it.
+NUMBER_NAME = re.compile(r"^[-+]?\d+(?:\.\d+)?$")
+YEAR_NAME = re.compile(r"^(?:1[89]|20)\d\d$")
+
+
+def reads_a_file(decision: Decision) -> bool:
+    """Whether a decision is a parameter of a call that reads a file, such as the header of read_csv or of R's read.csv."""
+    function = decision.function or ""
+    name = function.rsplit("::", 1)[-1] if "::" in function else function.rsplit(".", 1)[-1]
+    return bool(READER.match(name))
+
+
+def frame_looks_misread(frame: str, columns: list[str]) -> str | None:
+    """What says that the read that made a frame went wrong, from the frame's columns; None when it looks right.
+
+    Three signs (design iteration 1.92): one column whose name holds a
+    separator, where the file splits its values with another than the read;
+    columns named Unnamed, as pandas names the columns of empty cells in the
+    header; and a header made of numbers other than years, a row of data
+    read as the names.
+    """
+    held = [name for sign, name in SEPARATORS if sign in columns[0]] if len(columns) == 1 else []
+    if held:
+        return f"{frame} has one column, whose name holds {held[0]}"
+    unnamed = [column for column in columns if column.startswith("Unnamed:") or not column.strip()]
+    if len(unnamed) > 1:
+        return f"{frame} has {len(unnamed)} columns named Unnamed"
+    if unnamed:
+        return f"{frame} has a column named {unnamed[0]}" if unnamed[0].strip() else f"{frame} has a column without a name"
+    numbers = [column for column in columns if NUMBER_NAME.match(column.strip()) and not YEAR_NAME.match(column.strip())]
+    if len(columns) > 1 and 2 * len(numbers) > len(columns):
+        return f"{frame} has numbers for column names: {', '.join(numbers[:3])}"
+    return None
+
+
+def read_frames(cell: CellInfo, decision: Decision, context: Context) -> list[str]:
+    """The frames that a read of ``cell`` made: the one that the cell defines under the name of the file, or else each frame that it defines."""
+    defined = [name for name in cell.defs if name in context.frames]
+    files = {call.target for call in decision.calls if call.target}
+    return [name for name in defined if name in files] or defined
+
+
+def read_looks_wrong(cell: CellInfo, decision: Decision, context: Context) -> str | None:
+    """What says that a read of ``cell`` went wrong, from the frame that it made (``frame_looks_misread``); None when it looks right."""
+    for frame in read_frames(cell, decision, context):
+        sign = frame_looks_misread(frame, list(context.frames[frame]))
+        if sign:
+            return sign
+    return None
+
+
+def misread_frames(cells: list[CellInfo], context: Context) -> set[str]:
+    """The frames that a read of the notebook made, and that look wrong: their columns are not the file's."""
+    found = set()
+    for cell in cells:
+        for decision in cell.decisions:
+            if reads_a_file(decision):
+                found.update(frame for frame in read_frames(cell, decision, context) if frame_looks_misread(frame, list(context.frames[frame])))
+    return found
+
 
 def _without_labels(text: str) -> str:
     return _LABEL.sub("[]", text)
 
 
 def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[dict]], dismissed: set[str]) -> list[Candidate]:
-    """Questions tied to gaps: open assumptions, unexplored columns and thin column groups."""
+    """Questions tied to gaps: open assumptions, unexplored columns and thin column groups.
+
+    The open assumptions of a file's read, such as the header of read_csv,
+    come last, after every other question, while the frame that the read
+    made looks right: they come first when it looks wrong
+    (``read_looks_wrong``, design iteration 1.92). Of the other open
+    assumptions that score the same, those of the newest cells come first.
+    """
     steps = []
+    # The questions about a read whose frame looks right.
+    last = []
     # The questions that a branch of each cell answers. A label is an execution
     # count, so a branch that answers "... of [4]?" answers "... of [10]?" once
     # its cell has run again.
     branched = {(cell.branch_of, _without_labels(cell.title)) for cell in cells if cell.branch_of}
-    for cell in cells:
+    # The newest cell first: of two choices that the rules score the same,
+    # the one of the step that the analysis took last leads, so the list
+    # moves on with the analysis (design iteration 1.92). The sort below
+    # keeps this order between equals.
+    for cell in reversed(cells):
         for decision in cell.decisions:
             if not decision.is_open:
                 continue
@@ -907,15 +995,25 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             if (cell.id, _without_labels(text)) in branched:
                 continue
             code = sweep_code(cell, decision, context) if decision.provenance == "defaulted" else alternative_code(cell, decision)
-            steps.append(
+            reasons = [f"Open assumption in {cell.label}"]
+            prior = 0.6
+            read = reads_a_file(decision)
+            wrong = read_looks_wrong(cell, decision, context) if read else None
+            if wrong:
+                reasons.insert(0, wrong)
+                prior = 0.75
+            elif read:
+                reasons.append(f"how {cell.label} reads a file, whose frame looks right")
+                prior = 0.3
+            (last if read and not wrong else steps).append(
                 Candidate(
                     id=question_id(text),
                     text=text,
                     type="model",
                     origin="template",
                     variables=(),
-                    prior=0.6,
-                    reasons=[f"Open assumption in {cell.label}"],
+                    prior=prior,
+                    reasons=reasons,
                     placement=Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel"),
                     code=code,
                 )
@@ -947,9 +1045,12 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             )
         )
     measures = {measure for stubs in numbered.values() for measure, members in stubs.items() if outcome in members}
+    # The columns of a frame that a read got wrong are not the file's: the
+    # question about the read comes first, and none about them.
+    misread = misread_frames(cells, context)
     if outcome:
         for frame, columns in context.frames.items():
-            if len(columns) > 60:
+            if len(columns) > 60 or frame in misread:
                 continue
             stubs = numbered.get(frame, {})
             for column, tag in columns.items():
@@ -1032,15 +1133,18 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
         )
     asked = {question.text for question in context.asked}
     steps = [step for step in steps if step.text not in dismissed and step.text not in asked]
-    for step in steps:
+    last = [step for step in last if step.text not in dismissed and step.text not in asked]
+    for step in steps + last:
         score_candidate(step, [], context)
     steps.sort(key=lambda s: s.probability or 0.0, reverse=True)
-    # The best question of each type first, so the short list covers several kinds of gap.
+    last.sort(key=lambda s: s.probability or 0.0, reverse=True)
+    # The best question of each type first, so the short list covers several
+    # kinds of gap; a read that looks right takes no type's first place.
     first, rest, seen = [], [], set()
     for step in steps:
         (rest if step.type in seen else first).append(step)
         seen.add(step.type)
-    return first + rest
+    return first + rest + last
 
 
 def _association_plan(source: str, column: str, frame: str, context: Context) -> str | None:

@@ -453,27 +453,248 @@ class ModelCall:
     fit_target: str | None
 
 
+def _formula_call(source: str, node: ast.AST, target: str | None = None) -> ModelCall | None:
+    """The parts of ``node`` when it is a call of a model with a formula as its first argument: ``smf.ols("y ~ x", data=d)``."""
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        return None
+    first = node.args[0] if node.args else None
+    if not (isinstance(first, ast.Constant) and isinstance(first.value, str) and "~" in first.value):
+        return None
+    keywords = {kw.arg: ast.get_source_segment(source, kw.value) for kw in node.keywords if kw.arg}
+    data = keywords.pop("data", None)
+    if data is None and len(node.args) > 1:
+        data = ast.get_source_segment(source, node.args[1])
+    return ModelCall(node.func.attr, first.value, data, keywords, target)
+
+
 def model_call(source: str) -> ModelCall | None:
     """The first formula model call in the cell, and the variable its fit is assigned to."""
     tree = _parse(source)
     if tree is None:
         return None
     for statement in tree.body:
+        target = None
+        if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
+            target = statement.targets[0].id
         for node in ast.walk(statement):
-            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-                continue
-            first = node.args[0] if node.args else None
-            if not (isinstance(first, ast.Constant) and isinstance(first.value, str) and "~" in first.value):
-                continue
-            keywords = {kw.arg: ast.get_source_segment(source, kw.value) for kw in node.keywords if kw.arg}
-            data = keywords.pop("data", None)
-            if data is None and len(node.args) > 1:
-                data = ast.get_source_segment(source, node.args[1])
-            target = None
-            if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
-                target = statement.targets[0].id
-            return ModelCall(node.func.attr, first.value, data, keywords, target)
+            call = _formula_call(source, node, target)
+            if call is not None:
+                return call
     return None
+
+
+@dataclass
+class FittedModel:
+    """A formula model that a cell fits at its top level, in one statement or in two.
+
+    ``fit = smf.ols("y ~ x", data=d).fit()``, or ``model = smf.ols(...)``
+    and then ``fit = model.fit()``. Lines count from 1: ``start`` is the
+    first line of the statement that calls the model, ``end`` the last line
+    of the statement that fits it, and ``site`` is where the call names its
+    function (``call_site``).
+    """
+
+    call: ModelCall
+    fit: str
+    start: int
+    end: int
+    site: Site
+
+
+def fitted_models(source: str) -> list[FittedModel]:
+    """The formula models that a cell fits and assigns at its top level, in order.
+
+    A model fitted inside a loop or a function, or whose fit is not assigned
+    to a name, is not listed: the base sweep of the home energy demo fits
+    one model per base temperature.
+    """
+    tree = _parse(source)
+    if tree is None:
+        return []
+    found: list[FittedModel] = []
+    # The models assigned before their fit: model = smf.ols(...).
+    unfitted: dict[str, tuple[ModelCall, int, Site]] = {}
+    for statement in tree.body:
+        if not (isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name)):
+            continue
+        name, value = statement.targets[0].id, statement.value
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute) and value.func.attr == "fit":
+            receiver = value.func.value
+            if isinstance(receiver, ast.Name) and receiver.id in unfitted:
+                call, start, site = unfitted[receiver.id]
+                found.append(FittedModel(ModelCall(call.function, call.formula, call.data, call.keywords, name), name, start, statement.end_lineno or statement.lineno, site))
+                continue
+            call = _formula_call(source, receiver, name)
+            if call is not None and isinstance(receiver, ast.Call):
+                found.append(FittedModel(call, name, statement.lineno, statement.end_lineno or statement.lineno, call_site(receiver)))
+            continue
+        call = _formula_call(source, value, name)
+        if call is not None and isinstance(value, ast.Call):
+            unfitted[name] = (call, statement.lineno, call_site(value))
+    return found
+
+
+def deleted_names(source: str) -> set[str]:
+    """The names that a cell deletes at its top level: ``del _data, _fit``."""
+    tree = _parse(source)
+    if tree is None:
+        return set()
+    return {
+        node.id
+        for statement in tree.body
+        if isinstance(statement, ast.Delete)
+        for target in statement.targets
+        for node in ast.walk(target)
+        if isinstance(node, ast.Name)
+    }
+
+
+# Model formulas: the terms of the right side, and the column each factor
+# reads, for the template that crosses a model's exposure with a column
+# (design iteration 1.94).
+
+
+def _split_top(text: str, separators: str) -> list[str] | None:
+    """``text`` split at each of ``separators`` that stands outside brackets and quotes, each part stripped; None when a bracket or a quote does not close."""
+    parts, depth, quote, start = [], 0, "", 0
+    for index, char in enumerate(text):
+        if quote:
+            if char == quote:
+                quote = ""
+        elif char in "'\"":
+            quote = char
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif depth == 0 and char in separators:
+            parts.append(text[start:index].strip())
+            start = index + 1
+    if depth or quote:
+        return None
+    parts.append(text[start:].strip())
+    return parts
+
+
+def formula_terms(formula: str) -> tuple[str, list[str]] | None:
+    """The left side of a formula and the terms of its right side: ``("pain", ["arm * week", "age"])`` for ``"pain ~ arm * week + age"``.
+
+    None for a formula without one ``~``, or with an empty term.
+    """
+    sides = _split_top(formula, "~")
+    if sides is None or len(sides) != 2 or not sides[0]:
+        return None
+    terms = _split_top(sides[1], "+")
+    if terms is None or not all(terms):
+        return None
+    return sides[0], terms
+
+
+def term_factors(term: str) -> list[str] | None:
+    """The factors that a term crosses: ``["arm", "C(site)"]`` for ``"arm * C(site)"`` and for ``"arm:C(site)"``.
+
+    None for a term that the templates do not edit: a power, a nesting, or a
+    term that removes another with ``-``.
+    """
+    factors = _split_top(term, "*:")
+    if factors is None or not all(factors):
+        return None
+    for factor in factors:
+        if (_split_top(factor, "/-|%^") or ["", ""])[1:]:
+            return None
+    return factors
+
+
+def factor_column(factor: str) -> str | None:
+    """The column that a factor reads as it is: "sex" for ``sex``, ``C(sex)`` and ``C(sex, Treatment(1))``, and "x y" for ``Q("x y")``.
+
+    None for a factor that transforms its column, such as ``np.log(dose)``.
+    """
+    try:
+        node = ast.parse(factor.strip(), mode="eval").body
+    except SyntaxError:
+        return None
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "C" and node.args:
+        node = node.args[0]
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "Q" and len(node.args) == 1:
+        argument = node.args[0]
+        if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+            return argument.value
+    return None
+
+
+@dataclass
+class Crossing:
+    """A formula whose exposure is crossed with a column: the new formula, the exposure's column and the outcome.
+
+    ``modifier`` is the column as the cross writes it, such as ``C(sex)``.
+    ``added`` says that the column was not in the formula, and ``crossed``
+    that the formula crossed the two already, and is the same.
+    """
+
+    formula: str
+    exposure: str
+    outcome: str
+    modifier: str
+    added: bool
+    crossed: bool
+
+
+def cross_exposure(formula: str, column: str, levels: bool) -> Crossing | None:
+    """The formula with its exposure crossed with ``column``, a column of levels when ``levels``.
+
+    The exposure is the first factor of the first term of the right side,
+    after an intercept term: ``qsmk`` in ``wt82_71 ~ qsmk + C(sex) + age``,
+    and ``treatment_arm`` in ``pain_score ~ treatment_arm * month + age``.
+    An exposure that stands alone is crossed where it is, and the column's
+    own terms leave: ``wt82_71 ~ qsmk * C(sex) + age``. Otherwise the cross
+    goes at the end: ``pain_score ~ treatment_arm * month + age +
+    treatment_arm * C(site)``. A column of levels gets ``C()``, unless the
+    formula writes it without ``C()`` in a term with another column, whose
+    text the cross keeps. None when the column is the exposure or the
+    outcome, when a term is one that the templates do not edit, or when the
+    formula writes the column two ways.
+    """
+    parts = formula_terms(formula)
+    if parts is None:
+        return None
+    left, terms = parts
+    factors = [term_factors(term) for term in terms]
+    first = next((index for index, term in enumerate(terms) if term not in ("0", "1")), None)
+    if first is None or any(found is None for found in factors):
+        return None
+    read = [found or [] for found in factors]
+    exposure_factor = read[first][0]
+    exposure = factor_column(exposure_factor)
+    outcome = factor_column(left) or left
+    if exposure is None or column in (exposure, outcome):
+        return None
+    written = {factor for found in read for factor in found if factor_column(factor) == column}
+    if len(written) > 1:
+        return None
+    if any(exposure_factor in found and written & set(found) for found in read):
+        return Crossing(formula, exposure, outcome, next(iter(written)), added=False, crossed=True)
+    own = {index for index, found in enumerate(read) if len(found) == 1 and found[0] in written}
+    if written:
+        modifier = next(iter(written))
+        with_others = any(written & set(found) for index, found in enumerate(read) if index not in own)
+        if levels and not modifier.startswith("C(") and not with_others:
+            modifier = f"C({modifier})"
+    else:
+        modifier = f"C({term(column)})" if levels else term(column)
+    cross = f"{exposure_factor} * {modifier}"
+    kept = []
+    for index, text in enumerate(terms):
+        if index in own:
+            continue
+        kept.append(cross if index == first and read[first] == [exposure_factor] else text)
+    if cross not in kept:
+        kept.append(cross)
+    return Crossing(f"{left} ~ {' + '.join(kept)}", exposure, outcome, modifier, added=not written, crossed=False)
 
 
 def defined_names(source: str) -> list[str]:

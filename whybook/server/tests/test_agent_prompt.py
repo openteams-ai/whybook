@@ -63,8 +63,9 @@ def test_the_rules_keep_the_prompt_short():
     # Without the privacy part: 4,387 characters before these rules, 5,022 with those of
     # the first pass, and 5,083 with those of the second, which said the tools, the
     # branches and the modules in fewer words; 5,112 with the kernel's language
-    # and how it loads a package (languages.py).
-    assert len(request().system_prompt()) < 5150
+    # and how it loads a package (languages.py); 5,605 with the rows picked in
+    # a plot, the units and a codebook (design iteration 1.95).
+    assert len(request().system_prompt()) < 5650
 
 
 async def test_the_rules_reach_the_model_through_the_claude_agent_sdk(monkeypatch):

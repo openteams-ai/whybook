@@ -369,6 +369,8 @@ def test_the_branches_of_explore_are_told_to_keep_their_names_apart():
     code = agent.TOOLS["explore"]["schema"]["properties"]["branches"]["items"]["properties"]["code"]["description"]
     assert "unique to this branch" in code
     assert "never assigns or deletes a name that the notebook or another branch defines" in code
+    # An import under its usual name binds the same module again: a branch may write it.
+    assert "except that it imports a module under its usual name" in code
 
 
 def test_the_prompt_says_when_to_write_a_module():

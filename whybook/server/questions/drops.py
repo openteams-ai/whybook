@@ -12,7 +12,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from .. import codegen
 from . import reshape, starts, templates
@@ -175,6 +175,112 @@ def _split_options(column: Variable, profile: Profile, cell: CellInfo, context: 
     return options, note
 
 
+# A column of more levels than this asks no question about the effect in each of them.
+MAX_MODIFIER_LEVELS = 12
+
+
+def _interaction_option(column: Variable, cell: CellInfo, context: Context) -> Candidate | None:
+    """Does the effect of the model's exposure differ by the column dropped on its cell? (design iteration 1.94)
+
+    sex dropped on an adjusted model of wt82_71 on qsmk offered six
+    questions, and none about effect modification. The model is the last
+    that the cell fits from a formula: an IPW cell fits the propensity of
+    qsmk first, then the weighted model of wt82_71. Its exposure is the
+    first column of the formula's right side (``codegen.cross_exposure``).
+    The branch runs the cell's code up to the fit with the two crossed, its
+    names given a suffix, and ``whybook.effect_by`` shows the interaction
+    and the effect in each level. A model that crosses the two already is
+    read as it is, in a new cell. A unit's id or a time index is no
+    modifier here: a model of a trajectory crosses its exposure with time
+    already.
+    """
+    if not cell.formulas or column.kind not in ("numeric", "binary", "categorical") or templates.is_unit(column, context) or templates.is_time(column):
+        return None
+    levels = column.kind in ("categorical", "binary")
+    if levels and column.unique is not None and column.unique > MAX_MODIFIER_LEVELS:
+        return None
+    fitted = codegen.fitted_models(cell.source)
+    if not fitted:
+        return None
+    model = fitted[-1]
+    crossing = codegen.cross_exposure(model.call.formula, column.label, levels)
+    if crossing is None:
+        return None
+    exposure, label = crossing.exposure, column.label
+
+    def show(fit: str) -> str:
+        return f"whybook.effect_by({fit}, {codegen.literal(exposure)}, {codegen.literal(label)})"
+
+    text = f"Does the effect of {exposure} on {crossing.outcome} differ by {label}?"
+    if crossing.crossed and model.fit not in codegen.deleted_names(cell.source):
+        after = Placement("new", cell.id, f"new cell after {cell.label}")
+        code = "\n".join([codegen.comment(f"{text} The model of {cell.label} crosses them already."), "import whybook", "", show(model.fit)])
+        return _option(text, "causal", 0.75, after, code, f"Reads the interaction in {cell.label}", column.name, cell.id)
+    branch = Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel")
+    code = _crossed_branch(column, cell, model, crossing, context, text, show)
+    if code is None:
+        return _option(text, "causal", 0.75, branch, None, "AI writes the branch", column.name, cell.id)
+    # whybook.effect_by takes a number of more than two values at its quartiles.
+    where = "in each level" if crossing.modifier.startswith("C(") or (column.unique is not None and column.unique <= 2) else "at its quartiles"
+    effect = f"Adds {label} to the model, crossed with {exposure}" if crossing.added else f"Refits with {exposure} × {label}: the effect {where}"
+    return _option(text, "causal", 0.75, branch, code, effect, column.name, cell.id)
+
+
+def _crossed_branch(
+    column: Variable,
+    cell: CellInfo,
+    model: codegen.FittedModel,
+    crossing: codegen.Crossing,
+    context: Context,
+    text: str,
+    show: Callable[[str], str],
+) -> str | None:
+    """The code of the branch: the cell up to its fit, with the new formula, its names given a suffix, then ``whybook.effect_by``.
+
+    A column new to the model comes from the model's data when that data
+    holds it: a frame of the kernel's listing that has it, a frame of the
+    listing joined with it on the unit first, or data whose columns the
+    cell names, as ``nhefs[_covars]`` with "sex" among ``_covars``. Without
+    any of these, a model writes the branch.
+    """
+    lines = cell.source.split("\n")[: model.end]
+    kept = codegen.replace_string("\n".join(lines), model.call.formula, crossing.formula)
+    if kept is None:
+        return None
+    joined = None
+    if crossing.added:
+        data = model.call.data or ""
+        if data in context.frames:
+            if column.label not in context.frames[data]:
+                joined = codegen.plan_data(data, [column.label], context.frames, context.unit, target=codegen.temporary(model.fit, "data"))
+                if joined is None:
+                    return None
+        elif column.label not in {name for _, name in cell.columns}:
+            return None
+    if joined is not None:
+        # The model reads the joined frame, passed as data= or as the second argument.
+        at = [model.site]
+        swapped = codegen.replace_keyword_value(kept, model.call.function, "data", joined.name, at) or codegen.replace_argument(
+            kept, model.call.function, model.call.data or "", joined.name, at
+        )
+        if swapped is None:
+            return None
+        rows = swapped.split("\n")
+        rows[model.start - 1 : model.start - 1] = joined.lines
+        kept = "\n".join([*rows, f"del {joined.name}"])
+    suffix = codegen.identifier(f"by {column.label}")
+    body = codegen.rename(kept, {name: f"{name}_{suffix}" for name in codegen.defined_names(kept)})
+    if body is None:
+        return None
+    head = [codegen.comment(f"{text} {cell.label} again, with {crossing.exposure} crossed with {column.label}."), "import whybook"]
+    code = "\n".join(head + ([] if body.lstrip().startswith(("import ", "from ")) else [""]) + [body.rstrip(), show(f"{model.fit}_{suffix}")])
+    try:
+        ast.parse(code)
+    except SyntaxError:
+        return None
+    return code
+
+
 def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tuple[list[Candidate], str | None]:
     after = Placement("new", cell.id, f"new cell after {cell.label}")
     branch = Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel")
@@ -222,6 +328,9 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tup
             lines.append(f"{result}.summary().tables[1]")
             code = "\n".join(lines)
         options.append(_option(f"Is {column.label} associated with {outcome} here{adjust}?", "association", 0.7, after, code, "Separate test next to this cell", column.name, cell.id, uses=uses))
+    interaction = _interaction_option(column, cell, context)
+    if interaction is not None:
+        options.append(interaction)
     model = cell.model
     if model is not None and column.label not in model.formula:
         code = None

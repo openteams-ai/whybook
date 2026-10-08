@@ -299,7 +299,7 @@ test.describe('With answers of one cell', () => {
       page.locator('.jp-Epi-variable[data-variable="adults"]'),
       cell('arms')
     );
-    const own = page.locator('.jp-Epi-popover .jp-Epi-own input');
+    const own = page.locator('.jp-Epi-popover .jp-Epi-own textarea');
     await expect(own).toBeEnabled({ timeout: 30000 });
     await own.fill('How many arms do the adults have?');
     await own.press('Enter');

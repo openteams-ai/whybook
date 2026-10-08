@@ -220,7 +220,7 @@ test('asks by voice with the browser on this device: the words fill the box, and
   });
   await openAndRun(page, `${tmpPath}/spoken.ipynb`);
   const voice = box(page).locator('.jp-Epi-voice');
-  const input = box(page).locator('input');
+  const input = box(page).locator('textarea');
   // Off by default: grey, and the tooltip says so.
   await expect(voice).toHaveAttribute('data-state', 'off');
   await expect(voice).toHaveAttribute('aria-disabled', 'true');
@@ -426,7 +426,7 @@ test('asks by voice with Moonshine in the Jupyter server: the recording goes as 
   await page.locator('.lm-TabBar-tab', { hasText: 'moonshine.ipynb' }).click();
 
   const voice = box(page).locator('.jp-Epi-voice');
-  const input = box(page).locator('input');
+  const input = box(page).locator('textarea');
   await expect(voice).toHaveAttribute('data-state', 'ready');
   await expect(voice).toHaveAttribute(
     'title',

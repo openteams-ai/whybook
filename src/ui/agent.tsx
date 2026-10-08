@@ -8,9 +8,8 @@ import type { EpiModel } from '../model/epimodel';
 import type { IGuardHeld } from '../model/guard';
 import { heldWords } from '../model/guard';
 import { splitLabels } from '../model/labels';
+import { followUpOf } from '../model/own';
 import { runWhen } from '../model/runs';
-import type { QuestionType } from '../tokens';
-import { QUESTION_TYPES } from '../tokens';
 import {
   AITag,
   CloseButton,
@@ -197,13 +196,14 @@ export function AgentRunView(props: {
       {run.followUp.length > 0 && !busy && (
         <div className="jp-Epi-agentrun-followups">
           {run.followUp.map(item => {
-            const { type, text } = followUp(item);
+            const { type, text } = followUpOf(item);
             return (
               <button
                 key={item}
                 className="jp-Epi-agentrun-followup"
                 title="Ask this, as a typed question"
-                onClick={() => void model.askOwn(text, 'notebook')}
+                // The question keeps the type that its button shows.
+                onClick={() => void model.askOwn(text, 'notebook', { type })}
               >
                 <TypeBadge type={type} />
                 <span>{text}</span>
@@ -554,15 +554,4 @@ function LinkedText(props: {
       })}
     </span>
   );
-}
-
-/** "association: Does sleep relate to pain?" as its type and its question. */
-function followUp(item: string): { type: QuestionType; text: string } {
-  const [head, ...rest] = item.split(':');
-  const type = QUESTION_TYPES.find(
-    known => known.id === head.trim().toLowerCase()
-  )?.id;
-  return type && rest.length
-    ? { type, text: rest.join(':').trim() }
-    : { type: 'descriptive', text: item.trim() };
 }

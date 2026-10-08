@@ -298,10 +298,10 @@ test('opens a notebook in the Whybook view', async ({ page, tmpPath }) => {
   const voice = page.locator('#epi-exploration .jp-Epi-ownbox .jp-Epi-voice');
   await expect(voice).toHaveAttribute('aria-disabled', 'true');
   await expect(voice).toHaveAttribute('title', /^Ask by voice: off\./);
-  // The microphone sits in the middle of the field, with no line box under
-  // it, at 14 px.
+  // The microphone sits in the middle of the field's first line, with no
+  // line box under it, at 14 px.
   const place = await voice.evaluate(button => {
-    const field = button.parentElement!.querySelector('input')!;
+    const field = button.parentElement!.querySelector('textarea')!;
     const glyph = button.querySelector('svg')!.getBoundingClientRect();
     const box = field.getBoundingClientRect();
     return {
@@ -618,7 +618,21 @@ test('reads nothing from a new kernel until a cell runs, and shows no progress c
   // The page's timers run on a clock that the test controls: it runs at the
   // speed of the wall clock until the test advances it.
   await page.clock.install();
-  await page.reload();
+  // JupyterLab hides its shell from the moment the theme loads until the
+  // next animation frame. On the test's clock that frame runs after every
+  // timer that the start queued before it, up to a second later, and the
+  // launcher can open in between. A launcher that opens in a hidden shell
+  // cannot take the focus, so it never becomes the current tab that
+  // galata's wait after a reload looks for. The test waits for the shell to
+  // show instead, and then brings the launcher to the front as galata does.
+  await page.reload({ waitForIsReady: false });
+  await page.waitForFunction(
+    () =>
+      !!document.body.dataset.jpThemeName &&
+      !document.getElementById('jupyterlab-splash') &&
+      !document.getElementById('main')?.classList.contains('lm-mod-hidden')
+  );
+  await page.activity.activateTab('Launcher');
   const file = `${tmpPath}/fresh.ipynb`;
   await newNotebook(page, file, ['x = 41\ny = x + 1']);
   await openInWhybook(page, file);
@@ -1580,7 +1594,7 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
   // With AI off for cells, a typed question cannot be asked.
   await select('cells').selectOption('off');
   await page.locator('.lm-TabBar-tab', { hasText: 'models.ipynb' }).click();
-  await expect(page.locator('.jp-Epi-own input').first()).toHaveAttribute(
+  await expect(page.locator('.jp-Epi-own textarea').first()).toHaveAttribute(
     'placeholder',
     'AI is off for cells and answers in the settings'
   );
@@ -1643,7 +1657,7 @@ test('greys the questions that need AI when no model answers, says how to set on
   await expect(option).toHaveAttribute('title', `Needs an AI model: ${reason}`);
   await option.click({ force: true });
   await expect(page.locator('.jp-Epi-strip')).toHaveCount(0);
-  await expect(box.locator('.jp-Epi-ownbox input')).toBeDisabled();
+  await expect(box.locator('.jp-Epi-ownbox textarea')).toBeDisabled();
   await box.locator('.jp-Epi-close').click();
 
   // The AI panel: the chosen model's name fills its select, and the reason
@@ -1791,7 +1805,7 @@ test('asks a question typed beside the questions offered', async ({
   await page.locator('.jp-Epi-views [data-value="map"]').click();
   await page.locator('.jp-Epi-map-cell').first().click();
   const box = popover(page).locator('.jp-Epi-ownbox');
-  const field = box.locator('input');
+  const field = box.locator('textarea');
   // The box says where the answer goes, from the question's words.
   await field.fill('What if x were 22?');
   await expect(box.locator('.jp-Epi-own-meta')).toContainText(
@@ -1851,7 +1865,7 @@ test('asks a question typed beside the questions offered', async ({
   );
 
   // A follow-up of one's own, under the ones the answer offers.
-  const followUp = answer.locator('.jp-Epi-followups .jp-Epi-own input');
+  const followUp = answer.locator('.jp-Epi-followups .jp-Epi-own textarea');
   await followUp.fill('What is three times x?');
   await followUp.press('Enter');
   await expect(
@@ -1859,7 +1873,7 @@ test('asks a question typed beside the questions offered', async ({
   ).toHaveText('63', { timeout: 60000 });
 
   // Worth asking next: a question about the notebook goes at its end.
-  const next = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const next = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await next.fill('What is four times x?');
   await next.press('Enter');
   await expect(
@@ -1882,7 +1896,7 @@ test('asks a question typed beside the questions offered', async ({
     card('x = 21'),
     { alt: true }
   );
-  const branch = popover(page).locator('.jp-Epi-own input');
+  const branch = popover(page).locator('.jp-Epi-own textarea');
   await expect(branch).toHaveAttribute(
     'placeholder',
     'Your own question, as one more branch'
@@ -1901,14 +1915,14 @@ test('asks a question typed beside the questions offered', async ({
   // uncheck() would check the box at once.
   await parallel.click();
   await expect(parallel).not.toBeChecked();
-  await expect(popover(page).locator('.jp-Epi-own input')).toHaveAttribute(
+  await expect(popover(page).locator('.jp-Epi-own textarea')).toHaveAttribute(
     'placeholder',
     'Your own question'
   );
 
   // Shift+Enter asks for a branch, as Shift+drop does.
   const count = asked.length;
-  const own = popover(page).locator('.jp-Epi-own input');
+  const own = popover(page).locator('.jp-Epi-own textarea');
   await own.fill('Is x large?');
   await own.press('Shift+Enter');
   await expect.poll(() => asked.length).toBe(count + 1);
@@ -1988,11 +2002,11 @@ test('keeps what the AI wrote about a cell it edits in place, says when the edit
     await page.locator('.jp-Epi-views [data-value="map"]').click();
     await page.locator('.jp-Epi-map-cell').first().click();
     const box = popover(page).locator('.jp-Epi-ownbox');
-    await box.locator('input').fill(question);
+    await box.locator('textarea').fill(question);
     await expect(box.locator('.jp-Epi-own-meta')).toContainText(
       /edit \[\d+\] in place/
     );
-    await box.locator('input').press('Enter');
+    await box.locator('textarea').press('Enter');
     await page.locator('.jp-Epi-views [data-value="bench"]').click();
   };
   await ask('Add half of x');
@@ -2091,7 +2105,7 @@ test('says which branches of a parallel exploration failed, and keeps the done o
   );
   // The offered question needs AI, and the AI fails to write it; a typed
   // question joins the checklist, and the AI writes it.
-  const own = popover(page).locator('.jp-Epi-own input');
+  const own = popover(page).locator('.jp-Epi-own textarea');
   await own.fill('Is x even?');
   await own.press('Enter');
   await expect(
@@ -2212,14 +2226,14 @@ test('answers a question in the right sidebar, with what the AI is doing', async
   await page.locator('.jp-Epi-views [data-value="map"]').click();
   await page.locator('.jp-Epi-map-cell').first().click();
   const box = popover(page).locator('.jp-Epi-ownbox');
-  await box.locator('input').fill('What is twice x?');
+  await box.locator('textarea').fill('What is twice x?');
   await box.locator('.jp-Epi-split-toggle').click();
   await page
     .locator('.jp-Epi-placemenu button', {
       hasText: 'A preview in the sidebar'
     })
     .click();
-  await box.locator('input').press('Enter');
+  await box.locator('textarea').press('Enter');
 
   // The answer opens under the tabs of the right panel, where it is seen,
   // at the height of its content (design iteration 1.77).
@@ -2313,7 +2327,7 @@ test('asks for a guess while a typed question runs, counts it, and offers no que
     // A typed association question: the AI writes its cell while the test waits.
     await page.locator('.jp-Epi-views [data-value="map"]').click();
     await page.locator('.jp-Epi-map-cell').first().click();
-    const field = popover(page).locator('.jp-Epi-ownbox input');
+    const field = popover(page).locator('.jp-Epi-ownbox textarea');
     await field.fill('Is x associated with y?');
     await field.press('Enter');
     await page.locator('.jp-Epi-views [data-value="bench"]').click();
@@ -2371,7 +2385,9 @@ test('asks for a guess while a typed question runs, counts it, and offers no que
     await page.locator('.jp-Epi-map-cell').first().click();
     await expect(popover(page).locator('.jp-Epi-offered-off')).toBeVisible();
     await expect(popover(page).locator('.jp-Epi-option')).toHaveCount(0);
-    await expect(popover(page).locator('.jp-Epi-ownbox input')).toBeVisible();
+    await expect(
+      popover(page).locator('.jp-Epi-ownbox textarea')
+    ).toBeVisible();
   } finally {
     // Back to the default. Galata mocks the settings of each test, so the next test starts from the defaults anyway.
     await settings('guessFirst', true);
@@ -2438,7 +2454,7 @@ test('shows on the map how an answer asked there goes, and counts a question onc
       await node.click();
     }
     await node.click();
-    const field = popover(page).locator('.jp-Epi-ownbox input');
+    const field = popover(page).locator('.jp-Epi-ownbox textarea');
     await field.fill(text);
     await field.press('Enter');
   };
@@ -2703,12 +2719,12 @@ test('closes the questions and the Ask menu when a click or focus goes elsewhere
   await expect(box).toBeVisible();
 
   // A click inside the questions, or in the Questions section, keeps them.
-  await box.locator('input').click();
+  await box.locator('textarea').click();
   await page.locator('.jp-Epi-questions .jp-Epi-section-head').first().click();
   await expect(popover(page)).toBeVisible();
 
   // The Ask menu closes on a click outside it, and the questions stay.
-  await box.locator('input').fill('What if x were 2?');
+  await box.locator('textarea').fill('What if x were 2?');
   await box.locator('.jp-Epi-split-toggle').click();
   const menu = page.locator('.jp-Epi-placemenu');
   await expect(menu).toBeVisible();
@@ -2793,7 +2809,7 @@ test('sorts a typed question with the model chosen for typed questions', async (
   const box = popover(page).locator('.jp-Epi-ownbox');
   const meta = box.locator('.jp-Epi-own-meta');
   // No keyword gives a type: the model does, marked as AI.
-  await box.locator('input').fill('Are these weights plausible?');
+  await box.locator('textarea').fill('Are these weights plausible?');
   await expect(meta).toContainText('Data quality');
   await expect(meta.locator('.jp-Epi-aitag').first()).toHaveAttribute(
     'title',
@@ -2818,7 +2834,7 @@ test('sorts a typed question with the model chosen for typed questions', async (
       state.epiSorted.push(args[0]);
     };
   });
-  await box.locator('input').fill('Is x related to its double?');
+  await box.locator('textarea').fill('Is x related to its double?');
   await expect(meta).toContainText('Association');
   await expect(meta.locator('.jp-Epi-aitag')).toHaveCount(0);
   await expect
@@ -3084,7 +3100,7 @@ test('answers a typed question with an agent that adds and runs cells and side e
     page.locator('.jp-Epi-variable', { hasText: 'visits' })
   ).toBeVisible({ timeout: 60000 });
 
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('Does pain differ by arm?');
   await own.press('Enter');
   const run = page.locator('.jp-Epi-agentrun');
@@ -3278,7 +3294,7 @@ test('lets the agent write a module next to the notebook, marked as written by A
     }
   );
 
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('What is x scaled by the factor?');
   await own.press('Enter');
   const run = page.locator('.jp-Epi-agentrun');
@@ -3600,7 +3616,7 @@ test("shows what a notebook's answers cost behind a setting, the time of a new a
   await expect(card('Twice x').locator('.jp-Epi-textoutput')).toHaveText('42', {
     timeout: 60000
   });
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('What is x times three?');
   await own.press('Enter');
   await expect(
@@ -3915,7 +3931,7 @@ test("holds an answer at the notebook's cap until Go on raises the cap by $1, an
   );
 
   // The question does not start, and its strip says why.
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('What is x?');
   await own.press('Enter');
   const held = page.locator('.jp-Epi-heldstrip');
@@ -4031,7 +4047,7 @@ test('keeps the data on this machine by the setting, and shows the lock that the
       .model.settings;
     settings.set('answers', 'cell');
   });
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill('What is twice x?');
   await own.press('Enter');
   // The view reads a kernel that it saw start before its first request to a
@@ -4885,7 +4901,7 @@ test('questions the text of a markdown cell, and words selected in it', async ({
   await summary.locator('button', { hasText: 'Question this text' }).click();
   // The numbers of the text, each with the outputs that show it.
   await expect(popover(page)).toContainText('[5] shows -0.318');
-  await expect(popover(page)).toContainText('[10] shows 0.26');
+  await expect(popover(page)).toContainText('[9] shows 0.26');
   await expect(popover(page)).toContainText('Not checked: 12.');
   const recompute = popover(page).locator('.jp-Epi-option', {
     hasText: 'Can each number in this text be recomputed from the data?'
@@ -5524,7 +5540,10 @@ test.describe('the pain diary demo', () => {
 
     // Alt+drop: the question that needs AI stays in the checklist,
     // unchecked. It was checked, counted in "Start 3 branches", and
-    // started as a branch that failed.
+    // started as a branch that failed. The three that are checked run
+    // without a model, and the first asks whether the arm's effect differs
+    // by IL6 (design iteration 1.94): its branch joins IL6 to the model's
+    // frame on the patient.
     await page.locator('.jp-Epi-variable', { hasText: 'olink' }).click();
     await page.locator('.jp-Epi-contents .jp-Epi-search input').fill('IL6');
     const model = page.locator('.jp-Epi-cell', { hasText: 'Mixed model' });
@@ -5542,7 +5561,12 @@ test.describe('the pain diary demo', () => {
     await expect(mediate).toHaveAttribute('aria-pressed', 'false');
     await expect(
       popover(page).locator('.jp-Epi-parallel-foot button')
-    ).toHaveText('Start 2 branches');
+    ).toHaveText('Start 3 branches');
+    const interaction = popover(page).locator('.jp-Epi-option', {
+      hasText: 'Does the effect of treatment_arm on pain_score differ by IL6?'
+    });
+    await expect(interaction).toHaveAttribute('aria-pressed', 'true');
+    await expect(interaction).not.toHaveAttribute('aria-disabled', 'true');
     const checklist = await kinds(
       popover(page).locator('.jp-Epi-option, .jp-Epi-needs-line')
     );

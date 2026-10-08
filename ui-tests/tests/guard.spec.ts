@@ -91,7 +91,7 @@ function ndjson(events: object[]): string {
 }
 
 async function ask(page: IJupyterLabPageFixture): Promise<void> {
-  const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+  const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
   await own.fill(QUESTION);
   await own.press('Enter');
 }

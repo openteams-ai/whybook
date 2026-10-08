@@ -132,7 +132,8 @@ def test_masking_writes_each_flagged_part_as_its_kind():
         ('import os\nos.system("pkill -f jupyter")', "reject", "allow"),
         ("blocks = [np.ones((10_000, 10_000)) for _ in range(50)]", "ask", "ask"),
         ('requests.get("http://localhost:8888/api/sessions")', "reject", "allow"),
-        ("def broken(:\n    pass", "ask", "ask"),
+        # Code that does not compile runs no line, and goes (test_guard_unparsed.py).
+        ("def broken(:\n    pass", "allow", "allow"),
         # A copy reads its first argument and writes its second.
         ('import shutil\nshutil.copy("data/raw/pupils.csv", "/media/usb/pupils.csv")', "ask", "allow"),
         ('import glob, os\nfor path in glob.glob("output/*.png"):\n    os.remove(path)', "allow", "allow"),

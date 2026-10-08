@@ -415,7 +415,7 @@ test('asks the AI about a point of a picture, with the picture and the point', a
   );
   await expect(card.locator('.jp-Epi-imagepoint')).toBeVisible();
   // The box for a question of one's own, and one question offered.
-  await expect(popover(page).locator('.jp-Epi-ownbox input')).toBeEnabled();
+  await expect(popover(page).locator('.jp-Epi-ownbox textarea')).toBeEnabled();
   const option = popover(page).locator('.jp-Epi-option', {
     hasText: 'What does the plot show here?'
   });

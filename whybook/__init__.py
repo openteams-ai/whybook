@@ -26,6 +26,7 @@ _HELPERS = {
     "compare_frames": "explore",
     "compare_levels": "explore",
     "cross_table": "explore",
+    "effect_by": "explore",
     "icc": "explore",
     "line_up": "explore",
     "profile": "explore",

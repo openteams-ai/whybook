@@ -280,7 +280,7 @@ test.describe('the strip of a run that the analyst starts', () => {
     await toTop(page);
     await watchFlashes(page);
 
-    const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+    const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
     await own.fill(QUESTION);
     await own.press('Enter');
     const run = page.locator('.jp-Epi-bench .jp-Epi-agentrun');
@@ -314,7 +314,7 @@ test.describe('the history of runs', () => {
     await openInWhybook(page, file);
     await runAll(page);
 
-    const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+    const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
     await own.fill(QUESTION);
     await own.press('Enter');
     const run = page.locator('.jp-Epi-bench .jp-Epi-agentrun');
@@ -438,7 +438,7 @@ test.describe('the history of runs, off', () => {
     await writeNotebook(page, file);
     await openInWhybook(page, file);
     await runAll(page);
-    const own = page.locator('.jp-Epi-exploration .jp-Epi-own input');
+    const own = page.locator('.jp-Epi-exploration .jp-Epi-own textarea');
     await own.fill(QUESTION);
     await own.press('Enter');
     const run = page.locator('.jp-Epi-bench .jp-Epi-agentrun');

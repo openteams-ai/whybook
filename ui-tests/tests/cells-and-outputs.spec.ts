@@ -592,7 +592,7 @@ test('opens the menu of the Ask button from the keyboard on the place chosen, an
   await questionsSettled(page);
   const box = popover(page).locator('.jp-Epi-ownbox');
   // "What if" chooses a branch, which is not the first place of the menu.
-  await box.locator('input').fill('What if x were 2?');
+  await box.locator('textarea').fill('What if x were 2?');
   const caret = box.locator('.jp-Epi-split-toggle');
   const menu = page.locator('.jp-Epi-placemenu');
   // The places, and the exploration in parallel when there is one.

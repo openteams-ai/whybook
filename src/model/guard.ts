@@ -9,6 +9,7 @@
  * dialog (src/ui/guard.tsx). In reject mode it holds back what it flagged
  * and sends a `guard_held` event. In none mode it checks nothing.
  */
+import type { IColumn } from '../tokens';
 
 /** Ask the analyst, hold back without asking, or check nothing. */
 export type GuardMode = 'ask' | 'reject' | 'none';
@@ -157,10 +158,34 @@ export function readGuard(all: {
   };
 }
 
-/** A column of the notebook's frames, as the guard reads it: its name and its levels. */
+/**
+ * A column of the notebook's frames, as the guard reads it: its name, its
+ * levels, its tag, and the range of its numbers. The rules count a number
+ * next to the column's name as its value only when the column can hold it,
+ * so that "age 0.28" in a table of statistics is no person's age (design
+ * iteration 1.96).
+ */
 export interface IGuardColumn {
   name: string;
   levels?: string[];
+  /** The kernel's tag: `int` holds whole numbers, `bool` true and false. */
+  tag?: string;
+  min?: number;
+  max?: number;
+}
+
+/** What the guard reads of a column of the kernel's listing. A date's range is text, and stays out. */
+export function guardColumn(column: IColumn): IGuardColumn {
+  const read: IGuardColumn = {
+    name: column.label,
+    levels: column.levels?.map(String),
+    tag: column.tag
+  };
+  if (typeof column.min === 'number' && typeof column.max === 'number') {
+    read.min = column.min;
+    read.max = column.max;
+  }
+  return read;
 }
 
 /** The guard's object of a request: whybook/server/guard/review.py, Settings.from_body. */
