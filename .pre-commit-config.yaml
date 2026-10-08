@@ -1,0 +1,31 @@
+# The linters of `jlpm lint:check`, on the files of each commit, once
+# `pre-commit install` has added the git hook. Each hook runs the tool that
+# `jlpm install` put in node_modules from yarn.lock, so pre-commit downloads
+# no code, and `node` must be on the PATH of `git commit`. With the language
+# `unsupported`, pre-commit runs the entry as it is and installs nothing.
+minimum_pre_commit_version: '4.4.0'
+repos:
+  - repo: local
+    hooks:
+      - id: stylelint
+        name: stylelint
+        entry: node_modules/.bin/stylelint --fix
+        language: unsupported
+        # The files of the stylelint:check script.
+        files: ^style/.*\.css$
+      - id: prettier
+        name: prettier
+        entry: node_modules/.bin/prettier --write
+        language: unsupported
+        # The extensions of the prettier:base script; .prettierignore skips
+        # the rest, as it does on CI.
+        files: \.(ts|tsx|js|jsx|css|json|md)$
+      - id: eslint
+        name: eslint
+        # eslint.config.mjs chooses the files to lint, and ESLint skips the
+        # others without a warning.
+        entry: node_modules/.bin/eslint --fix --no-warn-ignored
+        language: unsupported
+        files: \.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json)$
+        # One process reads the types of the TypeScript project once.
+        require_serial: true

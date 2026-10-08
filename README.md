@@ -63,9 +63,12 @@ pip install --editable ".[dev,test,claude,kernel,demo,speech]"
 jupyter-builder develop . --overwrite
 jupyter server extension enable whybook
 jlpm build
+pre-commit install
 ```
 
 Run `jlpm build` again after each change to the TypeScript source, or keep `jlpm watch` running beside `jupyter lab`. The Python tests run with `pytest whybook/server/tests`, and the Jest tests with `jlpm test`. The integration tests are in `ui-tests/`, whose README has their commands.
+
+`pre-commit install` adds a git hook that runs stylelint, prettier and ESLint on the files of each commit, as `jlpm lint:check` does on every file on CI. When a linter fixes a file, the commit stops: stage the fix and commit again.
 
 ## Uninstall
 

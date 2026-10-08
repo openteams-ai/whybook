@@ -82,6 +82,8 @@ speech = [
 ]
 dev = [
     "jupyter-builder>=1.2.0",
+    # The git hook of .pre-commit-config.yaml, whose language `unsupported` came in 4.4.
+    "pre-commit>=4.4",
 ]
 # What the tests import, the demo notebook's libraries included: the demo's
 # state (whybook/server/tests/demo_state.py) runs its cells.
