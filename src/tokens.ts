@@ -602,6 +602,14 @@ export interface IAgentStepRecord {
   file?: { path: string; name: string; lines: number };
   state: 'done' | 'error';
   error?: string | null;
+  /**
+   * The first line of each error of the step's cells before their last run,
+   * by the cell's id: the agent fixed the cell in place, or removed it
+   * (design iteration 1.103).
+   */
+  failures?: Record<string, string[]>;
+  /** The cells that the agent removed after they failed. */
+  removed?: string[];
 }
 
 /** A model's summary of a data frame, with the key of the columns it read. */

@@ -117,4 +117,38 @@ describe('the kernelspec of a notebook in Whybook', () => {
     await flush();
     expect(model.dirty).toBe(false);
   });
+
+  it('leaves a notebook unchanged when only the version of its language differs', async () => {
+    // The later demo was saved with another Python than CI's: its galata test
+    // "opens the later demo ... before a run" found the notebook changed on open.
+    const model = new NotebookModel();
+    model.setMetadata('kernelspec', {
+      name: 'python3',
+      display_name: 'Python 3',
+      language: 'python'
+    });
+    model.setMetadata('language_info', { name: 'python', version: '0.9' });
+    model.dirty = false;
+    const context = {
+      model,
+      isDisposed: false,
+      ready: Promise.resolve(),
+      sessionContext: {
+        session: {
+          kernel: kernel('python3', 'Python 3 (ipykernel)', 'python')
+        },
+        kernelChanged: new Signal({}),
+        ready: Promise.resolve()
+      }
+    };
+    followKernel(
+      context as unknown as DocumentRegistry.IContext<INotebookModel>
+    );
+    await flush();
+    expect(model.dirty).toBe(false);
+    expect(model.getMetadata('language_info')).toEqual({
+      name: 'python',
+      version: '0.9'
+    });
+  });
 });

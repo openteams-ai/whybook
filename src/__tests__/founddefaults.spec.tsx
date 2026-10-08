@@ -156,6 +156,82 @@ describe('the defaults that a model found', () => {
     ]);
   });
 
+  it('make one chip of the same default of functions of the same name, as the kernel does for its own decisions', () => {
+    // [22] of the NHEFS video: the intervals of a fit and of two of its
+    // contrasts, each at alpha 0.05 (design iteration 1.102).
+    const fitInterval: ISignature = {
+      function:
+        'statsmodels.regression.linear_model.RegressionResults.conf_int',
+      name: 'RegressionResults.conf_int',
+      module: 'statsmodels.regression.linear_model',
+      library: 'statsmodels',
+      version: '0.15.0',
+      params: [{ name: 'alpha', default: '0.05' }],
+      calls: [{ line: 9, col: 18, target: null, defaulted: ['alpha'] }]
+    };
+    const testInterval: ISignature = {
+      ...fitInterval,
+      function: 'statsmodels.stats.contrast.ContrastResults.conf_int',
+      name: 'ContrastResults.conf_int',
+      module: 'statsmodels.stats.contrast',
+      calls: [
+        { line: 12, col: 30, target: null, defaulted: ['alpha'] },
+        { line: 11, col: 30, target: null, defaulted: ['alpha'] }
+      ]
+    };
+    const fit: ISignature = {
+      ...fitInterval,
+      function: 'statsmodels.regression.linear_model.RegressionModel.fit',
+      name: 'RegressionModel.fit',
+      params: [{ name: 'use_t', default: 'None' }],
+      calls: [{ line: 8, col: 40, target: null, defaulted: ['use_t'] }]
+    };
+    const picks: Record<string, IFunctionPicks> = {
+      [fit.function]: {
+        picks: [{ param: 'use_t', why: 'A t or a normal distribution.' }],
+        by: BY
+      },
+      [fitInterval.function]: {
+        picks: [{ param: 'alpha', why: 'The level of the interval.' }],
+        by: BY
+      },
+      [testInterval.function]: {
+        picks: [{ param: 'alpha', why: 'The level of the interval.' }],
+        by: BY
+      }
+    };
+    const found = foundDecisions(
+      [fit, fitInterval, testInterval],
+      signature => picks[signature.function],
+      []
+    );
+    expect(decisionChips(found).map(chip => [chip.text, chip.count])).toEqual([
+      ['use_t None', 1],
+      ['alpha 0.05', 3]
+    ]);
+    // The calls of both, in the order of the code.
+    expect(found[1].calls?.map(call => call.line)).toEqual([9, 11, 12]);
+    // A third pick takes the place that the second alpha would have taken.
+    const more: ISignature = {
+      ...fitInterval,
+      function: 'pandas.core.series.Series.sum',
+      name: 'Series.sum',
+      params: [{ name: 'skipna', default: 'True' }],
+      calls: [{ line: 13, col: 4, target: null, defaulted: ['skipna'] }]
+    };
+    picks[more.function] = {
+      picks: [{ param: 'skipna', why: 'Missing values are left out.' }],
+      by: BY
+    };
+    expect(
+      foundDecisions(
+        [fit, fitInterval, testInterval, more],
+        signature => picks[signature.function],
+        []
+      ).map(chipText)
+    ).toEqual(['use_t None', 'alpha 0.05', 'skipna True']);
+  });
+
   it('are none for a function without an answer, or a pick that the calls pass', () => {
     expect(foundDecisions([GROUPBY], () => undefined, [])).toEqual([]);
     const passes: ISignature = {

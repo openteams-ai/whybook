@@ -2315,6 +2315,21 @@ button.jp-Epi-textoutput:hover,
   color: var(--jp-error-color1);
 }
 
+/* What became of a cell that failed (1.103): fixed in place, tried again, or removed. */
+.jp-Epi-agentrun-fixed {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-agentrun-fixed.jp-mod-fixed {
+  color: var(--jp-warn-color0);
+}
+
+.jp-Epi-agentrun-fixed.jp-mod-again,
+.jp-Epi-agentrun-fixed.jp-mod-removed {
+  color: var(--jp-error-color1);
+}
+
 .jp-Epi-agentrun-answer {
   padding: 6px 8px;
   border-left: 3px solid var(--jp-brand-color1);
@@ -2716,6 +2731,17 @@ button.jp-Epi-textoutput:hover,
 .jp-Epi-map-frame.jp-mod-selected {
   border-color: var(--jp-brand-color1);
   box-shadow: 0 0 0 1px var(--jp-brand-color1);
+}
+
+/*
+ * A frame's name, on one line: the node grows with it up to 180 px, and a
+ * longer name is cut with an ellipsis inside the node (src/ui/map.tsx).
+ */
+.jp-Epi-map-frame-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* A markdown cell's text on the map: its first lines. */
@@ -3911,6 +3937,25 @@ button.jp-Epi-textoutput:hover,
   line-height: 1.4;
 }
 
+/*
+ * The kernel's name in the toolbar, at a fixed width: the toolbar measures an
+ * item once (src/widgets.tsx). A longer name is cut with an ellipsis, and the
+ * button's label for screen readers keeps it whole.
+ */
+.jp-Toolbar-item.jp-Epi-kernelname {
+  width: 11.5em;
+}
+
+.jp-Epi-kernelname .jp-ToolbarButtonComponent {
+  width: 100%;
+}
+
+.jp-Epi-kernelname .jp-ToolbarButtonComponent-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* The AI button of the view's toolbar, and its panel of models. */
 .jp-Epi-aibutton {
   display: inline-flex;
@@ -5015,6 +5060,11 @@ button.jp-Epi-textoutput:hover,
 .jp-Epi-copyable:not(.jp-Epi-textwrap) {
   width: fit-content;
   max-width: 100%;
+}
+
+/* An extension's renderer that fits its drawing to its box gets the row (src/ui/outputs.tsx). */
+.jp-Epi-copyable.jp-mod-fill {
+  width: 100%;
 }
 
 /* Printed text keeps its whole row, as the text alone did. */

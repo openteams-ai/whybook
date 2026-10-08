@@ -38,7 +38,9 @@ export const MODEL_ROUTES = [
 
 const MODEL_PATH = new RegExp(`/whybook/(${MODEL_ROUTES.join('|')})$`);
 
-export const test = base.extend<{ modelRoutes: void }>({
+const KERNEL_ACTION = /\/api\/kernels\/[^/]+\/(restart|interrupt)$/;
+
+export const test = base.extend<{ modelRoutes: void; kernelActions: void }>({
   /**
    * Abort every request to a model route that the test does not answer
    * itself: the test server would run a local model on this machine, fetch
@@ -64,6 +66,29 @@ export const test = base.extend<{ modelRoutes: void }>({
           });
           return route.abort('blockedbyclient');
         }
+      );
+      await use();
+    },
+    { auto: true }
+  ],
+
+  /**
+   * Send the restart and the interrupt of a kernel to the server past
+   * galata's mock of the kernels, which takes every POST under /api/kernels
+   * for the start of a kernel. The mock answers a restart with 201, where
+   * JupyterLab expects 200: the session's `restartKernel()` then throws
+   * before it reconnects to the new kernel, and a reply that the new kernel
+   * sends while the server's sockets reconnect can be lost. The view's
+   * request for a subshell went unanswered that way, and a question about a
+   * variable from the last run waited 10 s before it offered to run its
+   * cells. The mock also reads an interrupt's empty 204 as JSON, and the
+   * test fails with "Unexpected end of JSON input".
+   */
+  kernelActions: [
+    async ({ page }, use) => {
+      await page.route(
+        url => KERNEL_ACTION.test(url.pathname),
+        route => route.continue()
       );
       await use();
     },

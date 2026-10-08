@@ -1,0 +1,3347 @@
+{
+ "about": "The picks of defaults that the demo videos' model, inception/mercury-2.5 through OpenRouter, made on 7 October 2026 while the takes were recorded, as the server kept them, for the library functions that the takes' cells call. Each function holds the parameters that the model picked, with their defaults as the kernel listed them. Design iteration 1.102.",
+ "model": "openrouter:inception/mercury-2.5",
+ "functions": [
+  {
+   "function": "base::colMeans",
+   "name": "base::colMeans",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "FALSE",
+     "name": "na.rm"
+    },
+    {
+     "default": "1L",
+     "name": "dims"
+    }
+   ],
+   "picks": [
+    {
+     "param": "na.rm",
+     "why": "TRUE excludes missing values from column averages, FALSE includes them."
+    },
+    {
+     "param": "dims",
+     "why": "Controls which dimensions to average over when input is multidimensional."
+    }
+   ]
+  },
+  {
+   "function": "base::factor",
+   "name": "base::factor",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "NA",
+     "name": "exclude"
+    },
+    {
+     "default": "is.ordered(x)",
+     "name": "ordered"
+    },
+    {
+     "default": "levels",
+     "name": "labels"
+    }
+   ],
+   "picks": [
+    {
+     "param": "exclude",
+     "why": "Values listed here are treated as missing and dropped from the factor levels."
+    },
+    {
+     "param": "ordered",
+     "why": "Determines if the factor levels have an inherent ordering, affecting statistical models and plots."
+    },
+    {
+     "param": "labels",
+     "why": "Defines the visible character labels for each factor level instead of the default internal representation."
+    }
+   ]
+  },
+  {
+   "function": "base::matrix",
+   "name": "base::matrix",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "1",
+     "name": "nrow"
+    },
+    {
+     "default": "1",
+     "name": "ncol"
+    },
+    {
+     "default": "FALSE",
+     "name": "byrow"
+    }
+   ],
+   "picks": [
+    {
+     "param": "nrow",
+     "why": "Default 1 often creates a row when more are needed."
+    },
+    {
+     "param": "ncol",
+     "why": "Default 1 often creates a column when more are needed."
+    },
+    {
+     "param": "byrow",
+     "why": "Default FALSE fills by column, changing data layout."
+    }
+   ]
+  },
+  {
+   "function": "base::merge.data.frame",
+   "name": "base::merge",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "FALSE",
+     "name": "all"
+    },
+    {
+     "default": "intersect(names(x), names(y))",
+     "name": "by"
+    },
+    {
+     "default": "TRUE",
+     "name": "sort"
+    }
+   ],
+   "picks": [
+    {
+     "param": "all",
+     "why": "Includes rows without matches from both tables instead of only matching rows."
+    },
+    {
+     "param": "by",
+     "why": "Specifies columns used to match rows between the two tables."
+    },
+    {
+     "param": "sort",
+     "why": "Determines whether the output rows are sorted by the merge keys."
+    }
+   ]
+  },
+  {
+   "function": "base::sapply",
+   "name": "base::sapply",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "TRUE",
+     "name": "simplify"
+    },
+    {
+     "default": "TRUE",
+     "name": "USE.NAMES"
+    }
+   ],
+   "picks": [
+    {
+     "param": "simplify",
+     "why": "If FALSE, returns a list instead of a vector or matrix, changing the result structure."
+    },
+    {
+     "param": "USE.NAMES",
+     "why": "If FALSE, drops names from the result, affecting output labeling and downstream operations."
+    }
+   ]
+  },
+  {
+   "function": "base::solve.default",
+   "name": "base::solve",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": ".Machine$double.eps",
+     "name": "tol"
+    },
+    {
+     "default": "FALSE",
+     "name": "LINPACK"
+    }
+   ],
+   "picks": [
+    {
+     "param": "tol",
+     "why": "Determines numerical tolerance for singularity detection, affecting if results are computed."
+    },
+    {
+     "param": "LINPACK",
+     "why": "Selects linear algebra backend, potentially altering numerical precision and results."
+    }
+   ]
+  },
+  {
+   "function": "base::sweep",
+   "name": "base::sweep",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "\"-\"",
+     "name": "FUN"
+    },
+    {
+     "default": "TRUE",
+     "name": "check.margin"
+    }
+   ],
+   "picks": [
+    {
+     "param": "FUN",
+     "why": "Determines the operation (e.g., subtract, divide) applied to the array along margins, directly changing numerical results."
+    },
+    {
+     "param": "check.margin",
+     "why": "If FALSE, allows non-matching dimensions without error, potentially altering which computations proceed without validation."
+    }
+   ]
+  },
+  {
+   "function": "base::table",
+   "name": "base::table",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "\"no\"",
+     "name": "useNA"
+    },
+    {
+     "default": "if (useNA == \"no\") c(NA, NaN)",
+     "name": "exclude"
+    },
+    {
+     "default": "list.names(...)",
+     "name": "dnn"
+    }
+   ],
+   "picks": [
+    {
+     "param": "useNA",
+     "why": "Determines if missing values are counted as a separate category in the table."
+    },
+    {
+     "param": "exclude",
+     "why": "Specifies which values are excluded from tabulation, affecting which rows are included."
+    },
+    {
+     "param": "dnn",
+     "why": "Controls names of dimensions, which may matter for downstream analysis or plotting."
+    }
+   ]
+  },
+  {
+   "function": "base::unique.default",
+   "name": "base::unique",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "FALSE",
+     "name": "fromLast"
+    },
+    {
+     "default": "FALSE",
+     "name": "incomparables"
+    }
+   ],
+   "picks": [
+    {
+     "param": "fromLast",
+     "why": "If TRUE, keeps the last occurrence of duplicates instead of the first."
+    },
+    {
+     "param": "incomparables",
+     "why": "Values listed here are never marked as duplicates, so they always appear in the result."
+    }
+   ]
+  },
+  {
+   "function": "base::which",
+   "name": "base::which",
+   "module": "base",
+   "library": "base",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "FALSE",
+     "name": "arr.ind"
+    }
+   ],
+   "picks": [
+    {
+     "param": "arr.ind",
+     "why": "When true, returns matrix indices instead of vector indices, changing the result structure."
+    }
+   ]
+  },
+  {
+   "function": "matplotlib.axes._axes.Axes.hist",
+   "name": "Axes.hist",
+   "module": "matplotlib.axes._axes",
+   "library": "matplotlib",
+   "version": "3.11.2",
+   "params": [
+    {
+     "name": "bins",
+     "default": "None"
+    },
+    {
+     "name": "density",
+     "default": "False"
+    },
+    {
+     "name": "range",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "bins",
+     "why": "Determines the number and width of intervals used to count data points."
+    },
+    {
+     "param": "density",
+     "why": "If true, normalizes the histogram so the area under the curve equals one."
+    },
+    {
+     "param": "range",
+     "why": "Defines the lower and upper bounds of the bins, excluding data outside them."
+    }
+   ]
+  },
+  {
+   "function": "matplotlib.pyplot.subplots",
+   "name": "subplots",
+   "module": "matplotlib.pyplot",
+   "library": "matplotlib",
+   "version": "3.11.2",
+   "params": [
+    {
+     "name": "nrows",
+     "default": "1"
+    },
+    {
+     "name": "ncols",
+     "default": "1"
+    },
+    {
+     "name": "sharex",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "nrows",
+     "why": "Determines how many rows of subplots are created in the figure."
+    },
+    {
+     "param": "ncols",
+     "why": "Determines how many columns of subplots are created in the figure."
+    },
+    {
+     "param": "sharex",
+     "why": "Controls whether subplots share the same x-axis scaling and limits."
+    }
+   ]
+  },
+  {
+   "function": "numpy.allclose",
+   "name": "allclose",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "rtol",
+     "default": "1e-05"
+    },
+    {
+     "name": "atol",
+     "default": "1e-08"
+    },
+    {
+     "name": "equal_nan",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "rtol",
+     "why": "Sets relative tolerance for floating point comparison."
+    },
+    {
+     "param": "atol",
+     "why": "Sets absolute tolerance for floating point comparison."
+    },
+    {
+     "param": "equal_nan",
+     "why": "Determines if NaN values are treated as equal."
+    }
+   ]
+  },
+  {
+   "function": "numpy.array",
+   "name": "array",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "copy",
+     "default": "True"
+    },
+    {
+     "name": "ndmin",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Determines the data type and memory usage of the resulting array, affecting calculations."
+    },
+    {
+     "param": "copy",
+     "why": "Decides if the input data is duplicated, impacting memory and potential data modifications."
+    },
+    {
+     "param": "ndmin",
+     "why": "Ensures the output array has at least this many dimensions, affecting shape operations."
+    }
+   ]
+  },
+  {
+   "function": "numpy.asarray",
+   "name": "asarray",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "copy",
+     "default": "None"
+    },
+    {
+     "name": "order",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Defaults to None, inferring from input; changing it alters the numerical precision and range of the result."
+    },
+    {
+     "param": "copy",
+     "why": "Defaults to None, allowing the view of input; setting it True forces a memory copy, changing object identity."
+    },
+    {
+     "param": "order",
+     "why": "Defaults to None, preserving input order; forcing C or F order changes memory layout and iteration speed."
+    }
+   ]
+  },
+  {
+   "function": "numpy.average",
+   "name": "average",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "axis",
+     "default": "None"
+    },
+    {
+     "name": "weights",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines which dimensions are averaged over; changing it alters the output shape and values."
+    },
+    {
+     "param": "weights",
+     "why": "Applies weighting to values; omitting it defaults to a simple arithmetic mean."
+    }
+   ]
+  },
+  {
+   "function": "numpy.clip",
+   "name": "clip",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [],
+   "picks": []
+  },
+  {
+   "function": "numpy.exp",
+   "name": "exp",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "out",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Controls the output data type, affecting precision and potential overflow."
+    },
+    {
+     "param": "out",
+     "why": "Determines if output is written to a provided array or a new one."
+    }
+   ]
+  },
+  {
+   "function": "numpy.eye",
+   "name": "eye",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "M",
+     "default": "None"
+    },
+    {
+     "name": "k",
+     "default": "0"
+    },
+    {
+     "name": "dtype",
+     "default": "float"
+    }
+   ],
+   "picks": [
+    {
+     "param": "M",
+     "why": "Sets the number of columns if different from rows, changing matrix width."
+    },
+    {
+     "param": "k",
+     "why": "Shifts the diagonal up or down, determining which elements are ones."
+    },
+    {
+     "param": "dtype",
+     "why": "Defines the data type of elements, affecting precision and memory."
+    }
+   ]
+  },
+  {
+   "function": "numpy.linalg.pinv",
+   "name": "pinv",
+   "module": "numpy.linalg",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "rcond",
+     "default": "None"
+    },
+    {
+     "name": "hermitian",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "rcond",
+     "why": "Cutoff for small singular values; changes the computed inverse matrix values."
+    },
+    {
+     "param": "hermitian",
+     "why": "Assumes input is Hermitian; can speed up computation but may affect results if wrong."
+    }
+   ]
+  },
+  {
+   "function": "numpy.linspace",
+   "name": "linspace",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "num",
+     "default": "50"
+    },
+    {
+     "name": "endpoint",
+     "default": "True"
+    },
+    {
+     "name": "retstep",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "num",
+     "why": "Controls how many evenly spaced points are generated between start and stop."
+    },
+    {
+     "param": "endpoint",
+     "why": "Determines whether the stop value is included in the generated sequence."
+    },
+    {
+     "param": "retstep",
+     "why": "Optionally returns the spacing value between points in addition to the array."
+    }
+   ]
+  },
+  {
+   "function": "numpy.log",
+   "name": "log",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "where",
+     "default": "True"
+    },
+    {
+     "name": "dtype",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "where",
+     "why": "Controls which elements are computed, filtering rows included in the result."
+    },
+    {
+     "param": "dtype",
+     "why": "Changes numerical precision and range, affecting computed values and overflow behavior."
+    }
+   ]
+  },
+  {
+   "function": "numpy.percentile",
+   "name": "percentile",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "axis",
+     "default": "None"
+    },
+    {
+     "name": "method",
+     "default": "'linear'"
+    },
+    {
+     "name": "weights",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Sets the axis along which percentiles are calculated, changing result shape and values."
+    },
+    {
+     "param": "method",
+     "why": "Chooses the interpolation scheme between data points to estimate the percentile value."
+    },
+    {
+     "param": "weights",
+     "why": "Applies weights to observations, altering how much each value contributes to the result."
+    }
+   ]
+  },
+  {
+   "function": "numpy.quantile",
+   "name": "quantile",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "method",
+     "default": "'linear'"
+    },
+    {
+     "name": "axis",
+     "default": "None"
+    },
+    {
+     "name": "weights",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "method",
+     "why": "Changes how percentiles are interpolated, affecting the computed value."
+    },
+    {
+     "param": "axis",
+     "why": "Determines which dimension to compute quantiles over, altering the output shape."
+    },
+    {
+     "param": "weights",
+     "why": "Allows weighted quantiles, changing the result based on data importance."
+    }
+   ]
+  },
+  {
+   "function": "numpy.random._generator.Generator.chisquare",
+   "name": "Generator.chisquare",
+   "module": "numpy.random._generator",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "size",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "size",
+     "why": "Determines the number of random variates generated; default None returns a scalar."
+    }
+   ]
+  },
+  {
+   "function": "numpy.random._generator.Generator.integers",
+   "name": "Generator.integers",
+   "module": "numpy.random._generator",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "size",
+     "default": "None"
+    },
+    {
+     "name": "high",
+     "default": "None"
+    },
+    {
+     "name": "endpoint",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "size",
+     "why": "Controls the number of random integers generated; default returns a single scalar."
+    },
+    {
+     "param": "high",
+     "why": "Sets the exclusive upper bound for generated integers; default is None, requiring low to be specified."
+    },
+    {
+     "param": "endpoint",
+     "why": "Determines if the upper bound is inclusive; default False excludes it from the range."
+    }
+   ]
+  },
+  {
+   "function": "numpy.random._generator.Generator.multivariate_normal",
+   "name": "Generator.multivariate_normal",
+   "module": "numpy.random._generator",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "size",
+     "default": "None"
+    },
+    {
+     "name": "check_valid",
+     "default": "'warn'"
+    },
+    {
+     "name": "tol",
+     "default": "1e-08"
+    }
+   ],
+   "picks": [
+    {
+     "param": "size",
+     "why": "Determines the number of random samples generated."
+    },
+    {
+     "param": "check_valid",
+     "why": "Controls warning or error when the covariance matrix is invalid."
+    },
+    {
+     "param": "tol",
+     "why": "Sets tolerance for checking if the covariance matrix is positive definite."
+    }
+   ]
+  },
+  {
+   "function": "numpy.sqrt",
+   "name": "sqrt",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "out",
+     "default": "None"
+    },
+    {
+     "name": "where",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Controls the data type of the output array, affecting precision and range of results."
+    },
+    {
+     "param": "out",
+     "why": "Specifies an existing array to store the result, changing memory usage and potentially the output object."
+    },
+    {
+     "param": "where",
+     "why": "Determines which elements are computed, affecting which values appear in the final result."
+    }
+   ]
+  },
+  {
+   "function": "numpy.zeros",
+   "name": "zeros",
+   "module": "numpy",
+   "library": "numpy",
+   "version": "2.5.3",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Determines the data type and range of values in the resulting array."
+    }
+   ]
+  },
+  {
+   "function": "pandas.concat",
+   "name": "concat",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "join",
+     "default": "'outer'"
+    },
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "ignore_index",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "join",
+     "why": "Determines whether to keep only common columns or all columns, changing the resulting shape."
+    },
+    {
+     "param": "axis",
+     "why": "Specifies whether to concatenate row-wise or column-wise, altering the data layout."
+    },
+    {
+     "param": "ignore_index",
+     "why": "Resets the index of the result, which can affect row selection or grouping."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.base.IndexOpsMixin.nunique",
+   "name": "IndexOpsMixin.nunique",
+   "module": "pandas.core.base",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "dropna",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dropna",
+     "why": "Determines whether missing values are included in the unique count calculation."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.base.IndexOpsMixin.to_numpy",
+   "name": "IndexOpsMixin.to_numpy",
+   "module": "pandas.core.base",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "copy",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Controls how values are converted; missing default may change numerical results."
+    },
+    {
+     "param": "copy",
+     "why": "Defaults to no copy; missing default may change if result is independent of source."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.base.IndexOpsMixin.value_counts",
+   "name": "IndexOpsMixin.value_counts",
+   "module": "pandas.core.base",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "dropna",
+     "default": "True"
+    },
+    {
+     "name": "normalize",
+     "default": "False"
+    },
+    {
+     "name": "bins",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dropna",
+     "why": "Determines whether missing values are excluded from the count."
+    },
+    {
+     "param": "normalize",
+     "why": "Converts counts to relative frequencies instead of absolute counts."
+    },
+    {
+     "param": "bins",
+     "why": "Bins continuous data into intervals, changing the resulting categories and counts."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.__init__",
+   "name": "DataFrame",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "data",
+     "default": "None"
+    },
+    {
+     "name": "index",
+     "default": "None"
+    },
+    {
+     "name": "dtype",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "data",
+     "why": "Default None creates empty frame; actual data determines rows and values."
+    },
+    {
+     "param": "index",
+     "why": "Default None auto-generates integer index; custom index affects row selection and alignment."
+    },
+    {
+     "param": "dtype",
+     "why": "Default None infers types; explicit dtype changes interpretation and stored values."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.apply",
+   "name": "DataFrame.apply",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "raw",
+     "default": "False"
+    },
+    {
+     "name": "result_type",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines whether the function applies to each column or each row, changing the shape of the result."
+    },
+    {
+     "param": "raw",
+     "why": "Controls if the function receives an Index object or a Series, potentially changing performance or behavior."
+    },
+    {
+     "param": "result_type",
+     "why": "Decides how to handle list-like outputs, affecting whether the result is expanded or kept as a list."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.drop",
+   "name": "DataFrame.drop",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "labels",
+     "default": "None"
+    },
+    {
+     "name": "inplace",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines whether to drop rows or columns from the data."
+    },
+    {
+     "param": "labels",
+     "why": "Specifies which row or column indices to remove."
+    },
+    {
+     "param": "inplace",
+     "why": "If true, modifies the original dataframe instead of returning a new one."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.dropna",
+   "name": "DataFrame.dropna",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "how",
+     "default": "'any'"
+    },
+    {
+     "name": "subset",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines whether to drop rows or columns containing missing values."
+    },
+    {
+     "param": "how",
+     "why": "Specifies if a row/column is dropped when any or all values are missing."
+    },
+    {
+     "param": "subset",
+     "why": "Limits dropping to rows/columns where missing values occur in specific columns."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.groupby",
+   "name": "DataFrame.groupby",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "by",
+     "default": "None"
+    },
+    {
+     "name": "dropna",
+     "default": "True"
+    },
+    {
+     "name": "as_index",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "by",
+     "why": "Determines which columns or values define the groups."
+    },
+    {
+     "param": "dropna",
+     "why": "Controls whether rows with missing values are excluded from groups."
+    },
+    {
+     "param": "as_index",
+     "why": "Decides if group keys become the result index or a column."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.itertuples",
+   "name": "DataFrame.itertuples",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "index",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "index",
+     "why": "When true, includes the row index as the first element of each tuple."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.mean",
+   "name": "DataFrame.mean",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines whether to compute means across rows or columns."
+    },
+    {
+     "param": "skipna",
+     "why": "Excludes missing values from the calculation when true."
+    },
+    {
+     "param": "numeric_only",
+     "why": "Filters the computation to numeric columns only when true."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.merge",
+   "name": "DataFrame.merge",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "how",
+     "default": "'inner'"
+    },
+    {
+     "name": "on",
+     "default": "None"
+    },
+    {
+     "name": "validate",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "how",
+     "why": "Determines which rows are kept or dropped based on join type."
+    },
+    {
+     "param": "on",
+     "why": "Specifies which column names to use for joining the frames."
+    },
+    {
+     "param": "validate",
+     "why": "Checks the relationship between keys and affects whether the merge succeeds."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.mul",
+   "name": "DataFrame.mul",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "fill_value",
+     "default": "None"
+    },
+    {
+     "name": "axis",
+     "default": "'columns'"
+    },
+    {
+     "name": "level",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "fill_value",
+     "why": "Replaces missing values before multiplication, affecting result numbers."
+    },
+    {
+     "param": "axis",
+     "why": "Determines alignment axis for elementwise multiplication."
+    },
+    {
+     "param": "level",
+     "why": "Aligns on index level instead of index."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.nlargest",
+   "name": "DataFrame.nlargest",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "keep",
+     "default": "'first'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "keep",
+     "why": "Determines whether to keep the first or last row when values are tied for the top positions."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.query",
+   "name": "DataFrame.query",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "inplace",
+     "default": "False"
+    },
+    {
+     "name": "engine",
+     "default": "None"
+    },
+    {
+     "name": "local_dict",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "inplace",
+     "why": "Whether the query modifies the original frame or returns a new one."
+    },
+    {
+     "param": "engine",
+     "why": "Which parser engine to use for evaluating the query expression."
+    },
+    {
+     "param": "local_dict",
+     "why": "Variables from the local scope available for use in the query."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.reindex",
+   "name": "DataFrame.reindex",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "method",
+     "default": "None"
+    },
+    {
+     "name": "fill_value",
+     "default": "nan"
+    },
+    {
+     "name": "limit",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "method",
+     "why": "Determines how missing values are filled, altering the resulting data values."
+    },
+    {
+     "param": "fill_value",
+     "why": "Specifies the scalar used to fill missing entries, changing the output numbers."
+    },
+    {
+     "param": "limit",
+     "why": "Restricts the number of consecutive missing values to fill during reindexing."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.reset_index",
+   "name": "DataFrame.reset_index",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "drop",
+     "default": "False"
+    },
+    {
+     "name": "level",
+     "default": "None"
+    },
+    {
+     "name": "names",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "drop",
+     "why": "Determines if the index becomes a column or is discarded, altering the frame structure."
+    },
+    {
+     "param": "level",
+     "why": "Specifies which index level to reset; if omitted, all levels are reset by default."
+    },
+    {
+     "param": "names",
+     "why": "Sets new names for the index columns; if omitted, original names are retained."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.set_index",
+   "name": "DataFrame.set_index",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "drop",
+     "default": "True"
+    },
+    {
+     "name": "append",
+     "default": "False"
+    },
+    {
+     "name": "verify_integrity",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "drop",
+     "why": "Decides whether the used columns stay in the data or are removed."
+    },
+    {
+     "param": "append",
+     "why": "Decides whether to add to the existing index or replace it."
+    },
+    {
+     "param": "verify_integrity",
+     "why": "Checks if the new index has duplicate values before proceeding."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.sort_values",
+   "name": "DataFrame.sort_values",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "ascending",
+     "default": "True"
+    },
+    {
+     "name": "na_position",
+     "default": "'last'"
+    },
+    {
+     "name": "ignore_index",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "ascending",
+     "why": "Reverses the sort order of the resulting DataFrame."
+    },
+    {
+     "param": "na_position",
+     "why": "Determines if missing values appear at the start or end."
+    },
+    {
+     "param": "ignore_index",
+     "why": "Resets row indices to a default range after sorting."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.to_dict",
+   "name": "DataFrame.to_dict",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "orient",
+     "default": "'dict'"
+    },
+    {
+     "name": "index",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "orient",
+     "why": "Controls the structure of the returned dictionary, such as records, columns, or index."
+    },
+    {
+     "param": "index",
+     "why": "Decides if row indices become keys in the output dictionary or are excluded."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.frame.DataFrame.to_numpy",
+   "name": "DataFrame.to_numpy",
+   "module": "pandas.core.frame",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "dtype",
+     "default": "None"
+    },
+    {
+     "name": "copy",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "dtype",
+     "why": "Determines the data type of the resulting array, affecting values and memory."
+    },
+    {
+     "param": "copy",
+     "why": "Whether to always return a copy, ensuring data independence from the DataFrame."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.generic.NDFrame.astype",
+   "name": "NDFrame.astype",
+   "module": "pandas.core.generic",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "errors",
+     "default": "'raise'"
+    },
+    {
+     "name": "copy",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "errors",
+     "why": "Controls whether conversion failures raise exceptions or return original data silently."
+    },
+    {
+     "param": "copy",
+     "why": "Determines if a new object is created or the original is modified in place."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.generic.NDFrame.copy",
+   "name": "NDFrame.copy",
+   "module": "pandas.core.generic",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "deep",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "deep",
+     "why": "If True, creates a deep copy; if False, shares data with the original, affecting memory and mutations."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.generic.NDFrame.fillna",
+   "name": "NDFrame.fillna",
+   "module": "pandas.core.generic",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "limit",
+     "default": "None"
+    },
+    {
+     "name": "axis",
+     "default": "None"
+    },
+    {
+     "name": "inplace",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "limit",
+     "why": "Controls how many consecutive missing values are filled per column or row."
+    },
+    {
+     "param": "axis",
+     "why": "Determines whether filling happens along rows or columns, affecting which values are replaced."
+    },
+    {
+     "param": "inplace",
+     "why": "Decides if the original DataFrame is modified or a new one is returned."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.generic.NDFrame.head",
+   "name": "NDFrame.head",
+   "module": "pandas.core.generic",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "n",
+     "default": "5"
+    }
+   ],
+   "picks": [
+    {
+     "param": "n",
+     "why": "Determines how many rows are returned from the top of the data."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.generic.NDFrame.rename_axis",
+   "name": "NDFrame.rename_axis",
+   "module": "pandas.core.generic",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "axis",
+     "default": "0"
+    },
+    {
+     "name": "inplace",
+     "default": "False"
+    },
+    {
+     "name": "copy",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "axis",
+     "why": "Determines whether the index or columns are renamed."
+    },
+    {
+     "param": "inplace",
+     "why": "Decides if the rename modifies the original object."
+    },
+    {
+     "param": "copy",
+     "why": "Controls whether the renamed object is a copy."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.groupby.groupby.GroupBy.quantile",
+   "name": "GroupBy.quantile",
+   "module": "pandas.core.groupby.groupby",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "q",
+     "default": "0.5"
+    },
+    {
+     "name": "interpolation",
+     "default": "'linear'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "q",
+     "why": "Determines which quantile value is computed, changing the numeric result directly."
+    },
+    {
+     "param": "interpolation",
+     "why": "Affects how the quantile is estimated when it falls between data points."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.indexes.base.Index.isin",
+   "name": "Index.isin",
+   "module": "pandas.core.indexes.base",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [],
+   "picks": []
+  },
+  {
+   "function": "pandas.core.indexes.base.Index.union",
+   "name": "Index.union",
+   "module": "pandas.core.indexes.base",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "sort",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "sort",
+     "why": "Determines whether the union result is sorted, affecting row order and downstream matching."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.indexes.multi.MultiIndex.from_frame",
+   "name": "MultiIndex.from_frame",
+   "module": "pandas.core.indexes.multi",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "names",
+     "default": "None"
+    },
+    {
+     "name": "sortorder",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "names",
+     "why": "Default uses column names; changing them alters index labels used for grouping or joining."
+    },
+    {
+     "param": "sortorder",
+     "why": "Default is None; specifying it changes the sort order of the resulting index levels."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.__init__",
+   "name": "Series",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "data",
+     "default": "None"
+    },
+    {
+     "name": "index",
+     "default": "None"
+    },
+    {
+     "name": "dtype",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "data",
+     "why": "Determines the values included in the series."
+    },
+    {
+     "param": "index",
+     "why": "Determines the labels used to identify values."
+    },
+    {
+     "param": "dtype",
+     "why": "Controls how values are interpreted or converted."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.corr",
+   "name": "Series.corr",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "method",
+     "default": "'pearson'"
+    },
+    {
+     "name": "min_periods",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "method",
+     "why": "Chooses Pearson, Spearman, or Kendall correlation coefficient calculation."
+    },
+    {
+     "param": "min_periods",
+     "why": "Sets minimum non-NA observations required for valid correlation result."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.eq",
+   "name": "Series.eq",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "fill_value",
+     "default": "None"
+    },
+    {
+     "name": "level",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "fill_value",
+     "why": "Sets missing values to a default before comparison, changing true/false outcomes."
+    },
+    {
+     "param": "level",
+     "why": "Aligns indexes at a specific hierarchical level, affecting which rows compare."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.groupby",
+   "name": "Series.groupby",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "by",
+     "default": "None"
+    },
+    {
+     "name": "dropna",
+     "default": "True"
+    },
+    {
+     "name": "observed",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "by",
+     "why": "Groups values by this column, index, or array, changing which rows are aggregated together."
+    },
+    {
+     "param": "dropna",
+     "why": "When True, excludes groups where the grouping key is missing from the result."
+    },
+    {
+     "param": "observed",
+     "why": "When True, includes only categories present in data, not all possible categorical levels."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.idxmax",
+   "name": "Series.idxmax",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "axis",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "Controls whether missing values are ignored when finding the maximum."
+    },
+    {
+     "param": "axis",
+     "why": "Determines the axis along which to compute the maximum for non-Series objects."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.max",
+   "name": "Series.max",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "Excluding missing values affects the maximum value computed."
+    },
+    {
+     "param": "numeric_only",
+     "why": "Determines if only numeric columns are included in the calculation."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.mean",
+   "name": "Series.mean",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "Controls whether missing values are excluded from the calculation."
+    },
+    {
+     "param": "numeric_only",
+     "why": "Determines if non-numeric columns are included in the result."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.min",
+   "name": "Series.min",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    },
+    {
+     "name": "axis",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "When false, missing values cause the result to be missing."
+    },
+    {
+     "param": "numeric_only",
+     "why": "When true, non-numeric columns are excluded from the calculation."
+    },
+    {
+     "param": "axis",
+     "why": "Determines the direction to reduce along in DataFrame contexts."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.quantile",
+   "name": "Series.quantile",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "q",
+     "default": "0.5"
+    },
+    {
+     "name": "interpolation",
+     "default": "'linear'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "q",
+     "why": "Determines which percentile value is computed from the data."
+    },
+    {
+     "param": "interpolation",
+     "why": "Defines how to estimate the value when the quantile falls between data points."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.reindex",
+   "name": "Series.reindex",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "index",
+     "default": "None"
+    },
+    {
+     "name": "fill_value",
+     "default": "None"
+    },
+    {
+     "name": "method",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "index",
+     "why": "Determines which labels are kept or added; missing values become NaN."
+    },
+    {
+     "param": "fill_value",
+     "why": "Replaces missing values with a specific number instead of NaN."
+    },
+    {
+     "param": "method",
+     "why": "Controls how missing values are interpolated or filled based on existing data."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.std",
+   "name": "Series.std",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "ddof",
+     "default": "1"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "Excludes missing values from the calculation; if False, missing values propagate the result."
+    },
+    {
+     "param": "ddof",
+     "why": "Adjusts degrees of freedom; 1 gives sample standard deviation, 0 gives population standard deviation."
+    },
+    {
+     "param": "numeric_only",
+     "why": "Filters columns to numeric types; if False, non-numeric columns may be included or cause errors."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.sum",
+   "name": "Series.sum",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "skipna",
+     "default": "True"
+    },
+    {
+     "name": "min_count",
+     "default": "0"
+    },
+    {
+     "name": "numeric_only",
+     "default": "False"
+    }
+   ],
+   "picks": [
+    {
+     "param": "skipna",
+     "why": "Determines if missing values are excluded from the sum calculation."
+    },
+    {
+     "param": "min_count",
+     "why": "Sets the minimum number of non-null values required to return a result."
+    },
+    {
+     "param": "numeric_only",
+     "why": "Controls whether only numeric data is included in the summation."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.series.Series.var",
+   "name": "Series.var",
+   "module": "pandas.core.series",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "ddof",
+     "default": "1"
+    },
+    {
+     "name": "skipna",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "ddof",
+     "why": "Controls divisor for variance; changing it alters the computed value."
+    },
+    {
+     "param": "skipna",
+     "why": "Drops missing values by default; toggling includes them in calculation."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.strings.accessor.StringMethods.contains",
+   "name": "StringMethods.contains",
+   "module": "pandas.core.strings.accessor",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "case",
+     "default": "True"
+    },
+    {
+     "name": "regex",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "case",
+     "why": "Determines if matching is case-sensitive, changing which rows match the pattern."
+    },
+    {
+     "param": "regex",
+     "why": "Switches between literal string search and regular expression matching, altering match logic."
+    }
+   ]
+  },
+  {
+   "function": "pandas.core.strings.accessor.StringMethods.replace",
+   "name": "StringMethods.replace",
+   "module": "pandas.core.strings.accessor",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "regex",
+     "default": "False"
+    },
+    {
+     "name": "n",
+     "default": "-1"
+    },
+    {
+     "name": "case",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "regex",
+     "why": "Determines if the search pattern uses regular expressions or literal strings."
+    },
+    {
+     "param": "n",
+     "why": "Controls the maximum number of replacements made in each string."
+    },
+    {
+     "param": "case",
+     "why": "Specifies whether matching is case-sensitive, case-insensitive, or automatic."
+    }
+   ]
+  },
+  {
+   "function": "pandas.crosstab",
+   "name": "crosstab",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "aggfunc",
+     "default": "None"
+    },
+    {
+     "name": "normalize",
+     "default": "False"
+    },
+    {
+     "name": "dropna",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "aggfunc",
+     "why": "Determines how values are aggregated (e.g., mean, sum) which changes the numeric results."
+    },
+    {
+     "param": "normalize",
+     "why": "If True, returns frequencies as proportions instead of counts, changing the numeric output."
+    },
+    {
+     "param": "dropna",
+     "why": "If False, includes NaN categories in rows/columns, changing which rows are used."
+    }
+   ]
+  },
+  {
+   "function": "pandas.cut",
+   "name": "cut",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "right",
+     "default": "True"
+    },
+    {
+     "name": "include_lowest",
+     "default": "False"
+    },
+    {
+     "name": "duplicates",
+     "default": "'raise'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "right",
+     "why": "Determines if intervals are closed on the right or left, changing bin assignment."
+    },
+    {
+     "param": "include_lowest",
+     "why": "Includes the leftmost edge in the first bin, affecting edge case row assignment."
+    },
+    {
+     "param": "duplicates",
+     "why": "Controls handling of duplicate bin edges, raising errors or dropping duplicates."
+    }
+   ]
+  },
+  {
+   "function": "pandas.get_dummies",
+   "name": "get_dummies",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "drop_first",
+     "default": "False"
+    },
+    {
+     "name": "dummy_na",
+     "default": "False"
+    },
+    {
+     "name": "columns",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "drop_first",
+     "why": "Drops the first category to avoid multicollinearity in regression models."
+    },
+    {
+     "param": "dummy_na",
+     "why": "Adds a column indicating missing values instead of dropping them."
+    },
+    {
+     "param": "columns",
+     "why": "Specifies which columns to encode instead of encoding all categorical columns."
+    }
+   ]
+  },
+  {
+   "function": "pandas.read_csv",
+   "name": "read_csv",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "sep",
+     "default": "','"
+    },
+    {
+     "name": "na_values",
+     "default": "None"
+    },
+    {
+     "name": "dtype",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "sep",
+     "why": "Determines how fields are separated; wrong delimiter splits data incorrectly."
+    },
+    {
+     "param": "na_values",
+     "why": "Defines which values count as missing; affects calculations and filtering."
+    },
+    {
+     "param": "dtype",
+     "why": "Forces column data types; affects memory, speed, and mathematical operations."
+    }
+   ]
+  },
+  {
+   "function": "pandas.to_numeric",
+   "name": "to_numeric",
+   "module": "pandas",
+   "library": "pandas",
+   "version": "3.0.6",
+   "params": [
+    {
+     "name": "errors",
+     "default": "'raise'"
+    },
+    {
+     "name": "downcast",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "errors",
+     "why": "Determines whether conversion fails silently, warns, or raises an exception."
+    },
+    {
+     "param": "downcast",
+     "why": "Allows downsizing the resulting numeric dtype to save memory."
+    }
+   ]
+  },
+  {
+   "function": "patsy.highlevel.dmatrices",
+   "name": "dmatrices",
+   "module": "patsy.highlevel",
+   "library": "patsy",
+   "version": "1.0.3",
+   "params": [
+    {
+     "name": "NA_action",
+     "default": "'drop'"
+    },
+    {
+     "name": "return_type",
+     "default": "'matrix'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "NA_action",
+     "why": "Decides if rows with missing values are dropped or kept, changing the dataset size and model fit."
+    },
+    {
+     "param": "return_type",
+     "why": "Determines if output is a matrix, dict, or sparse matrix, affecting downstream calculations and compatibility."
+    }
+   ]
+  },
+  {
+   "function": "patsy.highlevel.dmatrix",
+   "name": "dmatrix",
+   "module": "patsy.highlevel",
+   "library": "patsy",
+   "version": "1.0.3",
+   "params": [
+    {
+     "name": "NA_action",
+     "default": "'drop'"
+    },
+    {
+     "name": "return_type",
+     "default": "'matrix'"
+    },
+    {
+     "name": "eval_env",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "NA_action",
+     "why": "Determines whether rows with missing values are dropped or kept in the result."
+    },
+    {
+     "param": "return_type",
+     "why": "Controls whether the output is a matrix or a DataFrame, affecting downstream analysis."
+    },
+    {
+     "param": "eval_env",
+     "why": "Specifies the scope where variables in the formula are looked up, impacting data resolution."
+    }
+   ]
+  },
+  {
+   "function": "re.findall",
+   "name": "findall",
+   "module": "re",
+   "library": "re",
+   "version": "3.12.13",
+   "params": [
+    {
+     "name": "flags",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "flags",
+     "why": "Controls matching behavior like case sensitivity and multiline mode, changing which substrings are found."
+    }
+   ]
+  },
+  {
+   "function": "re.finditer",
+   "name": "finditer",
+   "module": "re",
+   "library": "re",
+   "version": "3.12.13",
+   "params": [
+    {
+     "name": "flags",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "flags",
+     "why": "Defaults to no special matching behavior; changing it alters which substrings match the pattern."
+    }
+   ]
+  },
+  {
+   "function": "scipy.stats._stats_py.pearsonr",
+   "name": "pearsonr",
+   "module": "scipy.stats._stats_py",
+   "library": "scipy",
+   "version": "1.18.1",
+   "params": [
+    {
+     "name": "alternative",
+     "default": "'two-sided'"
+    },
+    {
+     "name": "method",
+     "default": "None"
+    },
+    {
+     "name": "axis",
+     "default": "0"
+    }
+   ],
+   "picks": [
+    {
+     "param": "alternative",
+     "why": "Determines if the p-value is one-tailed or two-tailed."
+    },
+    {
+     "param": "method",
+     "why": "Chooses between exact permutation test or asymptotic approximation for p-value."
+    },
+    {
+     "param": "axis",
+     "why": "Specifies which axis to compute correlations along in multi-dimensional data."
+    }
+   ]
+  },
+  {
+   "function": "stats::coef.default",
+   "name": "stats::coef",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "TRUE",
+     "name": "complete"
+    }
+   ],
+   "picks": [
+    {
+     "param": "complete",
+     "why": "If false, coefficients with NA values are omitted from the result."
+    }
+   ]
+  },
+  {
+   "function": "stats::confint.lm",
+   "name": "stats::confint",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "0.95",
+     "name": "level"
+    }
+   ],
+   "picks": [
+    {
+     "param": "level",
+     "why": "Sets confidence level; changing it alters the width of the interval bounds."
+    }
+   ]
+  },
+  {
+   "function": "stats::glm",
+   "name": "stats::glm",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "gaussian",
+     "name": "family"
+    },
+    {
+     "default": "TRUE",
+     "name": "model"
+    },
+    {
+     "default": "NULL",
+     "name": "contrasts"
+    }
+   ],
+   "picks": [
+    {
+     "param": "family",
+     "why": "Determines the error distribution and link function, changing coefficients and tests."
+    },
+    {
+     "param": "model",
+     "why": "Whether to include the model frame in the output, affecting memory and inspection."
+    },
+    {
+     "param": "contrasts",
+     "why": "Specifies how categorical predictors are encoded, changing coefficient values and interpretations."
+    }
+   ]
+  },
+  {
+   "function": "stats::hatvalues.lm",
+   "name": "stats::hatvalues",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "lm.influence(model, do.coef = FALSE)",
+     "name": "infl"
+    }
+   ],
+   "picks": [
+    {
+     "param": "infl",
+     "why": "Default computes leverage from model influence; changing input alters the leverage values."
+    }
+   ]
+  },
+  {
+   "function": "stats::lm",
+   "name": "stats::lm",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "\"qr\"",
+     "name": "method"
+    },
+    {
+     "default": "NULL",
+     "name": "contrasts"
+    },
+    {
+     "default": "TRUE",
+     "name": "singular.ok"
+    }
+   ],
+   "picks": [
+    {
+     "param": "method",
+     "why": "Determines the algorithm used to fit the linear model, affecting numerical stability and results."
+    },
+    {
+     "param": "contrasts",
+     "why": "Controls how categorical variables are coded, changing coefficient values and interpretation."
+    },
+    {
+     "param": "singular.ok",
+     "why": "If false, stops execution on singular fit instead of proceeding with a warning."
+    }
+   ]
+  },
+  {
+   "function": "stats::qnorm",
+   "name": "stats::qnorm",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "TRUE",
+     "name": "lower.tail"
+    },
+    {
+     "default": "0",
+     "name": "mean"
+    },
+    {
+     "default": "1",
+     "name": "sd"
+    }
+   ],
+   "picks": [
+    {
+     "param": "lower.tail",
+     "why": "Returns quantile for upper probability instead of lower."
+    },
+    {
+     "param": "mean",
+     "why": "Shifts the center of the normal distribution."
+    },
+    {
+     "param": "sd",
+     "why": "Scales the spread of the distribution."
+    }
+   ]
+  },
+  {
+   "function": "stats::qt",
+   "name": "stats::qt",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "TRUE",
+     "name": "lower.tail"
+    },
+    {
+     "default": "FALSE",
+     "name": "log.p"
+    }
+   ],
+   "picks": [
+    {
+     "param": "lower.tail",
+     "why": "Determines if the quantile corresponds to the left or right tail of the distribution."
+    },
+    {
+     "param": "log.p",
+     "why": "Indicates if input probabilities are given as natural logarithms rather than raw values."
+    }
+   ]
+  },
+  {
+   "function": "stats::residuals.lm",
+   "name": "stats::residuals",
+   "module": "stats",
+   "library": "stats",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "\"working\"",
+     "name": "type"
+    }
+   ],
+   "picks": [
+    {
+     "param": "type",
+     "why": "Determines whether residuals are raw, Pearson, deviance, or standardized, changing their scale and interpretation."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.LikelihoodModelResults.cov_params",
+   "name": "LikelihoodModelResults.cov_params",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "r_matrix",
+     "default": "None"
+    },
+    {
+     "name": "scale",
+     "default": "None"
+    },
+    {
+     "name": "cov_p",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "r_matrix",
+     "why": "Defines linear constraints for which parameter contrasts to compute the covariance for."
+    },
+    {
+     "param": "scale",
+     "why": "Overrides the default scale factor used to normalize the covariance matrix."
+    },
+    {
+     "param": "cov_p",
+     "why": "Specifies an alternative covariance matrix to use instead of the fitted result's."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.LikelihoodModelResults.f_test",
+   "name": "LikelihoodModelResults.f_test",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "cov_p",
+     "default": "None"
+    },
+    {
+     "name": "invcov",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "cov_p",
+     "why": "Controls which covariance matrix is used for the F-test, affecting p-values."
+    },
+    {
+     "param": "invcov",
+     "why": "Controls which inverse covariance matrix is used, affecting test statistics and p-values."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.LikelihoodModelResults.t_test",
+   "name": "LikelihoodModelResults.t_test",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "use_t",
+     "default": "None"
+    },
+    {
+     "name": "cov_p",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "use_t",
+     "why": "Determines if t-distribution or normal distribution is used for p-values."
+    },
+    {
+     "param": "cov_p",
+     "why": "Uses provided covariance matrix instead of the model's estimated one."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.LikelihoodModelResults.wald_test",
+   "name": "LikelihoodModelResults.wald_test",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "use_f",
+     "default": "None"
+    },
+    {
+     "name": "cov_p",
+     "default": "None"
+    },
+    {
+     "name": "df_constraints",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "use_f",
+     "why": "Determines if F-distribution or Chi-squared is used for the test statistic and p-value."
+    },
+    {
+     "param": "cov_p",
+     "why": "Overrides the default covariance matrix used to compute the test statistic."
+    },
+    {
+     "param": "df_constraints",
+     "why": "Specifies degrees of freedom for constraints if not inferred from the model."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.Model.from_formula",
+   "name": "Model.from_formula",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "subset",
+     "default": "None"
+    },
+    {
+     "name": "drop_cols",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "subset",
+     "why": "Determines which rows of data are included in the model fitting process."
+    },
+    {
+     "param": "drop_cols",
+     "why": "Specifies columns to exclude from the model formula before fitting."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.base.model.Results.predict",
+   "name": "Results.predict",
+   "module": "statsmodels.base.model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "exog",
+     "default": "None"
+    },
+    {
+     "name": "transform",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "exog",
+     "why": "If missing, defaults to original training data, limiting predictions to fitted rows."
+    },
+    {
+     "param": "transform",
+     "why": "If true, applies transformations like scaling to inputs before prediction."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.discrete.discrete_model.Logit.fit",
+   "name": "Logit.fit",
+   "module": "statsmodels.discrete.discrete_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "method",
+     "default": "'newton'"
+    },
+    {
+     "name": "maxiter",
+     "default": "35"
+    },
+    {
+     "name": "start_params",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "method",
+     "why": "Optimization algorithm affects convergence and final coefficient estimates."
+    },
+    {
+     "param": "maxiter",
+     "why": "Maximum iterations limit convergence; too few may stop early."
+    },
+    {
+     "param": "start_params",
+     "why": "Initial values can change convergence path or final estimates."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.families.family.Binomial.__init__",
+   "name": "Binomial",
+   "module": "statsmodels.genmod.families.family",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "link",
+     "default": "None"
+    },
+    {
+     "name": "check_link",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "link",
+     "why": "Sets the link function for the model, affecting fitted values and predictions."
+    },
+    {
+     "param": "check_link",
+     "why": "Validates the link function; disabling might allow unsupported links leading to errors."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.families.family.Poisson.__init__",
+   "name": "Poisson",
+   "module": "statsmodels.genmod.families.family",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "link",
+     "default": "None"
+    },
+    {
+     "name": "check_link",
+     "default": "True"
+    }
+   ],
+   "picks": [
+    {
+     "param": "link",
+     "why": "Defines the link function, changing the model form and coefficient interpretation."
+    },
+    {
+     "param": "check_link",
+     "why": "Validates the link function choice, potentially raising errors or warnings."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.generalized_linear_model.GLM.__init__",
+   "name": "GLM",
+   "module": "statsmodels.genmod.generalized_linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "family",
+     "default": "None"
+    },
+    {
+     "name": "missing",
+     "default": "'none'"
+    },
+    {
+     "name": "freq_weights",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "family",
+     "why": "Determines the distribution and link function, changing estimates and test outcomes."
+    },
+    {
+     "param": "missing",
+     "why": "Decides how to handle rows with missing values in the data."
+    },
+    {
+     "param": "freq_weights",
+     "why": "Weights observations by frequency, affecting parameter estimates and standard errors."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.generalized_linear_model.GLM.fit",
+   "name": "GLM.fit",
+   "module": "statsmodels.genmod.generalized_linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "cov_type",
+     "default": "'nonrobust'"
+    },
+    {
+     "name": "maxiter",
+     "default": "100"
+    },
+    {
+     "name": "scale",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "cov_type",
+     "why": "Determines how standard errors are computed; robust types adjust for heteroskedasticity or clustering."
+    },
+    {
+     "param": "maxiter",
+     "why": "Controls maximum iterations for convergence; too low may stop before finding optimal estimates."
+    },
+    {
+     "param": "scale",
+     "why": "Sets dispersion parameter; affects standard errors and test statistics if not estimated automatically."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.generalized_linear_model.GLM.hessian",
+   "name": "GLM.hessian",
+   "module": "statsmodels.genmod.generalized_linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "scale",
+     "default": "None"
+    },
+    {
+     "name": "observed",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "scale",
+     "why": "Default auto-estimates dispersion; setting to 1 assumes known variance."
+    },
+    {
+     "param": "observed",
+     "why": "Default uses expected; setting to True uses observed information matrix."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.genmod.generalized_linear_model.GLM.score_obs",
+   "name": "GLM.score_obs",
+   "module": "statsmodels.genmod.generalized_linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "scale",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "scale",
+     "why": "Default None uses estimated scale, affecting standard errors and test statistics in the output."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.regression.linear_model.RegressionModel.fit",
+   "name": "RegressionModel.fit",
+   "module": "statsmodels.regression.linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "cov_type",
+     "default": "'nonrobust'"
+    },
+    {
+     "name": "use_t",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "cov_type",
+     "why": "Determines if standard errors are robust to heteroskedasticity or autocorrelation."
+    },
+    {
+     "param": "use_t",
+     "why": "Controls whether to use t distribution or normal distribution for inference."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.regression.linear_model.RegressionResults.conf_int",
+   "name": "RegressionResults.conf_int",
+   "module": "statsmodels.regression.linear_model",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "alpha",
+     "default": "0.05"
+    }
+   ],
+   "picks": [
+    {
+     "param": "alpha",
+     "why": "Determines the confidence level (e.g., 95%) for the interval bounds."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.stats.contrast.ContrastResults.conf_int",
+   "name": "ContrastResults.conf_int",
+   "module": "statsmodels.stats.contrast",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "alpha",
+     "default": "0.05"
+    }
+   ],
+   "picks": [
+    {
+     "param": "alpha",
+     "why": "Controls confidence level, changing interval width and bounds."
+    }
+   ]
+  },
+  {
+   "function": "statsmodels.tools.tools.add_constant",
+   "name": "add_constant",
+   "module": "statsmodels.tools.tools",
+   "library": "statsmodels",
+   "version": "0.15.0",
+   "params": [
+    {
+     "name": "prepend",
+     "default": "True"
+    },
+    {
+     "name": "has_constant",
+     "default": "'skip'"
+    }
+   ],
+   "picks": [
+    {
+     "param": "prepend",
+     "why": "Determines whether the constant column is added at the beginning or end of the matrix."
+    },
+    {
+     "param": "has_constant",
+     "why": "Controls behavior when the input already contains a constant, affecting whether it is skipped or replaced."
+    }
+   ]
+  },
+  {
+   "function": "utils::read.csv",
+   "name": "utils::read.csv",
+   "module": "utils",
+   "library": "utils",
+   "version": "4.4.3",
+   "language": "R",
+   "params": [
+    {
+     "default": "\",\"",
+     "name": "sep"
+    },
+    {
+     "default": "TRUE",
+     "name": "header"
+    },
+    {
+     "default": "\"NA\"",
+     "name": "na.strings"
+    }
+   ],
+   "picks": [
+    {
+     "param": "sep",
+     "why": "Defines the field separator character used to split columns in the input file."
+    },
+    {
+     "param": "header",
+     "why": "Determines if the first row is treated as column names or data."
+    },
+    {
+     "param": "na.strings",
+     "why": "Specifies which character values should be interpreted as missing data."
+    }
+   ]
+  },
+  {
+   "function": "whybook.explore.compare_levels",
+   "name": "compare_levels",
+   "module": "whybook.explore",
+   "library": "whybook",
+   "version": "0.2.0",
+   "params": [
+    {
+     "name": "unit",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "unit",
+     "why": "Defaults to None, which may omit unit conversions or calculations affecting the result."
+    }
+   ]
+  },
+  {
+   "function": "whybook.explore.who_is_in",
+   "name": "who_is_in",
+   "module": "whybook.explore",
+   "library": "whybook",
+   "version": "0.2.0",
+   "params": [
+    {
+     "name": "most",
+     "default": "8"
+    },
+    {
+     "name": "unit",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "most",
+     "why": "Determines how many items are returned in the result."
+    },
+    {
+     "param": "unit",
+     "why": "Groups or filters results based on the specified unit."
+    }
+   ]
+  },
+  {
+   "function": "whybook.plots.bars",
+   "name": "bars",
+   "module": "whybook.plots",
+   "library": "whybook",
+   "version": "0.2.0",
+   "params": [
+    {
+     "name": "y",
+     "default": "None"
+    },
+    {
+     "name": "unit",
+     "default": "None"
+    }
+   ],
+   "picks": [
+    {
+     "param": "y",
+     "why": "Selects the variable to plot; without it, no data is visualized."
+    },
+    {
+     "param": "unit",
+     "why": "Defines the scale or label for values, affecting interpretation."
+    }
+   ]
+  },
+  {
+   "function": "whybook.plots.hist",
+   "name": "hist",
+   "module": "whybook.plots",
+   "library": "whybook",
+   "version": "0.2.0",
+   "params": [
+    {
+     "name": "bins",
+     "default": "30"
+    }
+   ],
+   "picks": [
+    {
+     "param": "bins",
+     "why": "Determines the number of intervals; changing it alters the shape and density of the distribution plot."
+    }
+   ]
+  }
+ ]
+}

@@ -165,14 +165,17 @@ def start_options(
     options.append(question(text, "missing", 0.64, "The rows, and the values missing in each column", body))
     if shape is not None and shape.levels:
         text = f"How many rows has each level of {_names(shape.levels)}?"
-        # Written out, so that it reads as pandas: the counts of the 12 most common levels of each column.
+        # A table, as the missing values are one: a row for each of the 12 most
+        # common levels of each column. pandas shows a table of more than 60
+        # rows as its first and last five, and NHEFS has 96 such rows, so the
+        # table shows every row (design iteration 1.101).
         body = (
-            "print(\n"
-            '    "\\n".join(\n'
-            '        column + ": " + ", ".join(str(level) + " " + format(count, ",") for level, count in $data[column].value_counts(dropna=False).head(12).items())\n'
-            f"        for column in {codegen.literals(shape.levels)}\n"
-            "    )\n"
-            ")"
+            "$answer = pd.concat(\n"
+            f"    {{column: $data[column].value_counts(dropna=False).head(12) for column in {codegen.literals(shape.levels)}}},\n"
+            '    names=["column", "level"],\n'
+            ').rename("rows").to_frame()\n'
+            'with pd.option_context("display.max_rows", len($answer)):\n'
+            "    display($answer)"
         )
         options.append(question(text, "levels", 0.6, "The rows of each level of the columns with few levels", body, shown=False))
     if shape is not None and shape.numbers:

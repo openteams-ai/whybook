@@ -55,7 +55,7 @@ Rules for the code:
 - Load every module or package the cell uses at its top{load}, even when an earlier cell
   does, so the cell also runs in a notebook that never did.
 - Keep the cell short: at most 30 lines, and no functions or classes unless the question needs them.
-- End the cell with the object to show: a figure, a table, or a short printed result.
+- End the cell with the object to show: a figure, a table, or a short printed result.{show}
 - If "previous_attempt" is present, that code failed with the given error. Fix it.
 - If "about" is present, it names what the analyst pointed at when asking, such as rows
   picked in a plot: the question is about that, and not about all the data. "rows" then
@@ -100,6 +100,7 @@ def system_prompt(name: str | None = None) -> str:
         frames=f", {found.frames}" if found.frames else "",
         remove=f", {found.remove}" if found.remove else "",
         load=f", {found.load}" if found.load else "",
+        show=f"\n{found.show}" if found.show else "",
         helpers=f"{found.helpers}\n\n" if found.helpers else "",
     )
 

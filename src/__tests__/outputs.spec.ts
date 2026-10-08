@@ -1,5 +1,6 @@
 import type { IOutputModel } from '@jupyterlab/rendermime';
 
+import { drawnByExtension, outputKind } from '../model/notebook';
 import { outputTile } from '../model/outputs';
 
 /** An output as the notebook model holds it: a stream's text is in its data. */
@@ -61,5 +62,43 @@ describe('outputTile', () => {
       'application/vnd.whybook.progress+json': { fraction: 0.5 }
     });
     expect(outputTile(progress)).toBeNull();
+  });
+});
+
+describe('outputKind', () => {
+  it("draws an output of another extension's type as a chart, where its text is a repr", () => {
+    // A causal diagram of jupyterlab-dagitty showed on the bench as its
+    // repr, and its box was 0 px wide in the Code view.
+    const dag = output('execute_result', {
+      'application/x.dagitty.dag': 'dag { qsmk -> wt82_71 }',
+      'text/plain': '<jupyterlab_dagitty.dag.DAG at 0x7f0c2a1b3d90>'
+    });
+    expect(outputKind(dag)).toBe('chart');
+    expect(drawnByExtension(dag.data)).toBe(true);
+  });
+
+  it("keeps the kinds of JupyterLab's own types and of Whybook's", () => {
+    const printed = output('stream', {
+      'application/vnd.jupyter.stdout': 'one\n'
+    });
+    expect(outputKind(printed)).toBe('log');
+    const json = output('execute_result', {
+      'application/json': { a: 1 },
+      'text/plain': "{'a': 1}"
+    });
+    expect(outputKind(json)).toBe('text');
+    const figure = output('display_data', {
+      'image/png': 'iVBORw0KGgo=',
+      'application/vnd.whybook.axes+json': { axes: [] },
+      'text/plain': '<Figure size 640x480 with 1 Axes>'
+    });
+    expect(outputKind(figure)).toBe('image');
+    expect(drawnByExtension(figure.data)).toBe(false);
+    const table = output('execute_result', {
+      'text/html': '<table><tr><td>1</td></tr></table>',
+      'application/vnd.dataresource+json': { data: [] },
+      'text/plain': '   a\n0  1'
+    });
+    expect(outputKind(table)).toBe('table');
   });
 });

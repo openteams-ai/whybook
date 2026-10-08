@@ -310,4 +310,4 @@ async def test_an_agent_run_goes_to_the_connected_model(jp_fetch, monkeypatch):
     response = await jp_fetch("whybook", "agent", method="POST", body=json.dumps(body()))
     lines = [json.loads(line) for line in response.body.decode().splitlines()]
     assert lines[-1]["answer"] == "Arm B ([2])." and lines[-1]["model"] == "ollama:qwen3:8b"
-    assert chosen == [("ollama", "qwen3:8b", None, ["explore", "finish", "new_notebook", "run_cell", "share_frames", "write_file"])]
+    assert chosen == [("ollama", "qwen3:8b", None, ["explore", "finish", "new_notebook", "remove_cell", "run_cell", "share_frames", "write_file"])]

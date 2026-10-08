@@ -7,7 +7,7 @@ import * as React from 'react';
 import type { IImagePick } from '../model/imageask';
 import type { IOutputText } from '../model/logs';
 import { SHORT_TEXT_LINES, outputText } from '../model/logs';
-import { outputKind } from '../model/notebook';
+import { drawnByExtension, outputKind } from '../model/notebook';
 import { ninejsChart, ninejsPlace } from '../model/ninejs';
 import { svgRatio } from '../model/outputs';
 import { PLOTLY_MIME, watchPlotly } from '../model/plotly';
@@ -389,8 +389,12 @@ export function FullOutput(props: {
   onAskImage?: (pick: IImagePick, anchor: IAnchor) => void;
 }): JSX.Element {
   const box = React.useRef<HTMLDivElement>(null);
+  // The renderer of another extension may fit its drawing to its box, as a
+  // causal diagram of jupyterlab-dagitty does: a box as wide as the drawing
+  // was 0 px wide.
+  const fill = drawnByExtension(props.output.data);
   return (
-    <div className="jp-Epi-copyable" ref={box}>
+    <div className={`jp-Epi-copyable${fill ? ' jp-mod-fill' : ''}`} ref={box}>
       <OutputBoundary output={props.output}>
         <FullOutputBody {...props} />
       </OutputBoundary>

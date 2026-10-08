@@ -565,10 +565,12 @@ def random_slope_code(cell: CellInfo) -> str | None:
             f'{slope} = smf.{call.function}({formula}, data={call.data}, re_formula={call.keywords["re_formula"]}, {arguments}).fit(reml=False)',
             f"{intercept} = smf.{call.function}({formula}, data={call.data}, {arguments}).fit(reml=False)",
             f"{ratio} = 2 * ({slope}.llf - {intercept}.llf)",
+            # A table: a Series shows as plain text, with its dtype under it (design iteration 1.101).
             "random_slope_test = pd.Series(",
             f'    {{"log likelihood, slope": {slope}.llf, "log likelihood, intercept only": {intercept}.llf, "LR": {ratio},'
-            f' "p (chi-squared, 2 df, conservative)": stats.chi2.sf({ratio}, 2)}}',
-            ").round(4)",
+            f' "p (chi-squared, 2 df, conservative)": stats.chi2.sf({ratio}, 2)}},',
+            '    name="likelihood ratio test",',
+            ").round(4).to_frame()",
             f"del {slope}, {intercept}, {ratio}",
             "random_slope_test",
         ]

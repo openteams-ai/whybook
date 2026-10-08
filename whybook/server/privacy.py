@@ -303,9 +303,14 @@ def tool_result(result: Any, keep_local: bool) -> dict[str, Any]:
     # A file's path, its length and why the view refused it hold no data. Nor
     # does a notebook that the run made: its name, its kernel, its language
     # and version, whether it reads parquet, and the names of its packages.
+    # Nor does what became of a cell that failed: the label it had before
+    # its fix, and whether it was removed or is no longer failed.
     kept: dict[str, Any] = {
         key: result[key]
-        for key in ("status", "cell", "label", "title", "of", "path", "lines", "reason", "notebook", "kernel", "language", "version", "sandboxed", "parquet", "packages", "folder")
+        for key in (
+            "status", "cell", "label", "title", "of", "path", "lines", "reason", "notebook", "kernel", "language",
+            "version", "sandboxed", "parquet", "packages", "folder", "fixed", "removed", "failed",
+        )
         if key in result
     }
     if isinstance(result.get("files"), list):

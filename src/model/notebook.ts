@@ -170,6 +170,36 @@ export const CHART_MIMES = [
   'application/vnd.vega.v5+json'
 ];
 
+/**
+ * The `application/` types of outputs that JupyterLab draws itself, or that
+ * Whybook knows. Whybook's own types, `application/vnd.whybook.…`, such as
+ * the Axes of a matplotlib figure, come with outputs of other types.
+ */
+const OWN_APPLICATION_MIMES = new Set([
+  'application/json',
+  'application/javascript',
+  'application/pdf',
+  'application/vnd.jupyter.stdout',
+  'application/vnd.jupyter.stderr',
+  WIDGET_MIME,
+  ...CHART_MIMES
+]);
+
+/**
+ * Whether an output holds a type that the renderer of another extension
+ * draws, such as a causal diagram of jupyterlab-dagitty
+ * (`application/x.dagitty.dag`). Its text alone is a repr, such as
+ * `<jupyterlab_dagitty.dag.DAG at 0x7f...>`.
+ */
+export function drawnByExtension(data: Record<string, unknown>): boolean {
+  return Object.keys(data).some(
+    mime =>
+      mime.startsWith('application/') &&
+      !mime.startsWith('application/vnd.whybook.') &&
+      !OWN_APPLICATION_MIMES.has(mime)
+  );
+}
+
 export function outputKind(output: IOutputModel): OutputKind {
   if (output.type === 'error') {
     return 'error';
@@ -202,6 +232,9 @@ export function outputKind(output: IOutputModel): OutputKind {
   }
   // A figure in HTML: ninejs and Bokeh draw in an iframe, an SVG or a script.
   if (/<(iframe|svg|canvas|script)\b/i.test(html)) {
+    return 'chart';
+  }
+  if (drawnByExtension(data)) {
     return 'chart';
   }
   if (output.type === 'stream') {

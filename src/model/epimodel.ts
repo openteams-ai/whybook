@@ -129,6 +129,7 @@ import {
   agentFilePath,
   agentOutputs,
   cellByLabel,
+  cellError,
   cellOutputText,
   FILE_CHARS,
   markedFile,
@@ -231,7 +232,7 @@ import {
 } from './notebook';
 import { labelRefs, relabel } from './labels';
 import type { IHistoryRow } from './runs';
-import { AgentRuns, historyOf, historyRows, pastRun } from './runs';
+import { AgentRuns, historyOf, historyRows, keptCells, pastRun } from './runs';
 
 export type Placement = 'sidebar' | 'document';
 
@@ -6576,10 +6577,20 @@ export class EpiModel implements IDisposable {
         model._emit();
       }
     };
+    // A fix of a cell of the run that failed, or its removal (1.103).
+    if (
+      event.name === 'remove_cell' ||
+      (event.name === 'run_cell' && input.fix)
+    ) {
+      return model._agentFailed(run, event, path, changed);
+    }
     if (event.name === 'run_cell') {
+      // A cell that the agent removed after it failed is not its last cell.
       const lastAdded = run.steps
         .flatMap(step =>
-          step.tool === 'run_cell' && step.notebook === path ? step.cells : []
+          step.tool === 'run_cell' && step.notebook === path
+            ? keptCells(step)
+            : []
         )
         .pop();
       const code = String(input.code ?? '');
@@ -7282,6 +7293,125 @@ export class EpiModel implements IDisposable {
       first ? ((parent ?? after)?.id ?? null) : undefined
     );
     return inserted;
+  }
+
+  /**
+   * Fix a cell of an agent's run that failed, in place, or remove it
+   * (design iteration 1.103). run_cell with `fix` writes the agent's code
+   * into that cell, which runs again where it is, with its title, and takes
+   * a new label as it runs; remove_cell deletes it. The cell's step keeps
+   * the cell's error, which its line in the run's card names. A cell that
+   * is no longer a failed cell of the run here, since the analyst removed
+   * it or ran it again, answers `failed: false`, and the server lets the
+   * run end without it.
+   */
+  private async _agentFailed(
+    run: IAgentRun,
+    event: IAgentToolEvent,
+    path: string | undefined,
+    changed: () => void
+  ): Promise<Record<string, unknown>> {
+    const input = event.input;
+    const removing = event.name === 'remove_cell';
+    const asked = String((removing ? input.cell : input.fix) ?? '');
+    const steps = run.steps.filter(
+      step =>
+        step.notebook === path &&
+        (step.tool === 'run_cell' || step.tool === 'explore')
+    );
+    const ours = new Set(steps.flatMap(step => keptCells(step)));
+    // "[14]", "14" or "R [2]": the label at the end.
+    const wanted = /(\d+[a-z]?)\]?\s*$/.exec(asked)?.[1];
+    const id = wanted
+      ? cellByLabel(
+          this.cells().filter(cell => ours.has(cell.id)),
+          `[${wanted}]`
+        )
+      : null;
+    const cell = id ? this.cell(id) : null;
+    const step = cell
+      ? steps.find(item => item.cells.includes(cell.id))
+      : undefined;
+    const error = cell ? cellError(outputsOf(cell.model)) : null;
+    if (!cell || !step || !error) {
+      const reason = `${asked} is no longer a cell of this run that failed: the analyst removed it, or ran it again`;
+      return removing
+        ? { status: 'ok', cell: asked, failed: false, reason }
+        : { status: 'refused', failed: false, reason };
+    }
+    const label = cell.label;
+    step.failures = {
+      ...step.failures,
+      [cell.id]: [...(step.failures?.[cell.id] ?? []), error]
+    };
+    if (removing) {
+      step.removed = [...(step.removed ?? []), cell.id];
+      if (run.stripId === cell.id) {
+        this._moveRunStrip(run, cell.id);
+      }
+      this.deleteCell(cell.id);
+      changed();
+      return { status: 'ok', cell: label, removed: true };
+    }
+    const code = String(input.code ?? '');
+    // The key of the agent's code goes first, so that the change is not
+    // taken for the analyst's (./handedit.ts); Remove compares the cell
+    // with the code of its step.
+    setCellMeta(cell.model, {
+      view_code_key: codeKey(code),
+      view_code: undefined
+    });
+    cell.model.sharedModel.setSource(code);
+    step.code = { ...step.code, [cell.id]: code };
+    step.state = 'running';
+    if (step.tool === 'run_cell') {
+      step.error = null;
+    }
+    changed();
+    const outcome = await this._agentRun(
+      run,
+      cell.model as ICodeCellModel,
+      cell.title,
+      !!cell.branchOf
+    );
+    if (step.tool === 'run_cell') {
+      step.state = outcome.status === 'ok' ? 'done' : 'error';
+      step.error = (outcome.error as string | undefined) ?? null;
+    } else {
+      // The branches of explore: done once none of them holds an error.
+      const failing = keptCells(step).some(item => {
+        const branch = this.cell(item);
+        return !!branch && !!cellError(outputsOf(branch.model));
+      });
+      step.state = failing ? 'error' : 'done';
+      step.error = failing ? 'a branch failed' : null;
+    }
+    changed();
+    return { ...outcome, fixed: label };
+  }
+
+  /**
+   * The run's strip leaves a cell that the agent removes: it goes to the
+   * cell before, or after when another strip is there, as the strip of a
+   * run shows right above its cells.
+   */
+  private _moveRunStrip(run: IAgentRun, from: string): void {
+    const strip = this.strips.get(from);
+    const index = indexOf(this.notebook, from);
+    if (!strip || index < 0) {
+      return;
+    }
+    const near = [index - 1, index + 1]
+      .filter(at => at >= 0 && at < this.notebook.cells.length)
+      .map(at => this.notebook.cells.get(at).id);
+    const to = near.find(id => !this.strips.has(id));
+    if (!to) {
+      return;
+    }
+    this.strips.delete(from);
+    strip.cellId = to;
+    run.stripId = to;
+    this.strips.set(to, strip);
   }
 
   /** Run a cell of an agent's step, and describe what came out for the agent. */

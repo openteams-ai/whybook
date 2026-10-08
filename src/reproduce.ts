@@ -242,9 +242,14 @@ export const reproducePlugin: JupyterFrontEndPlugin<void> = {
     menu.id = 'jp-Epi-kernelmenu';
 
     const targetOf = (node: Element): ITarget | null => {
-      const widget = Array.from(app.shell.widgets('main')).find(item =>
-        item.node.contains(node)
-      );
+      // In a toolbar with no room for it, the name is in the overflow menu,
+      // a popup on the page's body: the menu opens from the toolbar of the
+      // panel in front, which a click on its "..." button made current.
+      const widget = node.closest('.jp-Toolbar-responsive-popup')
+        ? app.shell.currentWidget
+        : Array.from(app.shell.widgets('main')).find(item =>
+            item.node.contains(node)
+          );
       if (widget instanceof EpiPanel) {
         return {
           path: widget.context.path,

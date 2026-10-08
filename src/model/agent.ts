@@ -16,6 +16,7 @@ import { outputText } from './logs';
 import { outputKind } from './notebook';
 import { plotGlyph } from './outputs';
 import { pyString } from './pycode';
+import { keptCells } from './runs';
 import { htmlOf, tableInfo, tableText } from './tables';
 
 /**
@@ -125,6 +126,15 @@ export interface IAgentStep {
   file?: IAgentFile | null;
   state: 'running' | 'done' | 'error';
   error: string | null;
+  /**
+   * The errors of the step's cells before their last run, by the cell's
+   * id, each as its first line, the oldest first: the agent fixed the cell
+   * in place after them, or removed it after the last (design iteration
+   * 1.103). The run's card names them, so that no error is hidden.
+   */
+  failures?: Record<string, string[]>;
+  /** The cells of the step that the agent removed after they failed. */
+  removed?: string[];
 }
 
 export interface IAgentRun {
@@ -496,6 +506,100 @@ export function cellByLabel(
 }
 
 /**
+ * The first line of the error that a cell's outputs hold, as its name and
+ * message: "PatsyError: unrecognized token in constraint". Null for outputs
+ * without an error.
+ */
+export function cellError(outputs: IOutputModel[]): string | null {
+  for (const output of outputs) {
+    if (outputKind(output) !== 'error') {
+      continue;
+    }
+    const error = output.toJSON() as { ename?: unknown; evalue?: unknown };
+    const name = String(error.ename ?? '') || 'Error';
+    const message = String(error.evalue ?? '')
+      .split('\n')[0]
+      .trim();
+    return message ? `${name}: ${message}` : name;
+  }
+  return null;
+}
+
+/**
+ * The name of an error from its first line, "TypeError" for "TypeError:
+ * only 0-dimensional arrays…", as the server's privacy.error_type reads it.
+ */
+export function errorName(line: string): string {
+  const head = line.split(':', 1)[0].trim();
+  return /^[\w.]{1,80}$/.test(head) ? head : 'an error';
+}
+
+/** A note on a step's line about a cell that failed (design iteration 1.103). */
+export interface IStepNote {
+  /**
+   * fixed: the fix ran without an error; trying: the fix runs; again: the
+   * fix failed too; removed: the agent removed the cell.
+   */
+  kind: 'fixed' | 'trying' | 'again' | 'removed';
+  /** "fixed after TypeError", or "[5c] fixed after KeyError" on a step of several cells. */
+  text: string;
+  /** Each error, with its message, for the note's tooltip. */
+  title: string;
+}
+
+/** The words of each note before the errors' names. */
+const NOTE_VERBS: Record<IStepNote['kind'], string> = {
+  fixed: 'fixed',
+  trying: 'trying again',
+  again: 'tried again',
+  removed: 'removed'
+};
+
+/**
+ * What became of the cells of a step that failed, in words: "fixed after
+ * TypeError" for a cell that the agent fixed in place, "removed after
+ * KeyError" for one that it removed, and "tried again after PatsyError"
+ * while its fix fails too. Several errors go in their order: "fixed after
+ * NameError, then TypeError". A step of several cells, the branches of
+ * explore, names each cell by its label; `cellOf` gives a cell's label and
+ * whether its outputs hold an error now, or null for a cell not here.
+ */
+export function stepNotes(
+  step: IAgentStep,
+  cellOf: (id: string) => { label: string; failed: boolean } | null
+): IStepNote[] {
+  const notes: IStepNote[] = [];
+  const several = step.cells.length > 1;
+  for (const id of step.cells) {
+    const errors = step.failures?.[id] ?? [];
+    if (!errors.length) {
+      continue;
+    }
+    const removed = !!step.removed?.includes(id);
+    const cell = removed ? null : cellOf(id);
+    // The one cell of run_cell runs and fails with its step; a branch
+    // fails while its outputs hold an error.
+    const single = step.tool === 'run_cell';
+    const kind: IStepNote['kind'] = removed
+      ? 'removed'
+      : single && step.state === 'running'
+        ? 'trying'
+        : (single ? step.state === 'error' : !!cell?.failed)
+          ? 'again'
+          : 'fixed';
+    const verb = NOTE_VERBS[kind];
+    const names = errors.map(errorName).join(', then ');
+    const label = several ? (cell?.label ?? 'a branch') : null;
+    notes.push({
+      kind,
+      text: `${label ? `${label} ` : ''}${verb} after ${names}`,
+      title: errors.join('\n')
+    });
+  }
+  return notes;
+}
+
+/**
  * Where a module that the agent asks to write goes: a path from the server's
  * root, inside the notebook's folder, or why not. Each part of the path is a
  * Python name, so that a cell can import the module. In a notebook whose
@@ -572,9 +676,10 @@ function cellCount(count: number): string {
  * pain_diary_cohort.R.ipynb".
  */
 export function runMade(run: IAgentRun): string {
+  // A cell that the agent removed after it failed is not counted.
   const here = run.steps
     .filter(step => !step.notebook)
-    .reduce((sum, step) => sum + step.cells.length, 0);
+    .reduce((sum, step) => sum + keptCells(step).length, 0);
   const files = run.steps.filter(step => step.file && !step.error).length;
   const filesText = files
     ? ` and ${files === 1 ? '1 file' : `${files} files`}`
@@ -587,7 +692,7 @@ export function runMade(run: IAgentRun): string {
   for (const notebook of others) {
     const count = run.steps
       .filter(step => step.notebook === notebook.path)
-      .reduce((sum, step) => sum + step.cells.length, 0);
+      .reduce((sum, step) => sum + keptCells(step).length, 0);
     parts.push(`${cellCount(count)} in ${PathExt.basename(notebook.path)}`);
   }
   return parts.join(' and ') + filesText;
@@ -595,7 +700,10 @@ export function runMade(run: IAgentRun): string {
 
 /** A run's state in a few words, for its strip or card. */
 export function runStatus(run: IAgentRun): string {
-  const cells = run.steps.reduce((sum, step) => sum + step.cells.length, 0);
+  const cells = run.steps.reduce(
+    (sum, step) => sum + keptCells(step).length,
+    0
+  );
   const made = runMade(run);
   // The kernel of the one notebook that the run made.
   const kernel =

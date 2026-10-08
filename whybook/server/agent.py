@@ -29,6 +29,14 @@ of finish loses any markup of a tool call that the model left in its text,
 and a parameter that the markup holds fills the argument the call left out
 (``finish_arguments``).
 
+A cell of the run that fails stays failed until the agent fixes it in place,
+run_cell with ``fix``, which rewrites that cell and runs it again, or removes
+it with remove_cell (design iteration 1.103). The server notes each cell that
+failed from what the view says, and finish refuses while one is left in a
+notebook, or when the answer cites the label that a cell had when it failed
+(``Run.unfinished``). So a notebook that an agent leaves runs from the top
+without an error, and its answer cites only cells that ran.
+
 Where a price of the model is known, a run stops at its cost cap: the
 server's cap of a run, or what is left under the notebook's cap when the view
 sends it, whichever is lower (``AgentRequest.cap``). The run then ends as
@@ -45,6 +53,7 @@ import dataclasses
 import json
 import logging
 import math
+import posixpath
 import re
 import secrets
 import time
@@ -81,6 +90,12 @@ MAX_NOTEBOOK_CELLS = 40
 MAX_CELL_CODE = 4000
 MAX_CELL_OUTPUT = 1500
 MAX_COMPARED = 20
+# How many times the agent may fix one cell that failed: the prompt asked for
+# at most two tries before a fix went in place (design iteration 1.103).
+MAX_FIXES = 2
+# How many times finish may refuse a run on a driver that counts each refusal
+# as a retry of its output, Pydantic AI's: the Claude driver has its turns.
+FINISH_REFUSALS = 3
 
 # The argument that names the notebook a tool acts in.
 NOTEBOOK_ARGUMENT = {
@@ -92,8 +107,9 @@ TOOLS: dict[str, dict[str, Any]] = {
     "run_cell": {
         "description": (
             "Add a code cell to a notebook and run it in that notebook's kernel: the analyst's, or"
-            " the one that new_notebook made. Returns the cell's label, whether it ran or failed,"
-            " the variables it made, and what its outputs show."
+            " the one that new_notebook made. With fix, rewrite a cell of yours that failed, in its"
+            " place, and run it again. Returns the cell's label, whether it ran or failed, the"
+            " variables it made, and what its outputs show."
         ),
         "schema": {
             "type": "object",
@@ -112,8 +128,31 @@ TOOLS: dict[str, dict[str, Any]] = {
                     ),
                 },
                 "why": {"type": "string", "description": "Why this step, in at most 15 words, shown to the analyst."},
+                "fix": {
+                    "type": "string",
+                    "description": (
+                        "The label of a cell of yours that failed, such as [4]: the code replaces that"
+                        " cell's code, and the cell runs again where it is, with its title. A fix adds"
+                        " no cell, and the cell gets a new label when it runs."
+                    ),
+                },
             },
             "required": ["title", "code"],
+        },
+    },
+    "remove_cell": {
+        "description": (
+            "Remove a cell of yours that failed, when you cannot fix it or a later cell does its"
+            " work. Say in the answer what did not run. Returns whether the cell was removed."
+        ),
+        "schema": {
+            "type": "object",
+            "properties": {
+                "cell": {"type": "string", "description": "The label of the cell that failed, such as [4]."},
+                "notebook": NOTEBOOK_ARGUMENT,
+                "why": {"type": "string", "description": "Why it goes, in at most 15 words, shown to the analyst."},
+            },
+            "required": ["cell"],
         },
     },
     "explore": {
@@ -223,13 +262,20 @@ TOOLS: dict[str, dict[str, Any]] = {
         },
     },
     "finish": {
-        "description": "End the run with the answer. Call it once, last.",
+        "description": (
+            "End the run with the answer, last. It refuses while a cell of yours that failed is in a"
+            " notebook, or when the answer cites one, and says why: fix or remove that cell, then"
+            " call it again."
+        ),
         "schema": {
             "type": "object",
             "properties": {
                 "answer": {
                     "type": "string",
-                    "description": "The answer in at most 3 sentences, in plain words, citing the cells that show it by label, such as [7].",
+                    "description": (
+                        "The answer in at most 3 sentences, in plain words, citing the cells that show it by"
+                        " label, such as [7]. Cite only cells that ran without an error."
+                    ),
                 },
                 "cells": {"type": "array", "items": {"type": "string"}, "description": "The labels of the cells that show the answer."},
                 "follow_up": {
@@ -307,7 +353,10 @@ How to work:
   one namespace. In each branch, give every name that it assigns, intermediate values
   included, a name unique to that branch, such as fit_mixed and fit_late. Never assign or
   delete a name that another branch or the notebook defines.
-- A cell that fails returns its error. Fix it with another run_cell, at most twice.
+- A cell that fails returns its error. Fix that cell in place: run_cell with "fix" set to its
+  label, such as [7], and the whole corrected code. After {max_fixes} fixes that fail, or when a
+  later cell does its work, remove it with remove_cell, and say in the answer what did not
+  run. finish refuses while a cell of yours has failed.
 - Write a module with write_file only when a cell would pass 30 lines, or when several cells
   call the same functions; the analysis stays in cells. Put the constants that the results
   depend on at the module's top, in upper case: the view shows them on the cells that use
@@ -342,7 +391,7 @@ Rules for the code:
 - Load every module or package a cell uses at its top{load}.
 - Keep each cell short, at most 30 lines, and end it with the object to show: a figure, a
   table with named columns, or values printed with a label each. Round every number shown, in
-  a describe() too, and never show a bare tuple or scientific notation.
+  a describe() too, and never show a bare tuple or scientific notation.{show}
 - A file or a database table in "selected" is not in the kernel yet: load it first, with the
   code in its "load" field.
 
@@ -574,10 +623,12 @@ class AgentRequest:
         found = languages.language(self.solve.language)
         return SYSTEM_PROMPT.format(
             max_cells=self.max_cells,
+            max_fixes=MAX_FIXES,
             privacy=PRIVACY_PROMPT if self.keep_local else "",
             language=found.name,
             reload=f" {found.reload}" if found.reload else "",
             load=f", {found.load}" if found.load else "",
+            show=f"\n{found.show}" if found.show else "",
         )
 
     def frames(self) -> tuple[str, ...]:
@@ -684,6 +735,43 @@ def _assigned(code: str) -> set[str]:
     return {node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del))}
 
 
+# A cell's label at the end of what the agent gives: "[14]", "14", "[5b]" or "R [2]".
+LABEL_END = re.compile(r"(\d+[a-z]?)\]?\s*$")
+# The labels that a text cites, alone or in a list, with the word before them:
+# [7], [7, 9] and R [2], a cell of the notebook that the run made with R.
+CITED = re.compile(r"(?:([A-Za-z][\w.+#-]*)\s+)?\[(\d+[a-z]?(?:\s*,\s*\d+[a-z]?)*)\]")
+
+
+def cell_label(value: Any) -> str | None:
+    """A cell's label as the view writes it, [14] or [5b], from what the agent gives; None when it names no label."""
+    found = LABEL_END.search(str(value or "").strip())
+    return f"[{found.group(1)}]" if found else None
+
+
+def notebook_key(value: Any) -> str:
+    """The notebook that a tool acts in, as the run notes its cells: "" for the analyst's, else the name that new_notebook gave."""
+    return posixpath.basename(str(value or "").strip())
+
+
+def cited_labels(text: str, languages: dict[str, str]) -> set[tuple[str, str]]:
+    """The cells that a text cites, by notebook and label: [7] and [7, 9] in the analyst's notebook, R [2] in the notebook that the run made with R."""
+    by_language = {language.lower(): name for name, language in languages.items() if language}
+    found: set[tuple[str, str]] = set()
+    for match in CITED.finditer(text):
+        notebook = by_language.get((match.group(1) or "").lower(), "")
+        for label in match.group(2).split(","):
+            found.add((notebook, f"[{label.strip()}]"))
+    return found
+
+
+@dataclass
+class Failed:
+    """A cell of a run that failed and is in its notebook: the name of its error, and the fixes tried."""
+
+    error: str
+    fixes: int = 0
+
+
 @dataclass
 class Run:
     """One agent run: its events for the view, and the tool calls that wait for the view."""
@@ -715,9 +803,116 @@ class Run:
     local: bool = False
     threads: int = 4
     review: Callable[[str], Any] | None = None
+    # The cells of the run that failed and are in their notebook, by the
+    # notebook ("" for the analyst's) and the label: finish refuses while one
+    # is left (design iteration 1.103). Every label that a cell had when it
+    # failed, and the labels of the cells that ran: the answer cites no label
+    # of a failed attempt. What a fix or a removal made of a failed label:
+    # the cell's label after the fix, or None for a cell removed.
+    failed: dict[tuple[str, str], Failed] = field(default_factory=dict)
+    failed_labels: set[tuple[str, str]] = field(default_factory=set)
+    ran_labels: set[tuple[str, str]] = field(default_factory=set)
+    became: dict[tuple[str, str], str | None] = field(default_factory=dict)
+    # The language of each notebook that the run made, by its name, as an
+    # answer names its cells: R [2].
+    languages: dict[str, str] = field(default_factory=dict)
 
     def emit(self, event: dict[str, Any]) -> None:
         self.queue.put_nowait(event)
+
+    def named(self, key: tuple[str, str]) -> str:
+        """A cell of the run as the agent names it: [14] here, R [3] in the notebook that the run made with R."""
+        notebook, label = key
+        return f"{self.languages.get(notebook) or notebook} {label}" if notebook else label
+
+    def failed_list(self) -> str:
+        """The cells that failed and are still in their notebook, with their errors: "[14] (PatsyError) and [16] (KeyError)"."""
+        items = [f"{self.named(key)} ({failed.error})" for key, failed in self.failed.items()]
+        return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} and {items[-1]}"
+
+    def failed_cell(self, notebook: Any, asked: Any, tool: str) -> tuple[str, str] | str:
+        """The failed cell that a fix or a removal names, or why the tool is refused."""
+        label = cell_label(asked)
+        key = (notebook_key(notebook), label or "")
+        if label and key not in self.failed:
+            # The analyst's notebook named by its name, or a cell of another
+            # notebook named without it: the one failed cell of that label.
+            same = [found for found in self.failed if found[1] == label]
+            if len(same) == 1:
+                key = same[0]
+        if key in self.failed:
+            return key
+        what = "fix" if tool == "run_cell" else "remove_cell"
+        if not self.failed:
+            return f"No cell of yours has failed: {what} takes only a cell of yours that failed." + (
+                " Leave out fix to add a cell." if tool == "run_cell" else ""
+            )
+        return f"{label or 'That'} is not a cell of yours that failed: {what} takes only those, and {self.failed_list()} failed."
+
+    def track(self, name: str, tool_input: dict[str, Any], result: dict[str, Any], fixing: tuple[str, str] | None) -> None:
+        """Note which cells of the run failed, ran or left their notebook, from what the view says of a tool."""
+        if name == "new_notebook" and result.get("status") == "ok" and isinstance(result.get("notebook"), str):
+            self.languages[notebook_key(result["notebook"])] = str(result.get("language") or "")
+            return
+        if fixing is not None and result.get("failed") is False:
+            # The cell is no longer a failed cell of the notebook: the
+            # analyst removed it, or ran it again.
+            self.failed.pop(fixing, None)
+            return
+        if name == "remove_cell":
+            if result.get("status") == "ok":
+                self.failed.pop(fixing, None)
+                if fixing is not None:
+                    self.became[fixing] = None
+            return
+        if name == "explore":
+            notebook = notebook_key(tool_input.get("notebook"))
+            for branch in result.get("branches") or []:
+                if isinstance(branch, dict):
+                    self.ran(notebook, branch, None)
+            return
+        if name == "run_cell":
+            self.ran(fixing[0] if fixing else notebook_key(tool_input.get("notebook")), result, fixing)
+
+    def ran(self, notebook: str, result: dict[str, Any], fixing: tuple[str, str] | None) -> None:
+        """Note a cell that ran, from its result: a fix's cell keeps the fixes it took."""
+        status = result.get("status")
+        if status not in ("ok", "error"):
+            return
+        label = cell_label(result.get("cell"))
+        before = self.failed.pop(fixing, None) if fixing is not None else None
+        if fixing is not None:
+            self.became[fixing] = label
+        if label is None:
+            return
+        key = (notebook, label)
+        if status == "ok":
+            self.ran_labels.add(key)
+            return
+        self.failed[key] = Failed(privacy.error_type(result.get("error")), (before.fixes + 1) if before else 0)
+        self.failed_labels.add(key)
+
+    def unfinished(self, answer: dict[str, Any]) -> str | None:
+        """Why finish is refused: a cell of the run failed and is in its notebook, or the answer cites a cell when it failed. None lets the run end."""
+        if self.failed:
+            first = self.named(next(iter(self.failed)))
+            one = len(self.failed) == 1
+            return (
+                f"Not finished: {self.failed_list()} failed and {'is' if one else 'are'} still in the notebook, which would"
+                f" fail there when it runs from the top. Fix {'it' if one else 'each'} in place with run_cell and \"fix\":"
+                f' "{first}", or remove {"it" if one else "one"} with remove_cell when you cannot fix it or a later cell does'
+                " its work, and say in the answer what did not run. Then finish again."
+            )
+        cleaned = finish_arguments(answer)
+        cells = cleaned.get("cells") if isinstance(cleaned.get("cells"), list) else []
+        text = " ".join([str(cleaned.get("answer") or ""), *(str(item) for item in cells)])
+        cited = sorted(key for key in cited_labels(text, self.languages) if key in self.failed_labels and key not in self.ran_labels)
+        if not cited:
+            return None
+        key = cited[0]
+        now = self.became.get(key)
+        where = f"it is {self.named((key[0], now))} since its fix" if now else "you removed it"
+        return f"Not finished: the answer cites {self.named(key)}, a cell when it failed, and {where}. Cite only cells that ran without an error."
 
     def saw(self, code: str, label: Any) -> None:
         """Note what a cell that ran shows at its end, after what it assigned: a value that a cell changes is new again."""
@@ -738,9 +933,29 @@ class Run:
     async def call(self, name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
         """Ask the view to run a tool, and wait for what came out."""
         if name == "finish":
+            refused = self.unfinished(tool_input)
+            if refused:
+                return {"status": "refused", "error": refused}
             self.answer = tool_input
             return {"status": "ok"}
-        if name == "write_file":
+        # The failed cell that a fix or a removal acts on: it adds no cell.
+        fixing: tuple[str, str] | None = None
+        if name == "remove_cell" or (name == "run_cell" and tool_input.get("fix")):
+            found = self.failed_cell(tool_input.get("notebook"), tool_input.get("cell" if name == "remove_cell" else "fix"), name)
+            if isinstance(found, str):
+                return {"status": "refused", "error": found}
+            if name == "run_cell" and self.failed[found].fixes >= MAX_FIXES:
+                return {
+                    "status": "refused",
+                    "error": f"{self.named(found)} failed after {MAX_FIXES} fixes: remove it with remove_cell, and say in the answer what did not run.",
+                }
+            fixing = found
+            # The view finds the cell by the label and the notebook that the run noted: "R [2]" is [2] there.
+            tool_input = {key: value for key, value in tool_input.items() if key != "notebook"}
+            tool_input["cell" if name == "remove_cell" else "fix"] = found[1]
+            if found[0]:
+                tool_input["notebook"] = found[0]
+        elif name == "write_file":
             if self.files >= MAX_FILES:
                 return {"status": "refused", "error": f"at most {MAX_FILES} files in a run: put the rest in cells"}
             if len(str(tool_input.get("content") or "")) > MAX_FILE_CHARS:
@@ -770,7 +985,7 @@ class Run:
         if held is not None:
             if name == "write_file":
                 self.files -= 1
-            elif name in ("run_cell", "explore"):
+            elif name in ("run_cell", "explore") and fixing is None:
                 self.cells -= 1 if name == "run_cell" else len(tool_input.get("branches") or [])
             return held
         call_id = secrets.token_hex(6)
@@ -788,6 +1003,8 @@ class Run:
             self.notebooks += 1
         if name == "run_cell" and not tool_input.get("notebook") and isinstance(result, dict) and result.get("status") == "ok":
             self.saw(str(tool_input.get("code") or ""), result.get("cell"))
+        if isinstance(result, dict):
+            self.track(name, tool_input, result, fixing)
         return await self.guard_result(name, privacy.tool_result(result, self.keep_local))
 
     async def guard_code(self, name: str, tool_input: dict[str, Any]) -> dict[str, Any] | None:

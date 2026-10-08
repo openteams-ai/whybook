@@ -185,14 +185,19 @@ export class EpiFactory extends ABCWidgetFactory<EpiPanel, INotebookModel> {
       panel.toolbar.addItem(name, ReactWidget.create(element));
     }
     panel.toolbar.addItem('spacer', Toolbar.createSpacerItem());
-    panel.toolbar.addItem(
-      'kernelName',
-      Toolbar.createKernelNameItem(
-        context.sessionContext,
-        this._options.sessionDialogs,
-        this.translator
-      )
+    // JupyterLab's toolbar measures an item once, and keeps that width when
+    // the item's text changes. The kernel's name grows from "No Kernel" once
+    // the kernel starts, and a toolbar with no room left wrapped it onto a
+    // row under the notebook, where it could not be clicked. At a fixed width
+    // (style/base.css) the measure holds, and the name goes into the
+    // toolbar's overflow menu when there is no room for it.
+    const kernelName = Toolbar.createKernelNameItem(
+      context.sessionContext,
+      this._options.sessionDialogs,
+      this.translator
     );
+    kernelName.addClass('jp-Epi-kernelname');
+    panel.toolbar.addItem('kernelName', kernelName);
     panel.toolbar.addItem(
       'kernelStatus',
       Toolbar.createKernelStatusItem(context.sessionContext, this.translator)

@@ -81,9 +81,20 @@ export function isGoing(run: IAgentRun): boolean {
   return run.state === 'starting' || run.state === 'working';
 }
 
-/** The number of cells that a run added so far. */
+/**
+ * The cells of a step that are in the notebook still: those that the agent
+ * did not remove after they failed (design iteration 1.103).
+ */
+export function keptCells(step: IAgentStep): string[] {
+  const removed = step.removed;
+  return removed?.length
+    ? step.cells.filter(id => !removed.includes(id))
+    : step.cells;
+}
+
+/** The number of cells that a run added so far, less those it removed after they failed. */
 export function cellsSoFar(run: IAgentRun): number {
-  return run.steps.reduce((sum, step) => sum + step.cells.length, 0);
+  return run.steps.reduce((sum, step) => sum + keptCells(step).length, 0);
 }
 
 /** How long a run has gone on, as the view says it: "41 s", "3 min 5 s". */
@@ -141,6 +152,22 @@ function cut(text: string, most: number): string {
   return text.length > most ? `${text.slice(0, most - 1)}…` : text;
 }
 
+/** The errors of a step's cells as a record keeps them, without what is not a list of texts. */
+function keptFailures(value: unknown): Record<string, string[]> {
+  const kept: Record<string, string[]> = {};
+  if (!value || typeof value !== 'object') {
+    return kept;
+  }
+  for (const [id, errors] of Object.entries(value as Record<string, unknown>)) {
+    if (Array.isArray(errors)) {
+      kept[id] = errors.filter(
+        (error): error is string => typeof error === 'string'
+      );
+    }
+  }
+  return kept;
+}
+
 /**
  * What the notebook keeps of a run besides who wrote it and what it cost,
  * so that its strip shows again from the history of runs (design iteration
@@ -171,7 +198,19 @@ export function historyOf(run: IAgentRun): Partial<IAgentRunRecord> {
       ? { error: cut(step.error, KEPT.error) }
       : step.state === 'running'
         ? { error: 'The run stopped before this step ended.' }
-        : {})
+        : {}),
+    // The errors that the agent fixed in place, or removed the cell after.
+    ...(step.failures && Object.keys(step.failures).length
+      ? {
+          failures: Object.fromEntries(
+            Object.entries(step.failures).map(([id, errors]) => [
+              id,
+              errors.map(error => cut(error, KEPT.text))
+            ])
+          )
+        }
+      : {}),
+    ...(step.removed?.length ? { removed: [...step.removed] } : {})
   }));
   const refs = run.answerRefs ?? {};
   return {
@@ -227,7 +266,11 @@ export function pastRun(id: string, record: IAgentRunRecord): IAgentRun {
             }
           : null,
         state: step.state === 'error' ? 'error' : 'done',
-        error: step.error ?? null
+        error: step.error ?? null,
+        ...(step.failures ? { failures: keptFailures(step.failures) } : {}),
+        ...(Array.isArray(step.removed)
+          ? { removed: step.removed.filter(id => typeof id === 'string') }
+          : {})
       }))
     : (record.cells ?? []).length
       ? [

@@ -432,7 +432,7 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
         from pydantic_ai.run import AgentRunResultEvent
         from pydantic_ai.usage import RunUsage
 
-        from .agent import CapReached
+        from .agent import FINISH_REFUSALS, CapReached
 
         def handler(name: str) -> Callable[..., Awaitable[dict[str, Any]]]:
             async def call(**arguments: Any) -> dict[str, Any]:
@@ -454,8 +454,20 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
             ],
             output_type=ToolOutput(StructuredDict(finish["schema"], name="finish"), name="finish", description=finish["description"]),
             system_prompt=request.system_prompt(),
-            retries={"tools": 2, "output": 2},
+            # Each time finish refuses, a retry of the output goes too.
+            retries={"tools": 2, "output": 2 + FINISH_REFUSALS},
         )
+
+        @agent.output_validator
+        async def finished(output: Any) -> Any:
+            # finish is the output here, so its refusal is a retry: while a
+            # cell of the run failed, the model reads why and goes on
+            # (design iteration 1.103).
+            refused = run.unfinished(output) if isinstance(output, dict) else None
+            if refused:
+                raise ModelRetry(refused)
+            return output
+
         progress = Progress(lambda: 0.0)
         run.emit({"type": "progress", "stage": "starting", "elapsed": 0.0})
         # The server's cap of a run, or what is left under the notebook's cap, whichever is lower.
@@ -509,6 +521,8 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
             text = str(error)
             if "request_limit" in text:
                 raise RuntimeError(f"the agent reached its limit of {config.agent_max_turns} turns before it finished (c.Whybook.agent_max_turns).") from error
+            if "output retries" in text.lower() and getattr(run, "failed", None):
+                raise RuntimeError(f"the agent could not finish: {run.failed_list()} failed, and it neither fixed nor removed what failed.") from error
             # The cap as a cost, or as the tokens that it pays for at a list price.
             if "cost_limit" in text or "total_tokens_limit" in text:
                 raise CapReached(cap, by, run.spent(), f"{connection.provider}:{connection.model}") from error

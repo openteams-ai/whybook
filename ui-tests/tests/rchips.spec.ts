@@ -190,11 +190,20 @@ test('an R cell shows the chips of a constant, an explicit argument and a known 
   await expect(explored.locator('.jp-Epi-coverage').first()).toBeVisible();
   await expect(explored).not.toContainText('read in a Python kernel');
 
-  // The questions of a chip are Python's, and the popover says so.
+  // A chip of an R cell has its questions, which a model answers in R: with
+  // no model connected they wait for one. Another value is typed as R code.
   await welch.click();
-  await expect(page.locator('.jp-Epi-popover .jp-Epi-unsupported')).toHaveText(
-    'Questions need a Python kernel for now: their code, and the cells that AI writes, are Python. This kernel runs R.'
+  const popover = page.locator('.jp-Epi-popover');
+  await expect(popover.locator('.jp-Epi-decision-line')).toContainText(
+    'var.equal = FALSE'
   );
+  await expect(
+    popover.getByRole('textbox', { name: 'Another value for var.equal' })
+  ).toHaveAttribute('placeholder', 'Another value for var.equal, as in R');
+  await expect(
+    popover.getByRole('button', { name: /^Choose var\.equal in \[2\]/ })
+  ).toContainText('needs AI');
+  await expect(popover.locator('.jp-Epi-unsupported')).toHaveCount(0);
   await page.keyboard.press('Escape');
 });
 
@@ -246,29 +255,25 @@ test('"Find more defaults with AI" is on, and asks about the formals of R functi
   );
   await openAndRun(page, file);
 
-  // The table's var.equal shows once; the model's other pick joins it, with the AI tag.
+  // The table's var.equal shows once; the model's other pick joins it. It
+  // carries no AI tag: the popover says who flagged it.
   await expect(chips(page)).toHaveText(
     [
       'contrasts contr.treatment',
       'na.action na.omit',
       'var.equal FALSE',
-      'alternative two.sidedAI',
+      'alternative two.sided',
       'MIN_WEEK 4',
       'conf.level 0.9'
     ],
     { timeout: 120000 }
   );
-  await expect(chips(page).nth(3)).toHaveAttribute(
-    'title',
-    new RegExp(
-      [
-        '^A library default: nobody chose this value on purpose\\.',
-        'alternative = "two\\.sided", parameter alternative of stats::t\\.test, stats \\d[\\d.]*\\.',
-        'Both tails are tested\\.',
-        'Found by AI\\. Picked by the remote AI model, fake/model on .+\\.$'
-      ].join('\n')
-    )
-  );
+  const alternative = chips(page).nth(3);
+  await expect(alternative).toHaveClass(/jp-mod-found/);
+  await expect(chips(page).locator('.jp-Epi-aitag')).toHaveCount(0);
+  const tip = await tooltipLines(page, alternative);
+  expect(tip[0]).toBe('alternative = "two.sided"');
+  expect(tip[1]).toMatch(/^parameter alternative of stats::t\.test, line \d+$/);
   // Each function's formals go with its language, and nothing of the notebook.
   const ttest = asked.find(body => body.function.name === 'stats::t.test');
   expect(ttest.function).toMatchObject({

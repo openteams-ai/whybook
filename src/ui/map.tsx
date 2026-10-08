@@ -43,6 +43,26 @@ const OVERVIEW_HEIGHT = 84;
 const MAIN_X = 150;
 /** Between a cell and its first branch, or between two branches. */
 const BRANCH_GAP = 30;
+/** A data node with a short name, such as df or homes. */
+const FRAME_WIDTH = 110;
+/**
+ * The widest a data node grows: room for 20 characters of the code font at
+ * 13 px. The name of every frame that the demos and the videos' takes load
+ * from a file fits whole, yrbs2025_codebook being the longest, and so does
+ * every other frame name of the takes of up to 19 characters, such as
+ * ipw_effect_estimate. A longer name is cut with an ellipsis.
+ */
+const FRAME_MAX_WIDTH = 180;
+const FRAME_HEIGHT = 34;
+/** Between two data nodes. */
+const FRAME_GAP = 20;
+/**
+ * Around the name in a data node: the padding and the border on each side
+ * (style/base.css), and a pixel more, so that rounding cuts no letter.
+ */
+const FRAME_INSET = 2 * (10 + 1) + 1;
+/** A character of the code font where no canvas measures it: 0.6 em at 13 px. */
+const CODE_CHARACTER = 7.8;
 
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 2;
@@ -75,6 +95,39 @@ interface INode {
   min: number;
   /** A cell's outputs as tiles, at Minimal. */
   tiles: IOutputTile[];
+}
+
+let measureContext: OffscreenCanvasRenderingContext2D | null | undefined;
+
+/**
+ * The widths of data nodes for these names: each as wide as its name in the
+ * code font, in which the node draws it, from FRAME_WIDTH to FRAME_MAX_WIDTH.
+ * A canvas measures the names in the theme's code font; without one, as in
+ * jsdom, each character counts as CODE_CHARACTER.
+ */
+function frameWidths(names: readonly string[]): number[] {
+  if (measureContext === undefined) {
+    measureContext =
+      typeof OffscreenCanvas === 'undefined'
+        ? null
+        : new OffscreenCanvas(1, 1).getContext('2d');
+  }
+  const context = measureContext;
+  if (context) {
+    const style = getComputedStyle(document.documentElement);
+    const size = style.getPropertyValue('--jp-code-font-size').trim();
+    const family = style.getPropertyValue('--jp-code-font-family').trim();
+    context.font = `${size || '13px'} ${family || 'monospace'}`;
+  }
+  return names.map(name => {
+    const text = context
+      ? context.measureText(name).width
+      : name.length * CODE_CHARACTER;
+    return Math.min(
+      FRAME_MAX_WIDTH,
+      Math.max(FRAME_WIDTH, Math.ceil(text + FRAME_INSET))
+    );
+  });
 }
 
 /** The words of a markdown text, without links, emphasis, code and list marks. */
@@ -197,6 +250,9 @@ export function mapLayout(
   if (sourceFrames.length) {
     const h = CARD_HEIGHT + 2 * BAND_PAD - 10;
     bands.push({ title: 'data', y, h });
+    // In one row, each node as wide as its name, FRAME_GAP apart.
+    const widths = frameWidths(sourceFrames.map(frame => frame.name));
+    let x = MAIN_X;
     sourceFrames.forEach((frame, index) => {
       nodes.push({
         id: `frame:${frame.name}`,
@@ -204,13 +260,14 @@ export function mapLayout(
         cell: null,
         label: frame.name,
         stale: frame.stale,
-        x: MAIN_X + index * 130,
+        x,
         y: y + BAND_PAD,
-        w: 110,
-        h: 34,
-        min: 34,
+        w: widths[index],
+        h: FRAME_HEIGHT,
+        min: FRAME_HEIGHT,
         tiles: []
       });
+      x += widths[index] + FRAME_GAP;
     });
     y += h;
   }
@@ -1002,7 +1059,9 @@ function MapLayer(props: {
       </svg>
       {layout.nodes.map(node => {
         if (node.kind === 'frame') {
-          // Data is a question too: its own questions, and its columns.
+          // Data is a question too: its own questions, and its columns. A
+          // name too long for the node is cut with an ellipsis; the title
+          // and the button's text keep it whole.
           return (
             <button
               key={node.id}
@@ -1019,7 +1078,7 @@ function MapLayer(props: {
                 model.askData(node.label, anchorOf(event));
               }}
             >
-              {node.label}
+              <span className="jp-Epi-map-frame-name">{node.label}</span>
             </button>
           );
         }

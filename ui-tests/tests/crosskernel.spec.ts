@@ -430,6 +430,51 @@ test.describe('the kernel menu, off', () => {
   });
 });
 
+test.describe('the kernel name in a narrow window', () => {
+  test.use({ viewport: { width: 1440, height: 810 } });
+
+  test('stays where a click reaches it: in the toolbar, or in its overflow menu', async ({
+    page,
+    tmpPath
+  }) => {
+    // With both side panels open, the toolbar has room for "No Kernel" but
+    // not for the name of the kernel that then starts. JupyterLab's toolbar
+    // measures an item once: it wrapped the longer name onto a row under the
+    // notebook, where the click went to the cards.
+    const file = `${tmpPath}/visits.ipynb`;
+    await writeNotebook(page, file);
+    await openIn(page, file, 'Whybook');
+    await page.locator('.jp-Epi-bench:visible').waitFor();
+    await expect(page.locator('#epi-exploration')).toBeVisible();
+    const opener = page
+      .locator(
+        '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-Toolbar-responsive-opener'
+      )
+      .first();
+    if (await opener.isVisible()) {
+      await opener.click();
+    }
+    const name = page.locator('.jp-KernelName').first();
+    await expect(name).toContainText('Python 3 (ipykernel)');
+    // The point at the middle of the name is the name, not what covers it.
+    await expect
+      .poll(() =>
+        name.evaluate(element => {
+          const box = element.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            box.x + box.width / 2,
+            box.y + box.height / 2
+          );
+          return box.width > 0 && element.contains(hit);
+        })
+      )
+      .toBe(true);
+    await name.click();
+    await expect(page.locator('#jp-Epi-kernelmenu')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+});
+
 test.describe('the kernel menu, on by default', () => {
   test("offers Restart, the notebook's kernel with a check mark and three others, + More… and Reproduce in R, in both views", async ({
     page,

@@ -56,6 +56,21 @@ TTEST = {
         {"name": "conf.level", "default": "0.95"},
     ],
 }
+# A function whose defaults are worth more chips than the view shows.
+TTEST_IND = {
+    "function": "scipy.stats._stats_py.ttest_ind",
+    "name": "ttest_ind",
+    "module": "scipy.stats._stats_py",
+    "library": "scipy",
+    "version": "1.18.1",
+    "params": [
+        {"name": "axis", "default": "0"},
+        {"name": "equal_var", "default": "True"},
+        {"name": "nan_policy", "default": "'propagate'"},
+        {"name": "alternative", "default": "'two-sided'"},
+        {"name": "trim", "default": "0"},
+    ],
+}
 WELCH = "Welch's test: the two groups may have different variances."
 DROPNA = "Rows whose key is missing are left out of the groups."
 SORT = "The groups come in the order of their keys."
@@ -96,7 +111,8 @@ async def test_the_model_picks_defaults_in_order_and_the_server_keeps_them_for_t
     events = await ask(jp_fetch, GROUPBY)
     assert [event["type"] for event in events] == ["progress", "result"]
     result = events[-1]
-    assert result["picks"] == [{"param": "dropna", "why": DROPNA}, {"param": "sort", "why": SORT}]
+    # sort only orders the groups: it makes no chip (design iteration 1.102).
+    assert result["picks"] == [{"param": "dropna", "why": DROPNA}]
     assert (result["by"]["choice"], result["by"]["model"]) == ("remote", "fake-model")
     # What the call cost goes to the view, which counts it with the notebook's calls.
     assert (result["model"], result["cost_usd"]) == ("fake-model", 0.0003)
@@ -111,9 +127,10 @@ async def test_the_model_picks_defaults_in_order_and_the_server_keeps_them_for_t
         "parameters": [{"name": param["name"], "default": param["default"]} for param in GROUPBY["params"]],
     }
     assert fake_model["system"].rstrip().endswith('each with\n"param", a name from the list of parameters, and "why". Never send one pick on its own.')
-    # Kept in Whybook's data folder, by library and version.
+    # Kept in Whybook's data folder, by library and version, as the model gave it.
     kept = stored(whybook_data)["libraries"]["pandas"]["3.0.6"]["pandas.core.frame.DataFrame.groupby"]
-    assert kept["picks"] == result["picks"] and kept["by"]["model"] == "fake-model"
+    assert kept["picks"] == [{"param": "dropna", "why": DROPNA}, {"param": "sort", "why": SORT}]
+    assert kept["by"]["model"] == "fake-model"
 
     # The same function of the same version: the kept answer, and no call.
     again = await ask(jp_fetch, GROUPBY)
@@ -166,16 +183,16 @@ async def test_picks_that_name_no_parameter_are_an_error_that_keeps_its_cost_and
 async def test_the_answer_keeps_three_picks_each_once_and_only_of_the_signature(jp_fetch, fake_model):
     fake_model["answer"] = {
         "picks": [
-            {"param": "dropna", "why": DROPNA},
-            {"param": "dropna", "why": "Again."},
-            {"param": "how", "why": "Not of groupby."},
-            {"param": "sort", "why": SORT},
-            {"param": "observed", "why": "Only the groups that occur."},
-            {"param": "group_keys", "why": "A fourth one."},
+            {"param": "equal_var", "why": "Student's t test: assumes equal variances."},
+            {"param": "equal_var", "why": "Again."},
+            {"param": "how", "why": "Not of ttest_ind."},
+            {"param": "nan_policy", "why": "A missing value makes the result missing."},
+            {"param": "alternative", "why": "Both tails count."},
+            {"param": "trim", "why": "A fourth one."},
         ]
     }
-    picks = (await ask(jp_fetch, GROUPBY))[-1]["picks"]
-    assert [pick["param"] for pick in picks] == ["dropna", "sort", "observed"]
+    picks = (await ask(jp_fetch, TTEST_IND))[-1]["picks"]
+    assert [pick["param"] for pick in picks] == ["equal_var", "nan_policy", "alternative"]
 
 
 async def test_without_a_connected_model_the_server_refuses_and_asks_nothing(jp_fetch, fake_model):

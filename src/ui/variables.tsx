@@ -1013,8 +1013,9 @@ function DecisionWhere(props: {
 }
 
 /**
- * Another value for a decision, typed as in Python: it runs in a branch of
- * the cell, as the values offered below do.
+ * Another value for a decision, typed as code of the kernel's language, such
+ * as `TRUE` in R where Python has `True`: it runs in a branch of the cell, as
+ * the values offered below do.
  */
 function DecisionValue(props: {
   model: EpiModel;
@@ -1022,6 +1023,7 @@ function DecisionValue(props: {
 }): JSX.Element {
   const { model, ask } = props;
   const [value, setValue] = React.useState('');
+  const language = model.bridge.language?.label;
   return (
     <form
       className="jp-Epi-own jp-Epi-ownbox jp-Epi-valuebox"
@@ -1038,7 +1040,7 @@ function DecisionValue(props: {
           type="text"
           value={value}
           aria-label={`Another value for ${ask.decision.name}`}
-          placeholder={`Another value for ${ask.decision.name}, as in Python`}
+          placeholder={`Another value for ${ask.decision.name}${language ? `, as in ${language}` : ''}`}
           onChange={event => setValue(event.target.value)}
         />
         <Button

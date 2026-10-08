@@ -2,14 +2,15 @@ import { PathExt } from '@jupyterlab/coreutils';
 import { Button } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
-import type { IAgentRun } from '../model/agent';
-import { runStatus } from '../model/agent';
+import type { IAgentRun, IAgentStep } from '../model/agent';
+import { cellError, runStatus, stepNotes } from '../model/agent';
 import type { EpiModel } from '../model/epimodel';
 import type { IGuardHeld } from '../model/guard';
 import { heldWords } from '../model/guard';
 import { splitLabels } from '../model/labels';
 import { followUpOf } from '../model/own';
-import { runWhen } from '../model/runs';
+import { outputsOf } from '../model/notebook';
+import { keptCells, runWhen } from '../model/runs';
 import {
   AITag,
   CloseButton,
@@ -139,15 +140,18 @@ export function AgentRunView(props: {
                     {PathExt.basename(step.notebook)}
                   </button>
                 )}
-                {step.cells.map(id => (
-                  <CellLink
-                    key={id}
-                    model={model}
-                    cellId={id}
-                    notebook={step.notebook ?? home}
-                    run={run}
-                  />
-                ))}
+                {step.cells
+                  // A cell that the agent removed has its note instead (1.103).
+                  .filter(id => !step.removed?.includes(id))
+                  .map(id => (
+                    <CellLink
+                      key={id}
+                      model={model}
+                      cellId={id}
+                      notebook={step.notebook ?? home}
+                      run={run}
+                    />
+                  ))}
                 {step.file && (
                   <button
                     className="jp-Epi-label jp-Epi-agentrun-cell jp-Epi-agentrun-file"
@@ -168,9 +172,14 @@ export function AgentRunView(props: {
               {step.why && step.tool !== 'explore' && (
                 <span className="jp-Epi-agentrun-why">{step.why}</span>
               )}
-              {step.error && (
+              {step.error && !removedAll(step) && (
                 <span className="jp-Epi-agentrun-error">{step.error}</span>
               )}
+              <StepNotes
+                model={model}
+                step={step}
+                notebook={step.notebook ?? home}
+              />
             </li>
           ))}
         </ol>
@@ -221,6 +230,58 @@ export function AgentRunView(props: {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Whether the agent removed every cell of a step after it failed: the
+ * step's note names the errors, and its error line goes.
+ */
+function removedAll(step: IAgentStep): boolean {
+  return step.cells.length > 0 && !keptCells(step).length;
+}
+
+/**
+ * What became of the cells of a step that failed (design iteration 1.103):
+ * "fixed after TypeError", "removed after KeyError", so that the card hides
+ * no error that the agent met. The tooltip has each error's message.
+ */
+function StepNotes(props: {
+  model: EpiModel;
+  step: IAgentStep;
+  /** The path of the step's notebook. */
+  notebook: string;
+}): JSX.Element | null {
+  const { model, step, notebook } = props;
+  if (!step.failures) {
+    return null;
+  }
+  // A cell of a notebook that the run made is read in that notebook's view.
+  const other =
+    notebook !== model.context.path
+      ? (model.runs.host?.modelOf(notebook) ?? null)
+      : model;
+  const notes = stepNotes(step, id => {
+    const cell = other && !other.isDisposed ? other.cell(id) : null;
+    return cell
+      ? {
+          label: cell.label,
+          failed: !!cellError(outputsOf(cell.model))
+        }
+      : null;
+  });
+  return (
+    <>
+      {notes.map(note => (
+        <span
+          key={note.text}
+          className={`jp-Epi-agentrun-fixed jp-mod-${note.kind}`}
+          title={note.title}
+        >
+          {note.text}
+        </span>
+      ))}
+    </>
   );
 }
 

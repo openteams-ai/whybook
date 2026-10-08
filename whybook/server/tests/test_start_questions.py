@@ -133,10 +133,17 @@ def test_the_questions_to_start_with_run_and_leave_no_name_behind(folder, kind):
     assert list(answer["values missing"]) == [0, 0, 0, 0]
     assert public(namespace) == []
     # The levels of the columns with few levels: site and week, not the 12 patients' ids or the readings.
-    printed, namespace, _ = run(option_of(options, "How many rows has each level")["code"])
-    assert printed.splitlines()[0].startswith("site: A 20, ") and printed.splitlines()[0].endswith(", D 2")
-    assert printed.splitlines()[1].startswith("week: ")
-    assert public(namespace) == []
+    # A table with a row per level, which shows every row: printed text was one line per column (design iteration 1.101).
+    shown = []
+    code = option_of(options, "How many rows has each level")["code"]
+    printed, namespace, _ = run(code, display=lambda value: shown.append((value, pd.get_option("display.max_rows"))))
+    ((table, max_rows),) = shown
+    assert printed == "" and "print(" not in code
+    assert list(table.columns) == ["rows"] and list(table.index.names) == ["column", "level"]
+    assert list(table.index.get_level_values("column").unique()) == ["site", "week"]
+    assert table.loc["site", "rows"].to_dict() == {"A": 20, "B": 10, "C": 10, "D": 2}
+    assert max_rows >= len(table) == 12
+    assert public(namespace, "display") == []
     # The range of each number: the readings are the one number, as the ids and the levels are not.
     options_range = option_of(options, "What is the range of each number")
     printed, namespace, answer = run(options_range["code"])

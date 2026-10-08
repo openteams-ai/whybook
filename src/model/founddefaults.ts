@@ -100,8 +100,12 @@ function shownAt(
  * with the calls that leave it. They come in the model's order: the first
  * pick of each function, in the order of the code, then the second, and so
  * on, up to `max`. A parameter that a decision of the cell shows already,
- * such as the inner join of a merge, is left out. The note is the model's
- * reason, and `found` says which model picked it from which library.
+ * such as the inner join of a merge, is left out. The same default of two
+ * functions of the same name, such as alpha of the conf_int of a fit and of
+ * a contrast, is one decision with the calls of both, as the kernel's
+ * analysis makes one of its own (design iteration 1.102). The note is the
+ * model's reason, and `found` says which model picked it from which
+ * library.
  */
 export function foundDecisions(
   signatures: ISignature[],
@@ -155,10 +159,25 @@ export function foundDecisions(
       });
     });
   });
-  return found
-    .sort((a, b) => a.rank - b.rank || a.order - b.order)
-    .slice(0, max)
-    .map(item => item.decision);
+  const chosen: IDecision[] = [];
+  for (const { decision } of found.sort(
+    (a, b) => a.rank - b.rank || a.order - b.order
+  )) {
+    const same = chosen.find(
+      item =>
+        item.param === decision.param &&
+        item.value === decision.value &&
+        shortFunction(item) === shortFunction(decision)
+    );
+    if (same) {
+      same.calls = [...callsOf(same), ...callsOf(decision)].sort(
+        (a, b) => a.line - b.line || a.col - b.col
+      );
+    } else if (chosen.length < max) {
+      chosen.push(decision);
+    }
+  }
+  return chosen;
 }
 
 /**
