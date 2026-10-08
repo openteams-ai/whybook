@@ -12,6 +12,7 @@ import { PROGRESS_MIME } from '../tokens';
 import { subshellConnection } from './kernel';
 import { noSubshells } from './languages';
 import { RunProgress } from './progress';
+import { RunTally } from './runtally';
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'error';
 
@@ -69,6 +70,9 @@ export class JobManager implements IDisposable {
   }
 
   capacity: number;
+
+  /** The run going on, or the last one, for the kernel's status in the toolbar. */
+  readonly tally = new RunTally(() => this._changed.emit());
 
   /** How long, in milliseconds, a finished job stays listed. */
   linger = 60000;
@@ -165,7 +169,7 @@ export class JobManager implements IDisposable {
       finished: null
     };
     this._jobs.set(job.id, job);
-    this._changed.emit();
+    this.tally.start(job.id);
     let connection: Kernel.IKernelConnection = kernel;
     let slot: number | null = null;
     try {
@@ -183,7 +187,7 @@ export class JobManager implements IDisposable {
       job.status = 'error';
       job.error = String(error);
       job.finished = Date.now();
-      this._changed.emit();
+      this.tally.finish(job.id);
       this._forget(job);
       return { ok: false, error: job.error };
     }
@@ -218,7 +222,7 @@ export class JobManager implements IDisposable {
         this._release(slot);
       }
       endTurn?.();
-      this._changed.emit();
+      this.tally.finish(job.id);
       this._forget(job);
     }
   }
@@ -418,6 +422,7 @@ export class JobManager implements IDisposable {
     }
     this._mainRunning = 0;
     this._mainBranches = Promise.resolve();
+    this.tally.reset();
   }
 
   private _sessionContext: ISessionContext;

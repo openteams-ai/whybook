@@ -7,6 +7,7 @@
 import type { ISharedCodeCell } from '@jupyter/ydoc';
 
 import { fakeModel, ids } from './fakes/model-fake';
+import { RunTally } from '../model/runtally';
 
 describe('Undo of a deleted cell', () => {
   it('puts back the id, the outputs, the metadata and the count', () => {
@@ -120,6 +121,7 @@ describe('moving a cell that has branches', () => {
     const { model } = fakeModel(cells());
     model.moveCell('a', 1);
     model.context.sessionContext = { session: { kernel: {} } };
+    model.jobs = { tally: new RunTally(() => undefined) };
     const ran: string[] = [];
     model.runCell = async (id: string) => {
       ran.push(id);

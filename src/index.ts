@@ -63,6 +63,7 @@ import {
   createToolbarItem,
   EpiFactory,
   FACTORY,
+  MORE_TOOLBAR_ITEMS,
   TOOLBAR_ITEMS,
   AIStatusWidget,
   FollowingWidget,
@@ -170,7 +171,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     };
     let toolbarFactory: EpiFactory.IOptions['toolbarFactory'];
     if (toolbarRegistry) {
-      for (const name of TOOLBAR_ITEMS) {
+      for (const name of [...TOOLBAR_ITEMS, ...MORE_TOOLBAR_ITEMS]) {
         if (name !== 'spacer') {
           toolbarRegistry.addFactory<EpiPanel>(FACTORY, name, panel =>
             createToolbarItem(name, panel, toolbarOptions)

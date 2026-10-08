@@ -3948,8 +3948,11 @@ button.jp-Epi-textoutput:hover,
 
 /*
  * The kernel's name in the toolbar, at a fixed width: the toolbar measures an
- * item once (src/widgets.tsx). A longer name is cut with an ellipsis, and the
- * button's label for screen readers keeps it whole.
+ * item once (src/widgets.tsx). The name sits at the right end, next to the
+ * kernel's status, as in JupyterLab's notebook toolbar. A longer name is cut
+ * with an ellipsis, and the button's label for screen readers keeps it whole.
+ * The button's parts shrink below their text, or a long name runs on under the
+ * status.
  */
 .jp-Toolbar-item.jp-Epi-kernelname {
   width: 11.5em;
@@ -3959,7 +3962,19 @@ button.jp-Epi-textoutput:hover,
   width: 100%;
 }
 
+.jp-Epi-kernelname .jp-ToolbarButtonComponent::part(control) {
+  min-width: 0;
+  max-width: 100%;
+  justify-content: flex-end;
+}
+
+.jp-Epi-kernelname .jp-ToolbarButtonComponent::part(content) {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .jp-Epi-kernelname .jp-ToolbarButtonComponent-label {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

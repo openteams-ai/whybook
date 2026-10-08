@@ -33,6 +33,7 @@ import {
 } from './ui/document';
 import { coverage } from './ui/exploration';
 import { AIButton } from './ui/aipanel';
+import { createRunIndicator } from './ui/runindicator';
 import { askGuard } from './ui/guard';
 import { bindWidgetManager } from './model/ipywidgets';
 import { EpiPlot } from './ui/plot';
@@ -207,15 +208,25 @@ export const TOOLBAR_ITEMS = [
   'epi-ai',
   'spacer',
   'kernelName',
-  'kernelStatus'
+  'executionProgress'
 ] as const;
+
+/**
+ * The items that the toolbar can show when its settings list them:
+ * `kernelStatus` is JupyterLab's plain circle of the kernel's status.
+ */
+export const MORE_TOOLBAR_ITEMS = ['kernelStatus'] as const;
+
+/** The name of an item of the view's toolbar. */
+export type ToolbarItemName =
+  (typeof TOOLBAR_ITEMS)[number] | (typeof MORE_TOOLBAR_ITEMS)[number];
 
 /**
  * Make one item of the view's toolbar: the view, mode, layout, detail, Run
  * all and AI controls, the spacer, and the kernel's name and status.
  */
 export function createToolbarItem(
-  name: (typeof TOOLBAR_ITEMS)[number],
+  name: ToolbarItemName,
   panel: EpiPanel,
   options: EpiFactory.IToolbarOptions
 ): Widget {
@@ -253,6 +264,15 @@ export function createToolbarItem(
       kernelName.addClass('jp-Epi-kernelname');
       return kernelName;
     }
+    case 'executionProgress':
+      // The kernel's status as JupyterLab's notebook toolbar shows it, with
+      // the cells of the view's runs (src/ui/runindicator.ts).
+      return createRunIndicator(
+        panel.content,
+        sessionContext,
+        model.jobs,
+        options.translator
+      );
     case 'kernelStatus':
       return Toolbar.createKernelStatusItem(sessionContext, options.translator);
   }

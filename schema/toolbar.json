@@ -13,14 +13,14 @@
       { "name": "epi-ai", "rank": 60 },
       { "name": "spacer", "type": "spacer", "rank": 100 },
       { "name": "kernelName", "rank": 1000 },
-      { "name": "kernelStatus", "rank": 1001 }
+      { "name": "executionProgress", "rank": 1001 }
     ]
   },
   "jupyter.lab.transform": true,
   "properties": {
     "toolbar": {
       "title": "Whybook toolbar items",
-      "description": "To leave an item out, list it with \"disabled\": true. To add a button, give it a name, a command and a rank: the items of Whybook are ranked 10 (epi-view: Code, Bench, Map), 20 (epi-mode: Wonder, Do, Report), 30 (epi-layout: where the panels go), 40 (epi-detail), 50 (epi-run-all), 60 (epi-ai), 100 (the spacer), 1000 (kernelName) and 1001 (kernelStatus). Whybook's commands act on its view, such as whybook:interrupt-kernel, whybook:restart-kernel, whybook:run-all-cells and docmanager:save; the commands of the buttons of JupyterLab's notebook toolbar act on that view only. For example:\n{\n  \"toolbar\": [\n    { \"name\": \"epi-mode\", \"disabled\": true },\n    { \"name\": \"interrupt\", \"command\": \"whybook:interrupt-kernel\", \"rank\": 55 },\n    { \"name\": \"restart\", \"command\": \"whybook:restart-kernel\", \"rank\": 56 }\n  ]\n}",
+      "description": "Leave an item out with \"disabled\": true, or add the button of a command with a name, the command and a rank. Whybook's own commands act on its view, such as whybook:restart-kernel.",
       "items": {
         "$ref": "#/definitions/toolbarItem"
       },

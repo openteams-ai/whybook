@@ -2803,7 +2803,10 @@ export class EpiModel implements IDisposable {
       await this.sessionContext.startKernel();
     }
     const running: { defs: string[] | null; done: Promise<void> }[] = [];
-    for (const cell of this.codeCells()) {
+    const cells = this.codeCells();
+    // The toolbar counts the cells of the run from its first: "1/5 cells".
+    this.jobs.tally.plan(cells.length);
+    for (const cell of cells) {
       const source = cell.model.sharedModel.getSource();
       const before = running.filter(
         branch =>
