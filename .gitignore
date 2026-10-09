@@ -8,6 +8,7 @@ node_modules/
 .ipynb_checkpoints
 *.tsbuildinfo
 whybook/labextension
+junit.xml
 # Version file is handled by hatchling
 whybook/_version.py
 
