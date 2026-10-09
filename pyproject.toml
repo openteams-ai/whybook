@@ -86,7 +86,8 @@ dev = [
     "pre-commit>=4.4",
 ]
 # What the tests import, the demo notebook's libraries included: the demo's
-# state (whybook/server/tests/demo_state.py) runs its cells.
+# state (whybook/server/tests/demo_state.py) runs its cells, and
+# test_kernel_code.py reads the defaults of scikit-learn's LogisticRegression.
 test = [
     "coverage",
     "matplotlib",
@@ -95,6 +96,7 @@ test = [
     "pandas",
     "pillow",
     "pyarrow",
+    "scikit-learn",
     "statsmodels",
     "pytest",
     "pytest-asyncio",
