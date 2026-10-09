@@ -77,6 +77,52 @@ def test_merge_default_as_a_function_and_as_a_method(demo):
         assert (how["value"], how["provenance"]) == ("'inner'", "library_default")
 
 
+def test_a_default_of_a_class_is_named_by_the_class(demo):
+    # The finance video's dry run showed two chips of one default, "C 1.0 · __init__" from
+    # this list and "C 1.0 · LogisticRegression" from a model's pick of the signature, which
+    # names the class as the cell calls it.
+    demo.run("from sklearn.linear_model import LogisticRegression")
+    try:
+        cells = [{"id": "fit", "source": "_clf = LogisticRegression()"}]
+        analysis = demo.kernel("analyze_cells", {"cells": cells})["cells"]
+        c = next(d for d in analysis["fit"]["decisions"] if d["name"] == "C")
+        assert (c["function"], c["value"], c["provenance"]) == ("LogisticRegression", "1.0", "library_default")
+    finally:
+        demo.run("del LogisticRegression")
+
+
+def test_the_iteration_limit_of_a_fit_is_listed_for_a_fit_that_does_not_converge(demo):
+    # The finance video's scorecard stopped at max_iter=100 of LogisticRegression() with a
+    # ConvergenceWarning, and no chip named the limit (design iteration 1.116). The kernel lists
+    # the limit with "when", and the view shows it only when the cell's fit did not converge.
+    demo.run("from sklearn.linear_model import LogisticRegression")
+    try:
+        cells = [{"id": "fit", "source": "_clf = LogisticRegression()"}, {"id": "set", "source": "_clf = LogisticRegression(max_iter=500)"}]
+        analysis = demo.kernel("analyze_cells", {"cells": cells})["cells"]
+        limit = next(d for d in analysis["fit"]["decisions"] if d["name"] == "max_iter")
+        assert (limit["value"], limit["provenance"], limit["function"], limit["when"]) == ("100", "library_default", "LogisticRegression", "not_converged")
+        assert limit["note"] == "the fit stops after this many iterations, whether it has converged or not"
+        # A limit that the cell writes is the analyst's value, which shows whatever the fit did.
+        (written,) = [d for d in analysis["set"]["decisions"] if d["name"] == "max_iter"]
+        assert (written["value"], written["provenance"], written.get("when")) == ("500", "literal", None)
+        assert all("when" not in d for d in analysis["fit"]["decisions"] if d["name"] != "max_iter")
+    finally:
+        demo.run("del LogisticRegression")
+
+
+def test_a_call_of_the_warnings_module_makes_no_decision(demo):
+    # The agent of the finance video's dry run refitted a model inside
+    # warnings.catch_warnings(record=True) with warnings.simplefilter("always", ...), and its
+    # card showed the chips "record True" and "action always", which change no result.
+    demo.run("import warnings as _warnings")
+    try:
+        cells = [{"id": "w", "source": 'with _warnings.catch_warnings(record=True) as _caught:\n    _warnings.simplefilter("always")'}]
+        analysis = demo.kernel("analyze_cells", {"cells": cells})["cells"]
+        assert analysis["w"]["decisions"] == []
+    finally:
+        demo.run("del _warnings")
+
+
 def test_each_call_leaves_its_own_decision_and_calls_that_agree_share_one(demo):
     """Home energy [4] merges twice and showed one chip, since the analysis
     kept the first decision of each name. Each decision is now keyed by its

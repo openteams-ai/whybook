@@ -415,6 +415,8 @@ _OPTIMIZER_METHOD = re.compile(
     re.IGNORECASE,
 )
 _FITS = re.compile(r"fit|fit_\w+|\w+_fit|minimize|least_squares")
+# A default that only marks the parameter as deprecated, which sets nothing.
+_DEPRECATED = frozenset({"'deprecated'", '"deprecated"'})
 # A check whose default already stops the run or warns cannot change a result
 # without a word: errors='raise' of astype, duplicates='raise' of cut,
 # check_link=True. A check that is off by default stays, since a problem
@@ -422,6 +424,9 @@ _FITS = re.compile(r"fit|fit_\w+|\w+_fit|minimize|least_squares")
 # verify_integrity=False of set_index, errors='coerce'.
 _CHECK = re.compile(r"^(errors|duplicates|check[_.]\w+)$")
 _STOPS = frozenset({"'raise'", '"raise"', "'warn'", '"warn"', "True", "TRUE", "T"})
+# A default that stops the run on input that the call cannot take, whatever the
+# parameter's name, as roc_auc_score's multi_class='raise' on more than two classes.
+_RAISES = frozenset({"'raise'", '"raise"'})
 # Functions that write a value out as text or into a file: their parameters
 # only format it.
 _WRITES = frozenset({
@@ -464,6 +469,10 @@ def worth_a_chip(function: Function, param: Param) -> bool:
     short = _short(function.name)
     if name in _OPERAND or name in _MEANING or name in _BOOKS or name in _OPTIMIZER:
         return False
+    # A default that only marks the parameter as deprecated sets nothing: scikit-learn's
+    # LogisticRegression reads penalty='deprecated' since 1.8, and C and l1_ratio set its penalty.
+    if default in _DEPRECATED:
+        return False
     if name in _EMPTY_NOISE and default in _EMPTY:
         return False
     if name in _NOISE_OF.get(short, ()):
@@ -474,7 +483,7 @@ def worth_a_chip(function: Function, param: Param) -> bool:
         return False
     if name == "method" and (_OPTIMIZER_METHOD.match(default) or (default in _EMPTY and _FITS.fullmatch(short))):
         return False
-    if _CHECK.match(name) and default in _STOPS:
+    if (_CHECK.match(name) and default in _STOPS) or default in _RAISES:
         return False
     if short in _WRITES:
         return False

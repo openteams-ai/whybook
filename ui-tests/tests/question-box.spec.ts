@@ -527,6 +527,12 @@ test.describe("1.93 the bench brings a template's answer into view", () => {
     ]);
     await openInWhybook(page, file);
     await runAll(page);
+    // The chips of the constants of [1] come with the kernel's analysis, a
+    // moment after the run ends, and push [2] down: on CI, after `drag`
+    // measured [2] and before it released the mouse.
+    await expect(
+      card(page, 'Make nhefs').locator('.jp-Epi-chip').first()
+    ).toBeVisible();
     const look = card(page, 'Summarise wt82_71');
     await expect(look.locator('svg').first()).toBeVisible();
     // The view at its top, as after the answer of [2].

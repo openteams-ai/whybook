@@ -333,6 +333,26 @@ def _time_unit(names: list[str], function: str, param: str, around: str, name: s
     return None
 
 
+# The iteration limit of a fit, whose chip shows only when the fit stopped at it
+# before it converged (design iteration 1.116): scikit-learn's max_iter,
+# statsmodels' and scipy's maxiter.
+ITERATION_LIMITS = frozenset({"max_iter", "maxiter", "max_iterations"})
+
+
+def iterations(param: str, value: str) -> Suggestion | None:
+    """Ten and a hundred times as many iterations as the limit at which a fit stopped."""
+    number = _number(value)
+    if param not in ITERATION_LIMITS or number is None or number <= 0 or number != int(number):
+        return None
+    limit = int(number)
+    return _made(
+        "iterations",
+        "an iteration limit",
+        "more iterations, to see whether the fit converges",
+        [(str(limit * 10), "ten times as many iterations"), (str(limit * 100), "a hundred times as many")],
+    )
+
+
 def _flag(param: str, value: str) -> Suggestion | None:
     if value not in ("True", "False"):
         return None
@@ -596,7 +616,7 @@ def suggest(
     function = short(function)
     param = param or ""
     names = words(name, param)
-    for found in (_covariance(param, value), _choices(function, param, value, provenance, by_model), _flag(param, value)):
+    for found in (iterations(param, value), _covariance(param, value), _choices(function, param, value, provenance, by_model), _flag(param, value)):
         if found is not None:
             return found
     if reads_file(function, param, value):

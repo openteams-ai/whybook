@@ -404,6 +404,28 @@ export const LANGUAGE_DEFAULTS: ILanguageDefault[] = [
     calls: /Logit|\blogit\(|LogisticRegression|binomial|PROC\s+LOGISTIC/i
   },
   {
+    // A scorecard of 30,000 card holders with amounts in NT dollars: scikit-learn
+    // stopped at 100 iterations and gave the age effect the opposite sign to glm().
+    id: 'logistic-iterations',
+    topic: 'When a logistic fit stops',
+    python:
+      "After 100 iterations of lbfgs in scikit-learn's LogisticRegression (max_iter), with a ConvergenceWarning and the estimates it reached; after 35 of Newton's method in statsmodels' Logit.",
+    r: 'At convergence in glm(), by reweighted least squares, with 25 iterations at most (glm.control) and a warning when they run out.',
+    sas: 'At convergence in PROC LOGISTIC, by Fisher scoring, with 25 iterations at most (MAXITER=).',
+    same: [['r', 'sas']],
+    calls: /Logit|\blogit\(|LogisticRegression|binomial|PROC\s+LOGISTIC/i
+  },
+  {
+    id: 'logistic-penalty',
+    topic: 'A penalty on a logistic fit',
+    python:
+      "scikit-learn's LogisticRegression shrinks the coefficients by default, an L2 penalty with C = 1.0; statsmodels' Logit does not.",
+    r: 'glm() does not shrink the coefficients.',
+    sas: 'PROC LOGISTIC does not shrink them, unless FIRTH asks for its correction.',
+    same: [['r', 'sas']],
+    calls: /LogisticRegression/
+  },
+  {
     id: 'ordinal-sign',
     topic: 'The sign of an ordinal model',
     python: "statsmodels' OrderedModel: logit P(Y ≤ j) = cut_j - xβ.",

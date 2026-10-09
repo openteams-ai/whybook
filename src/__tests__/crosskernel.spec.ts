@@ -352,8 +352,8 @@ const R_LMM =
   'library(lme4)\nfit <- lmer(pain_score ~ treatment_arm * month + age + (month | patient_id), data = model_data)\nsummary(fit)$coefficients';
 
 describe('the defaults that differ between the languages', () => {
-  it("keeps the nine rows of 1.69's table, with a value for each language", () => {
-    expect(LANGUAGE_DEFAULTS).toHaveLength(9);
+  it("keeps the nine rows of 1.69's table and two on logistic fits, with a value for each language", () => {
+    expect(LANGUAGE_DEFAULTS).toHaveLength(11);
     for (const row of LANGUAGE_DEFAULTS) {
       expect([row.python, row.r, row.sas].every(text => text.length > 10)).toBe(
         true
@@ -367,6 +367,25 @@ describe('the defaults that differ between the languages', () => {
         row => row.id
       )
     ).toEqual(['reference-level', 'mixed-df', 'random-draws']);
+  });
+
+  it("names when a logistic fit stops and scikit-learn's penalty for a scorecard reproduced in R", () => {
+    // The finance demo's scorecard: with amounts in NT dollars, lbfgs stopped at 100
+    // iterations, and the age effect had the opposite sign to glm()'s.
+    const SCORECARD =
+      'from sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression().fit(cards[features], cards["default_next_month"])';
+    const GLM =
+      'fit <- glm(default_next_month ~ limit_bal + age + pay_0, family = binomial, data = cards)';
+    expect(
+      defaultsThatDiffer('python', 'R', [SCORECARD, GLM]).map(row => row.id)
+    ).toEqual(['reference-level', 'logistic-iterations', 'logistic-penalty']);
+    // statsmodels fits no penalty, as glm() does: the iterations differ, not the penalty.
+    expect(
+      defaultsThatDiffer('python', 'R', [
+        'fit = smf.logit("default_next_month ~ age", data=cards).fit()',
+        GLM
+      ]).map(row => row.id)
+    ).toEqual(['reference-level', 'logistic-iterations']);
   });
 
   it('names more rows for SAS, none for two versions of one language, and only the calls made', () => {

@@ -1,3 +1,9 @@
+import './fakes/quiet';
+
+import type { Signal } from '@lumino/signaling';
+
+import type { KernelBridge } from '../model/kernel';
+import type { IStoredVariable } from '../model/restore';
 import {
   KEPT_COLUMNS,
   analysisFor,
@@ -8,6 +14,7 @@ import {
 } from '../model/restore';
 import { namesIn } from '../model/names';
 import type { ICellAnalysis, IVariable } from '../tokens';
+import { benchModel } from './fakes/bench-fake';
 
 function frame(name: string, columns: number): IVariable {
   const labels = Array.from({ length: columns }, (_, i) => `c${i}`);
@@ -127,6 +134,40 @@ describe('toStore', () => {
         () => null
       )
     ).toBe(null);
+  });
+});
+
+describe('the view model keeps the cell that makes each variable', () => {
+  it('gives the variables of the first listing their cell when the analysis comes', () => {
+    // A view that started the kernel reads it first after a run, and the
+    // listing comes before the kernel's analysis of the cells.
+    const source = 'import pandas as pd\ndf = pd.DataFrame({"c0": [1, 2]})';
+    const { nb, model } = benchModel([{ id: 'make', source, count: 1 }]);
+    (model.sessionContext as any).session = { kernel: {} };
+    (model.bridge as any)._snapshot = {
+      variables: [frame('df', 1)],
+      packages: {}
+    };
+    const changed = model.bridge.changed as Signal<KernelBridge, string>;
+    const kept = () =>
+      ((nb.getMetadata('whybook') as any)?.variables ?? []).map(
+        (variable: IStoredVariable) => [variable.name, variable.cell]
+      );
+    changed.emit('variables');
+    expect(kept()).toEqual([['df', null]]);
+    jest.spyOn(model.bridge, 'freshAnalysis').mockReturnValue({
+      defs: ['pd', 'df'],
+      uses: ['pd'],
+      formulas: [],
+      columns: {},
+      decisions: [],
+      attachments: []
+    });
+    changed.emit('analysis');
+    // Without the cell, the first listing after a restart drops df. With
+    // it, df shows stale until its cell runs again.
+    expect(kept()).toEqual([['df', 'make']]);
+    model.dispose();
   });
 });
 

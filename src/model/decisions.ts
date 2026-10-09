@@ -43,7 +43,16 @@ export function callsOf(decision: IDecision): IDecisionCall[] {
  */
 export function shortName(name: string): string {
   const at = name.lastIndexOf('::');
-  return at >= 0 ? name.slice(at + 2) : (name.split('.').pop() ?? '');
+  if (at >= 0) {
+    return name.slice(at + 2);
+  }
+  // A class for its constructor, as the cell calls it: LogisticRegression
+  // for the LogisticRegression.__init__ of a notebook kept before the kernel
+  // named it so.
+  const parts = name.split('.');
+  return parts.length > 1 && parts[parts.length - 1] === '__init__'
+    ? parts[parts.length - 2]
+    : (parts.pop() ?? '');
 }
 
 /** The name of the function whose call makes a decision: `merge`, `t.test`. */

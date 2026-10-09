@@ -71,6 +71,10 @@ class Decision:
     # A default that a model found in the function's signature ("Find more
     # defaults with AI"), not one of the kernel's own list.
     found: bool = False
+    # "not_converged" for a default that the view shows only when the cell's fit
+    # stopped before it converged, such as max_iter (design iteration 1.116): the
+    # view sends it only then.
+    when: str | None = None
 
     @classmethod
     def from_json(cls, data: Any) -> Decision:
@@ -85,6 +89,7 @@ class Decision:
             function=data.get("function"),
             note=data.get("note"),
             found=isinstance(data.get("found"), dict),
+            when=data.get("when") if data.get("when") == "not_converged" else None,
             source_file=source.get("file") if isinstance(source, dict) else None,
             source_line=source.get("line") if isinstance(source, dict) else None,
             # A call that metadata keeps in another form is left out, rather
@@ -103,14 +108,14 @@ class Decision:
 
     @property
     def short_function(self) -> str:
-        """``merge`` for ``DataFrame.merge``: the name that the cell calls."""
-        return (self.function or "").rsplit(".", 1)[-1]
+        """``merge`` for ``DataFrame.merge``: the name that the cell calls; the class for its ``__init__``, as the kernel names a default of LogisticRegression()."""
+        return values.short(self.function)
 
     def call_function(self, call: DecisionCall) -> str:
         """The name that one call of the decision calls: ``sum`` for its own ``Series.sum``, ``t.test`` for ``stats::t.test``, else the decision's."""
         if not call.function:
             return self.short_function
-        return call.function.rsplit("::", 1)[-1] if "::" in call.function else call.function.rsplit(".", 1)[-1]
+        return call.function.rsplit("::", 1)[-1] if "::" in call.function else values.short(call.function)
 
     def functions(self, calls: tuple[DecisionCall, ...] | None = None) -> tuple[str, ...]:
         """The names that ``calls``, or all the decision's calls, call, for the code edits: ``("mean", "sum")``."""
@@ -440,8 +445,11 @@ def decision_options(
         if decision.is_open and function and decision.param:
             explicit = codegen.add_keyword(cell.source, decision.functions(calls), decision.param, decision.name, decision.sites(calls)) if python else None
             if explicit is not None or not python:
-                # The function of each call: "of Series.mean and Series.sum".
-                owners = list(dict.fromkeys(call.function or decision.function for call in (calls or decision.calls))) or [decision.function]
+                # The function of each call: "of Series.mean and Series.sum", and a class for its constructor.
+                owners = [
+                    owner.removesuffix(".__init__")
+                    for owner in list(dict.fromkeys(call.function or decision.function for call in (calls or decision.calls))) or [decision.function]
+                ]
                 origin = f" in {where}" if where else f" of {' and '.join(owners)}"
                 code = f"{decision.name} = {decision.value}  {codegen.comment(f'chosen here; was the default{origin}')}\n{explicit}" if python else None
                 edit = Placement("edit", cell.id, f"edit {cell.label} in place")
@@ -547,6 +555,10 @@ def alternative_value(decision: Decision) -> str | None:
     things to different functions: how="left" is a join for merge, and dropna
     takes only "any" or "all".
     """
+    # An iteration limit at which a fit stopped tries ten times as many (design iteration 1.116).
+    more = values.iterations(decision.param or "", decision.value)
+    if more is not None:
+        return more.values[0].text
     function = (decision.function or "").rsplit(".", 1)[-1]
     chosen = WHAT_IF_CHOICES.get((function, decision.param or ""))
     if chosen is not None:
@@ -993,12 +1005,21 @@ def misread_frames(cells: list[CellInfo], context: Context) -> set[str]:
     return found
 
 
+def stopped_at(decision: Decision) -> str:
+    """The sign of an iteration limit at which a fit stopped; stoppedAt in src/model/assumptions.ts gives the same text."""
+    return f"the fit stopped at {decision.name} = {decision.value}, before it converged"
+
+
 def default_matters(cell: CellInfo, decision: Decision, context: Context) -> str | None:
     """The sign that a library default changes the result of ``cell``, from a rule; None when no rule finds one.
 
-    One rule finds such a sign: a read whose frame looks wrong
-    (``read_looks_wrong``), such as one column whose name holds semicolons.
+    Two rules find such a sign: a read whose frame looks wrong
+    (``read_looks_wrong``), such as one column whose name holds semicolons,
+    and an iteration limit at which the cell's fit stopped before it
+    converged (design iteration 1.116), which the view sends only then.
     """
+    if decision.when == "not_converged":
+        return stopped_at(decision)
     return read_looks_wrong(cell, decision, context) if reads_a_file(decision) else None
 
 

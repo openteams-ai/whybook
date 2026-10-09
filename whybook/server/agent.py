@@ -404,7 +404,8 @@ Rules for the code:
 - Load every module or package a cell uses at its top{load}.
 - Keep each cell short, at most 30 lines, and end it with the object to show: a figure, a
   table with named columns, or values printed with a label each. Round every number shown, in
-  a describe() too, and never show a bare tuple or scientific notation.{show}
+  a describe() too, and never show a bare tuple or scientific notation. Never round a p-value
+  to 0: write a small one as its field does, such as "< 0.001", or 3.2e-12 in genomics.{show}
 - In a figure or a table, show a coded column by what its codes mean, as a codebook gives
   them, such as "Several times a day" for 6, and name the axes in words.
 - A file or a database table in "selected" is not in the kernel yet: load it first, with the
@@ -448,12 +449,17 @@ TASK = f"{ANSWER_TASK} The question is about the cell in \"cell\" when there is 
 # A question that compares the analyst's notebook with another kernel (``compare``). The
 # new notebook is read as the analyst's is: one step a cell, each with its title, where the
 # agents of the demo videos wrote one cell that read the data, fitted the model and showed it.
+# It is a second, independent analysis, as a second programmer writes one: in the finance
+# video's dry run the agent wrote scikit-learn's penalty and its 100 iterations of L-BFGS
+# into R by hand, so the comparison could not show the defaults that differ.
 COMPARE_TASK = (
     "The question asks whether the analysis in \"notebook\" gives the same results with the kernel"
     " named in \"compare\". Make a notebook with that kernel and run the analysis there, one step"
     " a cell, so that a reader can follow it: read the data, prepare it, fit each model, and show"
-    " its estimates, each in a cell of its own. Finish with a comparison of the estimates of both"
-    " notebooks."
+    " its estimates, each in a cell of its own. Write it as an analyst of that language would, with"
+    " its usual functions at their defaults, such as glm() for a logistic regression in R, and do not"
+    " copy the first notebook's library: the comparison shows where the two differ. Finish with a"
+    " comparison of the estimates of both notebooks."
 )
 
 

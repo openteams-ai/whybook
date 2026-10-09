@@ -4526,15 +4526,21 @@ test('keeps the variables of the last run through a restart', async ({
   await expect(
     page.locator('.jp-Epi-variable:not(.jp-mod-stale)', { hasText: 'df' })
   ).toBeVisible({ timeout: 60000 });
-  const kept = await page.evaluate(
-    () =>
-      (window as any).jupyterapp.shell.currentWidget.context.model.getMetadata(
-        'whybook'
-      )?.variables ?? []
-  );
-  expect(kept.map((variable: { name: string }) => variable.name)).toContain(
-    'df'
-  );
+  // The notebook keeps df with the cell that makes it. The first listing
+  // comes before the kernel's analysis of the cell, so df gets its cell
+  // when the analysis comes. A restart before then cancels the analysis.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const kept: { name: string; cell: string | null }[] =
+          (
+            window as any
+          ).jupyterapp.shell.currentWidget.context.model.getMetadata('whybook')
+            ?.variables ?? [];
+        return kept.find(variable => variable.name === 'df')?.cell;
+      })
+    )
+    .toBe('cell-0');
 
   await page.evaluate(() =>
     (
@@ -4542,6 +4548,11 @@ test('keeps the variables of the last run through a restart', async ({
     ).jupyterapp.shell.currentWidget.context.sessionContext.restartKernel()
   );
   await kernelIdle(page);
+  // The view lists the variables of the new kernel, which has no df: df
+  // stays, stale, until its cell runs.
+  await page.evaluate(() =>
+    (window as any).jupyterapp.shell.currentWidget.content.model.refresh()
+  );
   await page.locator('.jp-Epi-views [data-value="map"]').click();
   const node = page.locator('.jp-Epi-map-frame', { hasText: 'df' });
   await expect(node).toHaveClass(/jp-mod-stale/);

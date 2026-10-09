@@ -358,6 +358,46 @@ describe('the defaults that a model found', () => {
     ]);
   });
 
+  it('know a default of a class that a kept notebook names by its constructor', () => {
+    // The finance video's dry run: the kernel named its own C of LogisticRegression()
+    // LogisticRegression.__init__, a model picked C from the signature of LogisticRegression,
+    // and the card showed two chips, "C 1.0 · __init__" and "C 1.0 · LogisticRegression".
+    const logistic: ISignature = {
+      function: 'sklearn.linear_model._logistic.LogisticRegression.__init__',
+      name: 'LogisticRegression',
+      module: 'sklearn.linear_model._logistic',
+      library: 'sklearn',
+      version: '1.9.1',
+      params: [
+        { name: 'C', default: '1.0' },
+        { name: 'class_weight', default: 'None' }
+      ],
+      calls: [{ line: 1, col: 12, defaulted: ['C', 'class_weight'] }]
+    };
+    const picks: IFunctionPicks = {
+      picks: [
+        { param: 'C', why: 'The coefficients are shrunk.' },
+        { param: 'class_weight', why: 'Each row weighs the same.' }
+      ],
+      by: BY
+    };
+    const kept: IDecision = {
+      name: 'C',
+      value: '1.0',
+      provenance: 'library_default',
+      param: 'C',
+      function: 'LogisticRegression.__init__',
+      note: 'L2 regularisation is on by default',
+      calls: [{ line: 1, col: 12 }]
+    };
+    const found = foundDecisions([logistic], () => picks, [kept]);
+    expect(found.map(chipText)).toEqual(['class_weight None']);
+    expect(decisionChips([kept, ...found]).map(chip => chip.target)).toEqual([
+      null,
+      null
+    ]);
+  });
+
   it('are none for a function without an answer, or a pick that the calls pass', () => {
     expect(foundDecisions([GROUPBY], () => undefined, [])).toEqual([]);
     const passes: ISignature = {

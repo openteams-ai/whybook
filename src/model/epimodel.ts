@@ -94,7 +94,7 @@ import { JobManager } from './jobs';
 import { KernelBridge } from './kernel';
 import type { Feature } from './languages';
 import { languageOf, unsupported as unsupportedIn } from './languages';
-import { outputText } from './logs';
+import { outputText, rawText, stoppedBeforeConverging } from './logs';
 import { guessPlace, keywordType, ownOption, wordPlace } from './own';
 import { namesIn } from './names';
 import type { INewCell, IPlacedCell } from './placement';
@@ -842,6 +842,11 @@ interface ICellReading {
    */
   found: number;
   analysis: ICellAnalysis | null;
+  /** The decisions of the analysis, with those that show only when a fit stopped before it converged. */
+  made: IDecision[];
+  /** Whether the cell's fit stopped before it converged, as `decisions` used it. */
+  stalled: boolean;
+  /** The decisions that the cell shows. */
   decisions: IDecision[];
   /** The object last made from this reading. */
   cell: IEpiCell | null;
@@ -1779,6 +1784,8 @@ export class EpiModel implements IDisposable {
       ran: false,
       found: -1,
       analysis: null,
+      made: [],
+      stalled: false,
       decisions: [],
       cell: null
     };
@@ -1791,7 +1798,10 @@ export class EpiModel implements IDisposable {
   /**
    * The analysis of a cell, the kernel's with the one the notebook kept for
    * its code, and the decisions it makes. They are made again only when the
-   * kernel's analysis of the cell, or whether its code ran, changes.
+   * kernel's analysis of the cell, or whether its code ran, changes. A
+   * decision that shows only when the cell's fit stopped before it
+   * converged, such as max_iter, goes in and out with what the outputs and
+   * the kernel's listing say (design iteration 1.116).
    */
   private _analyse(model: ICellModel, reading: ICellReading): void {
     const code = model.type === 'code';
@@ -1801,35 +1811,65 @@ export class EpiModel implements IDisposable {
     const ran = this.bridge.hasRun(reading.source);
     const found =
       code && this.settings.findDefaults ? this.foundDefaults.version : -1;
-    if (
-      reading.fresh === fresh &&
-      reading.ran === ran &&
-      reading.found === found
-    ) {
-      return;
-    }
-    reading.fresh = fresh;
-    reading.ran = ran;
-    reading.found = found;
-    reading.analysis = code
-      ? this.bridge.analysis(model.id, reading.source, reading.kept)
-      : null;
-    reading.decisions = this._decisions(
-      reading.meta,
-      reading.analysis,
-      reading.source
-    );
-    if (found >= 0) {
-      // The defaults that a model picked from the signatures that the kernel read.
-      reading.decisions = withFound(
-        reading.decisions,
-        foundDecisions(
-          this.bridge.signaturesOf(model.id, reading.source) ?? [],
-          signature => this.foundDefaults.answer(signature),
-          reading.decisions
-        )
+    const made =
+      reading.fresh !== fresh || reading.ran !== ran || reading.found !== found;
+    if (made) {
+      reading.fresh = fresh;
+      reading.ran = ran;
+      reading.found = found;
+      reading.analysis = code
+        ? this.bridge.analysis(model.id, reading.source, reading.kept)
+        : null;
+      reading.made = this._decisions(
+        reading.meta,
+        reading.analysis,
+        reading.source
       );
+      if (found >= 0) {
+        // The defaults that a model picked from the signatures that the kernel read.
+        reading.made = withFound(
+          reading.made,
+          foundDecisions(
+            this.bridge.signaturesOf(model.id, reading.source) ?? [],
+            signature => this.foundDefaults.answer(signature),
+            reading.made
+          )
+        );
+      }
     }
+    // Only a cell with such a decision reads its outputs.
+    const stalled =
+      code &&
+      reading.made.some(decision => decision.when === 'not_converged') &&
+      this._stoppedBeforeConverging(model as ICodeCellModel, reading);
+    if (made || reading.stalled !== stalled) {
+      reading.stalled = stalled;
+      reading.decisions = stalled
+        ? reading.made
+        : reading.made.filter(decision => decision.when !== 'not_converged');
+    }
+  }
+
+  /**
+   * Whether the fit of a code cell stopped before it converged, by its
+   * outputs and by the models of the kernel's listing that it makes.
+   */
+  private _stoppedBeforeConverging(
+    model: ICodeCellModel,
+    reading: ICellReading
+  ): boolean {
+    const texts: string[] = [];
+    for (let index = 0; index < model.outputs.length; index++) {
+      texts.push(rawText(model.outputs.get(index).data));
+    }
+    const listed = (reading.analysis?.defs ?? []).map(name => {
+      const variable = this.variable(name);
+      return variable?.kind === 'model' &&
+        typeof variable.converged === 'boolean'
+        ? variable.converged
+        : null;
+    });
+    return stoppedBeforeConverging(texts, listed);
   }
 
   /**
@@ -8725,6 +8765,13 @@ export class EpiModel implements IDisposable {
       this._findDefaults();
     }
     this._keep(change);
+    if (change === 'analysis') {
+      // The first listing of a kernel comes before its first analysis of
+      // the cells, and keeps each variable without the cell that makes it.
+      // Without the cell, the first listing after a restart drops the
+      // variable (./restore.ts, listing).
+      this._keep('variables');
+    }
     this._emit();
     if (!this._isDisposed) {
       void this._nextDebouncer.invoke();

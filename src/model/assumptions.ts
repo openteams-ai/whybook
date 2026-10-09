@@ -7,8 +7,9 @@
  * agent wrote, such as MIN_DAYS = 14 of prep.py, is an open assumption. A
  * library default, such as header='infer' of read_csv or how='inner' of
  * merge, is one only when a rule finds a sign that it changes the cell's
- * result: a read whose frame looks wrong. Its chip shows it either way, in
- * the colour of a value that nobody chose.
+ * result: a read whose frame looks wrong, or a fit that stopped at its
+ * iteration limit before it converged. Its chip shows it either way, in the
+ * colour of a value that nobody chose.
  */
 import type { IDecision, IVariable } from '../tokens';
 import { callsOf, READER, shortFunction } from './decisions';
@@ -67,6 +68,14 @@ export function frameLooksMisread(
 }
 
 /**
+ * The sign of an iteration limit at which a fit stopped. stopped_at on the
+ * server gives the same text.
+ */
+export function stoppedAt(decision: IDecision): string {
+  return `the fit stopped at ${decision.name} = ${decision.value}, before it converged`;
+}
+
+/**
  * The frames of the kernel, with the names of their columns, as the view
  * sends them to the server.
  */
@@ -99,14 +108,19 @@ function readFrames(
 
 /**
  * The sign that a library default changes the result of its cell, from a
- * rule; null when no rule finds one. One rule finds such a sign: a read,
- * such as read_csv or R's read.csv, whose frame looks wrong.
+ * rule; null when no rule finds one. Two rules find such a sign: a read,
+ * such as read_csv or R's read.csv, whose frame looks wrong, and an
+ * iteration limit at which the cell's fit stopped before it converged
+ * (design iteration 1.116), which the cell shows only then.
  */
 export function defaultMatters(
   decision: IDecision,
   defs: string[],
   frames: Map<string, string[]>
 ): string | null {
+  if (decision.when === 'not_converged') {
+    return stoppedAt(decision);
+  }
   if (!READER.test(shortFunction(decision))) {
     return null;
   }

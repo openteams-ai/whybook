@@ -172,6 +172,12 @@ export interface IDecision {
     library: string;
     version: string | null;
   } | null;
+  /**
+   * A default that shows only when its cell's fit stopped before it
+   * converged: the iteration limit of a fit, such as max_iter of
+   * scikit-learn's LogisticRegression (design iteration 1.116).
+   */
+  when?: 'not_converged' | null;
 }
 
 export interface IAttachment {

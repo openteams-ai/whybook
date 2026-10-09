@@ -345,3 +345,27 @@ async def test_the_view_gets_three_picks_that_make_a_chip_when_the_model_sent_mo
     fake_model["answer"] = {"picks": [{"param": name, "why": "The model's reason."} for name in ("solver", "max_iter", "n_jobs", "penalty", "class_weight", "random_state", "tol")]}
     picks = (await ask(jp_fetch, item))[-1]["picks"]
     assert [pick["param"] for pick in picks] == ["penalty", "class_weight", "random_state"]
+
+
+def test_a_default_that_only_raises_makes_no_chip():
+    # roc_auc_score in the finance video's take 1: "multi_class raise ×2" on the cells of the AUC,
+    # a default that stops the run on more than two classes and changes no result of two.
+    item = function(
+        "sklearn.metrics._ranking.roc_auc_score",
+        {"average": "'macro'", "sample_weight": "None", "max_fpr": "None", "multi_class": "'raise'", "labels": "None"},
+    )
+    function_ = library_defaults.Function.from_json(function_json(item))
+    worth = [param.name for param in function_.params if library_defaults.worth_a_chip(function_, param)]
+    assert "multi_class" not in worth and "average" in worth
+
+
+def test_a_parameter_whose_default_marks_it_deprecated_makes_no_chip():
+    # scikit-learn 1.8 deprecated LogisticRegression's penalty: its signature reads
+    # penalty='deprecated', and C = 1.0 with l1_ratio = 0.0 set the L2 penalty now. A chip
+    # "penalty deprecated" would say nothing of the penalty that the fit applies.
+    item = function(
+        "sklearn.linear_model._logistic.LogisticRegression.__init__",
+        {"penalty": "'deprecated'", "C": "1.0", "l1_ratio": "0.0", "class_weight": "None", "random_state": "None", "solver": "'lbfgs'", "max_iter": "100", "tol": "0.0001"},
+    )
+    function_ = library_defaults.Function.from_json(function_json(item))
+    assert [param.name for param in function_.params if library_defaults.worth_a_chip(function_, param)] == ["C", "l1_ratio", "class_weight", "random_state", "tol"]

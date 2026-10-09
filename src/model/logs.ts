@@ -32,6 +32,9 @@ const ANSI = /\u001b\[[0-9;?]*[A-Za-z]/g;
 /** `path/to/file.py:268: ConvergenceWarning: Maximum Likelihood ...` */
 const WARNING = /^(.+?):(\d+): (\w*Warning): (.*)$/;
 
+/** The line of code that Python prints after a warning's message, two spaces in. */
+const SOURCE = /^ {2}\S/;
+
 /**
  * What IPython prints when its history database fails, which happens when
  * several kernels share the database. It is not about the analysis, so the
@@ -50,8 +53,10 @@ function joined(value: unknown): string {
 /**
  * Split printed text into lines as a terminal shows them: colour codes
  * dropped, and a line redrawn with a carriage return kept as last drawn.
- * Each warning becomes one line, `ConvergenceWarning: ...`, without the
- * file, the line number and the source line that Python prints with it.
+ * Each warning starts with one line, `ConvergenceWarning: ...`, without the
+ * file and the line number, and the source line that Python prints after
+ * the message is left out. A message of several lines, as scikit-learn's
+ * ConvergenceWarning, keeps its other lines.
  * The messages of IPython's history database are left out.
  */
 export function readText(text: string): {
@@ -70,6 +75,8 @@ export function readText(text: string): {
   const lines: string[] = [];
   let warnings = 0;
   let hidden = 0;
+  // In a warning's message, until its source line.
+  let warning = false;
   for (let index = 0; index < printed.length; index++) {
     if (HIDDEN.some(pattern => pattern.test(printed[index]))) {
       hidden++;
@@ -77,12 +84,25 @@ export function readText(text: string): {
     }
     const match = WARNING.exec(printed[index]);
     if (!match) {
+      // The source line after a message of several lines is its last line:
+      // the text ends, or the next warning starts.
+      const next = printed[index + 1];
+      if (
+        warning &&
+        SOURCE.test(printed[index]) &&
+        (next === undefined || WARNING.test(next))
+      ) {
+        warning = false;
+        continue;
+      }
       lines.push(printed[index]);
       continue;
     }
     warnings++;
     lines.push(`${match[3]}: ${match[4]}`);
+    warning = true;
     if (/^\s/.test(printed[index + 1] ?? '')) {
+      warning = false;
       index++;
     }
   }
@@ -170,6 +190,44 @@ export function convergedIn(lines: string[]): boolean | null {
     }
   }
   return converged;
+}
+
+/** What a fit prints when it stops before it converges. */
+const NOT_CONVERGED =
+  /\b(?:failed to converge|did not converge|has not converged|hasn't converged|not converged)\b|\bconverged:\s*(?:no|false)\b/i;
+const CONVERGED = /\bconverged:\s*(?:yes|true)\b/i;
+
+/**
+ * Whether the fit of a cell stopped before it converged (design iteration
+ * 1.116), from the text of its outputs and from whether each model of the
+ * kernel's listing that the cell makes converged: a warning such as
+ * scikit-learn's "lbfgs failed to converge", a summary that says
+ * `converged: False`, or a model that did not converge. A summary or a model
+ * that says that the fit converged wins, as after the warnings of a MixedLM
+ * that tried again.
+ */
+export function stoppedBeforeConverging(
+  texts: string[],
+  listed: (boolean | null)[]
+): boolean {
+  if (listed.includes(true) || texts.some(text => CONVERGED.test(text))) {
+    return false;
+  }
+  return listed.includes(false) || texts.some(text => NOT_CONVERGED.test(text));
+}
+
+/** The printed text of an output, as it came: a stream's, or a result's plain text. */
+export function rawText(data: { readonly [key: string]: unknown }): string {
+  for (const key of [
+    'application/vnd.jupyter.stderr',
+    'application/vnd.jupyter.stdout',
+    'text/plain'
+  ]) {
+    if (data[key] !== undefined) {
+      return joined(data[key]);
+    }
+  }
+  return '';
 }
 
 /**

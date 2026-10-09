@@ -153,6 +153,15 @@ def test_a_comparison_asks_for_the_analysis_one_step_a_cell():
     assert task.endswith("Finish with a comparison of the estimates of both notebooks.")
 
 
+def test_a_comparison_asks_for_the_usual_functions_of_the_other_language():
+    # In the finance video's dry run the agent wrote scikit-learn's penalty and its 100
+    # iterations of L-BFGS into R with optim(), where an R analyst fits glm(): the comparison
+    # then showed no default that differs between the languages.
+    task = " ".join(json.loads(request(kernels=KERNELS, files=FILES, notebook=NOTEBOOK, compare=COMPARE).prompt())["task"].split())
+    assert "Write it as an analyst of that language would, with its usual functions at their defaults" in task
+    assert "do not copy the first notebook's library" in task
+
+
 def test_a_request_is_refused_when_its_kernels_files_or_comparison_are_malformed():
     for bad in (
         {"kernels": "xr"},

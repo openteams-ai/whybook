@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from whybook.server import codegen
-from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, cell_questions, decision_options, where_text
+from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, cell_questions, decision_options, next_steps, open_assumption, where_text
 from whybook.server.questions.models import Context, InvalidRequest
 
 WEEKLY = CellInfo("c2", "[2]", "weekly = weekly_means(diary)\nweekly.head()")
@@ -58,6 +58,50 @@ def test_a_library_default_offers_its_other_value():
     dropna = Decision("how", "'any'", "library_default", param="how", function="DataFrame.dropna")
     kept = CellInfo("c7", "[7]", "kept = weekly.dropna()")
     assert texts(decision_options(kept, dropna, Context()))[0] == 'What if how were "all"?'
+
+
+def test_a_default_of_a_class_goes_into_the_call_of_the_class():
+    # The kernel names the default of LogisticRegression() by the class's __init__. The finance
+    # video's dry run clicked the chip "C 1.0", and its popover offered no what-if: the code
+    # looked for a call of __init__ in the cell.
+    cell = CellInfo("c4", "[4]", "scorecard = LogisticRegression().fit(X, y)\nscorecard.coef_")
+    c = Decision.from_json(
+        {"name": "C", "value": "1.0", "provenance": "library_default", "param": "C", "function": "LogisticRegression.__init__", "calls": [{"line": 1, "col": 12}]}
+    )
+    result = decision_options(cell, c, Context())
+    assert texts(result) == ["What if C were 1e6?", "Choose C in [4]"]
+    assert option(result, "What if C were 1e6?")["effect"].endswith("· almost no penalty on the coefficients")
+    assert "scorecard_if_1e6 = LogisticRegression(C=1e6).fit(X, y)" in result["options"][0]["code"]
+    chosen = option(result, "Choose C in [4]")["code"]
+    assert chosen.startswith("C = 1.0  # chosen here; was the default of LogisticRegression\n")
+    assert "scorecard = LogisticRegression(C=C).fit(X, y)" in chosen
+
+
+# The scorecard of the finance video stopped at LogisticRegression's max_iter=100 before it
+# converged; the view sends the limit only then (design iteration 1.116).
+SCORECARD = CellInfo("c4", "[4]", "scorecard = LogisticRegression().fit(X, y)\nscorecard.coef_")
+LIMIT = {"name": "max_iter", "value": "100", "provenance": "library_default", "param": "max_iter", "function": "LogisticRegression", "calls": [{"line": 1, "col": 12}]}
+
+
+def test_an_iteration_limit_offers_more_iterations():
+    result = decision_options(SCORECARD, Decision.from_json({**LIMIT, "when": "not_converged"}), Context())
+    assert texts(result)[:2] == ["What if max_iter were 1000?", "What if max_iter were 10000?"]
+    more = option(result, "What if max_iter were 1000?")
+    assert more["effect"] == "1000 instead of 100 (+900) · ten times as many iterations"
+    assert "scorecard_if_1000 = LogisticRegression(max_iter=1000).fit(X, y)" in more["code"]
+
+
+def test_an_iteration_limit_at_which_the_fit_stopped_is_an_open_assumption():
+    limit = Decision.from_json({**LIMIT, "when": "not_converged"})
+    assert open_assumption(SCORECARD, limit, Context()) == (True, "the fit stopped at max_iter = 100, before it converged")
+    # Without the condition, the limit is a library default like any other, with no sign.
+    assert open_assumption(SCORECARD, Decision.from_json(LIMIT), Context()) == (False, None)
+    assert Decision.from_json({**LIMIT, "when": "always"}).when is None
+    # Worth asking next asks about it, with its sign, and the branch that answers it.
+    steps = [step for step in next_steps([SCORECARD.__class__(**{**SCORECARD.__dict__, "decisions": (limit,)})], Context(), {}, set()) if "max_iter" in step.text]
+    assert [step.text for step in steps] == ["Does max_iter = 100 change the result of [4]?"]
+    assert steps[0].reasons[0] == "the fit stopped at max_iter = 100, before it converged"
+    assert "LogisticRegression(max_iter=1000)" in steps[0].code
 
 
 def test_a_constant_assigned_in_the_cell_changes_where_it_is_assigned():

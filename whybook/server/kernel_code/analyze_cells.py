@@ -154,6 +154,8 @@ def _whybook_analyze_cells(args):
         "reset_index": {"drop", "names"},
         "set_index": {"drop"},
     }
+    # The iteration limit of a fit: scikit-learn's max_iter, statsmodels' and scipy's maxiter.
+    iteration_limits = {"max_iter", "maxiter", "max_iterations"}
     # Calls whose arguments are not analysis choices.
     skipped_functions = {"progress", "print", "display", "range", "len", "enumerate", "zip", "format", "round"}
     # The parameters of a drawing function that shape the drawing and not a
@@ -1001,6 +1003,11 @@ def _whybook_analyze_cells(args):
             function_name = getattr(func, "__name__", "?")
             if function_name in skipped_functions or id(node) in shown:
                 continue
+            # The warnings module chooses which warnings show, and no result: an agent's
+            # catch_warnings(record=True) and simplefilter("always") made two chips in the
+            # finance video's dry run.
+            if getattr(func, "__module__", None) == "warnings":
+                continue
             # The file that a reader such as read_csv or read_parquet reads, even
             # where its parameter is named "path", a name kept out below.
             reads_file = function_name.startswith(("read_", "scan_")) and len(params) > receiver_slots
@@ -1057,16 +1064,37 @@ def _whybook_analyze_cells(args):
                     label, note = library_defaults[qualname][param.name]
                     library = qualname.split(".")[0]
                     version = version_of(library)
+                    owner = qualname.rsplit(".", 2)[-2] if "." in qualname else ""
                     add({
                         "name": param.name,
                         "value": label,
                         "provenance": "library_default",
                         "param": param.name,
-                        "function": qualname.rsplit(".", 2)[-2] + "." + function_name if "." in qualname else function_name,
+                        # A class by its own name, as the cell calls it and as the signatures name it:
+                        # LogisticRegression, not LogisticRegression.__init__.
+                        "function": owner if function_name == "__init__" and owner else f"{owner}.{function_name}" if owner else function_name,
                         "note": note,
                         # The popover says "default in pandas 3.0.6".
                         "library": library,
                         **({"version": version} if version else {}),
+                    }, call)
+                elif param.name in iteration_limits and type(param.default) is int and param.default > 0:
+                    # The iteration limit of a library's fit, which the view shows only when
+                    # the cell's fit stopped before it converged (design iteration 1.116): the
+                    # finance video's scorecard stopped at max_iter=100 of LogisticRegression.
+                    library = qualname.split(".")[0]
+                    version = version_of(library)
+                    owner = qualname.rsplit(".", 2)[-2] if "." in qualname else ""
+                    add({
+                        "name": param.name,
+                        "value": repr(param.default),
+                        "provenance": "library_default",
+                        "param": param.name,
+                        "function": owner if function_name == "__init__" and owner else f"{owner}.{function_name}" if owner else function_name,
+                        "note": "the fit stops after this many iterations, whether it has converged or not",
+                        "library": library,
+                        **({"version": version} if version else {}),
+                        "when": "not_converged",
                     }, call)
             for name, value_node in bound.items():
                 if name in skipped_params and name != file_param:

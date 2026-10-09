@@ -58,6 +58,11 @@ RULES |= {
         " adjusts for, and puts each cause left of its effects."
     ),
 }
+# The NHEFS video: three tables of an agent's cells showed "p-value 0.0", rounded by
+# .round(3) as the rule above asks, and a joint test printed "p = 0.000". How a small
+# p-value is written depends on the field: "< 0.001" in most journals, e notation in
+# genomics, where its size matters against thresholds such as 5e-8.
+RULES |= {"p-values": 'Never round a p-value to 0: write a small one as its field does, such as "< 0.001", or 3.2e-12 in genomics.'}
 
 
 def words(text):
@@ -84,7 +89,8 @@ def test_the_rules_keep_the_prompt_short():
     # kernel's prompt holds R's rules in their place, and has 5,968. Both have
     # 244 more with how to fix a cell that failed in place (design iteration 1.103),
     # and 6,428 became 6,765 with the codes in a figure and the causal diagram
-    # (design iteration 1.108).
+    # (design iteration 1.108), 6,810 with the rule for a second notebook (1.113),
+    # and 6,920 with how to write a small p-value.
     assert len(request().system_prompt()) < 7000
 
 

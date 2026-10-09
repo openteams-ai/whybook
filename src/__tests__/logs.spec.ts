@@ -22,6 +22,43 @@ describe('readText', () => {
     });
   });
 
+  it('keeps the other lines of a longer message, without the source line at its end', () => {
+    // scikit-learn 1.9.1's LogisticRegression() on the finance video's scorecard.
+    const lbfgs =
+      '/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: ' +
+      'lbfgs failed to converge after 100 iteration(s) (status=1):\n' +
+      'STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n' +
+      '\n' +
+      'Increase the number of iterations to improve the convergence (max_iter=100).\n' +
+      'You might also want to scale the data as shown in:\n' +
+      '    https://scikit-learn.org/stable/modules/preprocessing.html\n' +
+      '  n_iter_i = _check_optimize_result(\n';
+    expect(readText(lbfgs)).toEqual({
+      lines: [
+        'ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):',
+        'STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT',
+        '',
+        'Increase the number of iterations to improve the convergence (max_iter=100).',
+        'You might also want to scale the data as shown in:',
+        '    https://scikit-learn.org/stable/modules/preprocessing.html'
+      ],
+      total: 7,
+      warnings: 1,
+      hidden: 0
+    });
+    // Before another warning, the same.
+    expect(readText(lbfgs + WARNINGS).lines).toHaveLength(8);
+    // After a message of one line, the source line comes at once.
+    expect(readText('a.py:1: UserWarning: one\n  two\nthree\n').lines).toEqual([
+      'UserWarning: one',
+      'three'
+    ]);
+    // A line two spaces in, inside a longer message, stays.
+    expect(
+      readText('a.py:1: UserWarning: one\nmore\n  indented\nthree\n').lines
+    ).toEqual(['UserWarning: one', 'more', '  indented', 'three']);
+  });
+
   it("leaves out IPython's messages about its history database", () => {
     const history =
       'The history saving thread hit an unexpected error ' +
