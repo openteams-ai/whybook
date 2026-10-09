@@ -7,6 +7,7 @@ import type { ITableInfo } from '../model/tables';
 import {
   MINIATURE_HEIGHT,
   htmlOf,
+  showsSize,
   tableInfo,
   tableKey,
   tableLevel,
@@ -217,7 +218,9 @@ export function TableOutput(props: {
           />
         )}
       </div>
-      {miniature && dims && (
+      {/* The size, unless the output's own line of it shows, as pandas'
+          "5 rows × 64 columns" does under the table. */}
+      {miniature && dims && !showsSize(info, clipped) && (
         <div className="jp-Epi-tableoutput-caption" title={dims.title}>
           {dims.text}
         </div>

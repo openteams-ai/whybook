@@ -317,6 +317,46 @@ describe('decisionChips', () => {
     ).toBe('READINGS_PATH data/readings.parquet');
   });
 
+  it('names the function of each of two chips that show the same words for calls of different functions', () => {
+    // x.mean(skipna=False) and missing.sum(skipna=False): the kernel's
+    // analysis makes a decision of each function.
+    const skipna = (func: string, line: number): IDecision => ({
+      name: 'skipna',
+      value: 'False',
+      provenance: 'you',
+      param: 'skipna',
+      function: func,
+      calls: [{ line, col: 4, target: null }]
+    });
+    const chips = decisionChips([skipna('mean', 3), skipna('sum', 5)]);
+    expect(chips.map(chip => [chip.text, chip.target])).toEqual([
+      ['skipna False', 'mean'],
+      ['skipna False', 'sum']
+    ]);
+    expect(chips[1].tooltip.split('\n')).toEqual([
+      'skipna = False',
+      'In the sum (line 5).'
+    ]);
+    // Chips of other words name no function.
+    expect(
+      decisionChips([
+        skipna('mean', 3),
+        { ...skipna('sum', 5), value: 'True' }
+      ]).map(chip => chip.target)
+    ).toEqual([null, null]);
+    // A decision kept before the calls were listed names its function too.
+    const kept = { ...skipna('sum', 5), calls: undefined };
+    expect(
+      decisionChips([skipna('mean', 3), kept]).map(chip => [
+        chip.target,
+        chip.tooltip.split('\n')[1]
+      ])
+    ).toEqual([
+      ['mean', 'In the mean (line 3).'],
+      ['sum', 'parameter skipna of sum']
+    ]);
+  });
+
   it('draws a decision kept before the calls were listed as one chip', () => {
     const kept: IDecision[] = [
       {

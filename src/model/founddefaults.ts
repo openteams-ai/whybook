@@ -101,11 +101,11 @@ function shownAt(
  * pick of each function, in the order of the code, then the second, and so
  * on, up to `max`. A parameter that a decision of the cell shows already,
  * such as the inner join of a merge, is left out. The same default of two
- * functions of the same name, such as alpha of the conf_int of a fit and of
- * a contrast, is one decision with the calls of both, as the kernel's
- * analysis makes one of its own (design iteration 1.102). The note is the
- * model's reason, and `found` says which model picked it from which
- * library.
+ * functions of one choice (`sameChoice`), such as alpha of the conf_int of a
+ * fit and of a contrast, or skipna of a mean and of a sum, is one decision
+ * with the calls of both, as the kernel's analysis makes one of its own
+ * (design iteration 1.102). The note is the model's reason for the first
+ * function, and `found` says which model picked it from which library.
  */
 export function foundDecisions(
   signatures: ISignature[],
@@ -163,21 +163,51 @@ export function foundDecisions(
   for (const { decision } of found.sort(
     (a, b) => a.rank - b.rank || a.order - b.order
   )) {
-    const same = chosen.find(
-      item =>
-        item.param === decision.param &&
-        item.value === decision.value &&
-        shortFunction(item) === shortFunction(decision)
-    );
+    const same = chosen.find(item => sameChoice(item, decision));
     if (same) {
-      same.calls = [...callsOf(same), ...callsOf(decision)].sort(
-        (a, b) => a.line - b.line || a.col - b.col
-      );
+      same.calls = joinedCalls(same, decision);
     } else if (chosen.length < max) {
       chosen.push(decision);
     }
   }
   return chosen;
+}
+
+/**
+ * Whether two defaults that a model found are one choice: the same
+ * parameter at the same value, in functions of the same name or of one
+ * library. A library gives a parameter one meaning in its functions:
+ * pandas documents skipna of mean and of sum with one sentence, "Exclude
+ * NA/null values when computing the result."
+ */
+function sameChoice(a: IDecision, b: IDecision): boolean {
+  return (
+    a.param === b.param &&
+    a.value === b.value &&
+    (shortFunction(a) === shortFunction(b) ||
+      (!!a.found && a.found.library === b.found?.library))
+  );
+}
+
+/**
+ * The calls of two decisions of one choice, in the order of the code. Where
+ * they are calls of functions of several names, each call names its
+ * function, so that the chip's tooltip and its menu show "the sum on line
+ * 14".
+ */
+function joinedCalls(a: IDecision, b: IDecision): IDecisionCall[] {
+  const named = (decision: IDecision) =>
+    callsOf(decision).map(call => ({
+      ...call,
+      function: call.function ?? decision.function ?? null
+    }));
+  const calls = [...named(a), ...named(b)].sort(
+    (x, y) => x.line - y.line || x.col - y.col
+  );
+  const names = new Set(calls.map(call => shortName(call.function ?? '')));
+  return names.size > 1
+    ? calls
+    : calls.map(({ function: _f, ...call }) => call);
 }
 
 /**

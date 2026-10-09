@@ -15,9 +15,12 @@ import {
   byWords,
   DEFAULT_POLICY,
   excerpts,
+  flaggedLines,
   flagsByRule,
   heldWords,
+  levelWords,
   markedParts,
+  marksByRule,
   SUGGESTED_GUARD_MODEL
 } from '../model/guard';
 import { HelpButton, useModel } from './common';
@@ -97,7 +100,13 @@ class GuardBody extends ReactWidget {
   }
 }
 
-function GuardQuestion(props: {
+/**
+ * What the dialog asks: the rules that the text or the code breaks, the
+ * text with the flagged parts marked, and the analyst's note. A rule of the
+ * privacy guard says how many parts it marked, and does not print them
+ * again: they are personal data, which the marks show once.
+ */
+export function GuardQuestion(props: {
   event: IGuardEvent;
   onNote: (note: string) => void;
 }): JSX.Element {
@@ -111,6 +120,14 @@ function GuardQuestion(props: {
   const shown = React.useMemo(() => readable(event.text), [event.text]);
   const pieces = whole ? null : excerpts(shown, event.flags);
   const lineCount = shown.split('\n').length;
+  const flaggedCount = React.useMemo(
+    () => flaggedLines(shown, event.flags).length,
+    [shown, event.flags]
+  );
+  const marksOf = React.useMemo(
+    () => marksByRule(shown, event.flags),
+    [shown, event.flags]
+  );
   const text = React.useRef<HTMLPreElement>(null);
   React.useEffect(() => {
     // The whole text opens at its first flagged part.
@@ -158,16 +175,23 @@ function GuardQuestion(props: {
         {groups.map(group => (
           <li key={group.rule} className={`jp-mod-${group.level}`}>
             <span className="jp-Epi-guard-level">
-              {group.level === 'reject' ? 'Likely wrong:' : 'Might be fine:'}
+              {levelWords(event.guard, group.level)}
             </span>{' '}
             {group.rule}.
-            {group.parts.length > 0 && (
-              <span className="jp-Epi-guard-parts">
-                {' '}
-                Flagged: {group.parts.slice(0, 6).join(', ')}
-                {group.parts.length > 6 ? ', and more' : ''}.
-              </span>
-            )}
+            {privacy
+              ? !!marksOf.get(group.rule) && (
+                  <span className="jp-Epi-guard-parts">
+                    {' '}
+                    {markWords(marksOf.get(group.rule)!)}
+                  </span>
+                )
+              : group.parts.length > 0 && (
+                  <span className="jp-Epi-guard-parts">
+                    {' '}
+                    Flagged: {group.parts.slice(0, 6).join(', ')}
+                    {group.parts.length > 6 ? ', and more' : ''}.
+                  </span>
+                )}
             <span className="jp-Epi-guard-by">
               {' '}
               Found by {group.by.map(byWords).join(' and ')}
@@ -182,7 +206,9 @@ function GuardQuestion(props: {
       <div className="jp-Epi-guard-caption">
         {privacy ? 'The text that would leave this machine' : 'The code'}
         {pieces
-          ? `: the lines with flagged parts, of ${lineCount}`
+          ? `: ${flaggedCount} of ${lineCount} lines ${
+              flaggedCount === 1 ? 'has' : 'have'
+            } flagged parts`
           : lineCount > 14
             ? `, ${lineCount} lines`
             : ''}
@@ -271,6 +297,13 @@ function readable(text: string): string {
 
 function capital(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** "1 part is marked below.", "20 parts are marked below." */
+function markWords(count: number): string {
+  return count === 1
+    ? '1 part is marked below.'
+    : `${count} parts are marked below.`;
 }
 
 const MODES: { value: GuardMode; label: string; title: string }[] = [

@@ -268,7 +268,15 @@ export function storedAnalysis(
   return { ...analysis, source: fingerprint(source) };
 }
 
-/** The kept analysis, when it was made from this source. */
+/** A text that ends in an operator is a piece of a formula: "y ~ x +". */
+const DANGLING = /[-+*/:~|^(,]\s*$/;
+
+/**
+ * The kept analysis, when it was made from this source. A notebook can keep
+ * a piece of a formula that the code builds, such as "y ~ x +". The kept
+ * analysis leaves it out, since the kernel's analysis reads such a formula
+ * whole.
+ */
 export function analysisFor(
   stored: IStoredAnalysis | undefined,
   source: string
@@ -277,5 +285,10 @@ export function analysisFor(
     return null;
   }
   const { source: _s, ...analysis } = stored;
-  return analysis;
+  return {
+    ...analysis,
+    formulas: (analysis.formulas ?? []).filter(
+      formula => !DANGLING.test(formula)
+    )
+  };
 }

@@ -412,8 +412,8 @@ Rules for the code:
 
 Another notebook:
 - "kernels" lists the kernels of this server, and "files" the files of the analyst's folder.
-- When the question needs another language, or another version of the language, make a
-  notebook with new_notebook and work there. run_cell, explore and write_file take its name as
+- When the question asks for another language, or another version of the language, make a
+  notebook with new_notebook and work there; otherwise work in the analyst's notebook. run_cell, explore and write_file take its name as
   "notebook", and a cell's code is in the language of its notebook's kernel. Without "notebook",
   a tool acts in the analyst's notebook.
 - Move the data with share_frames: the analyst's kernel writes the frames to files, and the new

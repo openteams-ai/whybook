@@ -127,12 +127,16 @@ export type Provenance =
  * function: `line` counts from 1, and `col` counts UTF-8 bytes from the start
  * of the line, as Python's `ast` does. `target` is the frame that the call
  * joins or reads, in one word: `weather` for `.merge(weather, ...)`, `homes`
- * for `pd.read_csv("homes.csv")`.
+ * for `pd.read_csv("homes.csv")`. `function` is the function that the call
+ * names, where the calls of one decision are of several functions, as
+ * `Series.sum` beside `Series.mean` for skipna True of both; without it, the
+ * call is of the decision's function.
  */
 export interface IDecisionCall {
   line: number;
   col: number;
   target?: string | null;
+  function?: string | null;
 }
 
 export interface IDecision {
@@ -348,6 +352,13 @@ export interface IEpiCellMeta {
    */
   title_note?: ITitleNotes;
   question?: IAskedQuestion;
+  /**
+   * The type of a cell of an agent's run, from the words of its step and
+   * its code (src/model/agent.ts): its badge shows this type, not the
+   * question's. The cells that hold the run's answer have none, and show
+   * the question's type. The Exploration panel counts the question.
+   */
+  step_type?: QuestionType;
   /** The analyst's guess before the result, for the question this cell answers. */
   guess?: { question: string; value: Guess; at: string };
   asked_by?: 'user' | 'agent';

@@ -2,6 +2,7 @@ import {
   COMPACT_SCALE,
   INLINE_ROWS,
   fingerprint,
+  showsSize,
   tableInfo,
   tableLevel,
   tableText
@@ -33,7 +34,40 @@ describe('tableInfo', () => {
 
   it('reads the size pandas writes under a table it cuts', () => {
     const html = frameHtml(10, 12, '<p>1428 rows × 12 columns</p>');
-    expect(tableInfo(html)).toEqual({ rows: 1428, columns: 12, tables: 1 });
+    expect(tableInfo(html)).toEqual({
+      rows: 1428,
+      columns: 12,
+      tables: 1,
+      sizeLine: 'below'
+    });
+  });
+
+  it('reads the size R writes in the caption of a table, and not the rows it draws', () => {
+    // IRkernel draws the first and last rows of a long frame.
+    const html =
+      '<table class="dataframe"><caption>A data.frame: 5837 × 3</caption>' +
+      '<thead><tr><th></th><th scope=col>arm</th><th scope=col>week</th><th scope=col>mean</th></tr></thead>' +
+      '<tbody><tr><th scope=row>1</th><td>A</td><td>12</td><td>2.6</td></tr>' +
+      '<tr><th scope=row>5837</th><td>B</td><td>1</td><td>3.1</td></tr></tbody></table>';
+    expect(tableInfo(html)).toEqual({
+      rows: 5837,
+      columns: 3,
+      tables: 1,
+      sizeLine: 'above'
+    });
+    expect(
+      tableInfo(
+        html.replace('A data.frame: 5837 × 3', 'A matrix: 2 × 2 of type int')
+      )
+    ).toMatchObject({ rows: 2, columns: 2, sizeLine: 'above' });
+  });
+
+  it('says whether a miniature shows the line of the size that its output writes', () => {
+    const below = tableInfo(frameHtml(5, 12, '<p>5 rows × 64 columns</p>'));
+    expect(showsSize(below, false)).toBe(true);
+    // A miniature that cuts the table cuts the line under it.
+    expect(showsSize(below, true)).toBe(false);
+    expect(showsSize(tableInfo(frameHtml(8, 12)), false)).toBe(false);
   });
 
   it('gives no size to an output with several tables', () => {
@@ -48,10 +82,15 @@ describe('tableInfo', () => {
     // What polars 1.44.2 writes for a frame of 5 rows, style block left out.
     const five =
       '<div><small>shape: (5, 2)</small><table border="1" class="dataframe"><thead><tr><th>arm</th><th>pain</th></tr><tr><td>str</td><td>f64</td></tr></thead><tbody><tr><td>&quot;A&quot;</td><td>3.1</td></tr><tr><td>&quot;B&quot;</td><td>7.2</td></tr><tr><td>&quot;B&quot;</td><td>6.9</td></tr><tr><td>&quot;A&quot;</td><td>3.3</td></tr><tr><td>&quot;A&quot;</td><td>2.8</td></tr></tbody></table></div>';
-    expect(tableInfo(five)).toEqual({ rows: 5, columns: 2, tables: 1 });
+    expect(tableInfo(five)).toEqual({
+      rows: 5,
+      columns: 2,
+      tables: 1,
+      sizeLine: 'above'
+    });
     expect(
       tableInfo(five.replace('shape: (5, 2)', 'shape: (1_000_000, 2)'))
-    ).toEqual({ rows: 1000000, columns: 2, tables: 1 });
+    ).toEqual({ rows: 1000000, columns: 2, tables: 1, sizeLine: 'above' });
     // Five rows fit in full, as the same pandas frame does.
     expect(
       tableLevel(tableInfo(five), { width: 200, height: 150, fontPx: 13 }, 600)

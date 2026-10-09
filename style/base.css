@@ -2208,12 +2208,6 @@ button.jp-Epi-textoutput:hover,
   padding: 8px 12px;
 }
 
-/* In the narrow sidebar the question wraps, where the strip cuts it. */
-.jp-Epi-agentrun.jp-mod-sidebar .jp-Epi-agentrun-question {
-  flex-basis: 100%;
-  white-space: normal;
-}
-
 .jp-Epi-agentrun-head {
   display: flex;
   flex-wrap: wrap;
@@ -2226,13 +2220,23 @@ button.jp-Epi-textoutput:hover,
   color: var(--jp-brand-color1);
 }
 
+/* Two lines of the question at most, cut after the second: its tooltip
+   has the whole question. */
 .jp-Epi-agentrun-question {
+  display: -webkit-box;
   flex: 1;
   min-width: 120px;
   overflow: hidden;
   color: var(--jp-ui-font-color1);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* In the narrow sidebar the whole question shows, on as many lines as it
+   needs. */
+.jp-Epi-agentrun.jp-mod-sidebar .jp-Epi-agentrun-question {
+  display: block;
+  flex-basis: 100%;
 }
 
 .jp-Epi-agentrun-status {

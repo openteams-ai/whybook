@@ -307,6 +307,39 @@ export function flagsByRule(
   );
 }
 
+/**
+ * The words before a rule in the dialog: what the guard's verdict means for
+ * the text that would leave this machine, or for the code that would run.
+ */
+export function levelWords(
+  guard: 'privacy' | 'execution',
+  level: 'ask' | 'reject'
+): string {
+  if (guard === 'privacy') {
+    return level === 'reject'
+      ? 'Should not leave this machine:'
+      : 'Might be fine to send:';
+  }
+  return level === 'reject' ? 'Should not run:' : 'Might be fine to run:';
+}
+
+/**
+ * How many places of the text the flags of each rule mark, by the rule, as
+ * the dialog marks them: a place that two flags hold counts for the longer.
+ */
+export function marksByRule(
+  text: string,
+  flags: IGuardFlag[]
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const part of markedParts(text, flags)) {
+    if (part.flag) {
+      counts.set(part.flag.rule, (counts.get(part.flag.rule) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 /** What a guard's name reads as in a sentence: "the rules", "DynaGuard 4B". */
 export function byWords(by: string): string {
   return by === 'rules' ? 'the rules' : by;
@@ -330,6 +363,18 @@ export interface IExcerpt {
   skippedAfter: boolean;
 }
 
+/** The lines of a text that hold a flagged part, by their place from 0. */
+export function flaggedLines(text: string, flags: IGuardFlag[]): number[] {
+  const parts = flags.map(flag => flag.text).filter(Boolean);
+  const found: number[] = [];
+  text.split('\n').forEach((line, index) => {
+    if (parts.some(part => line.includes(part))) {
+      found.push(index);
+    }
+  });
+  return found;
+}
+
 /**
  * The lines around the flagged parts of a long text: each line that holds a
  * flagged part, with `around` lines on each side. A text of `short` lines or
@@ -343,20 +388,17 @@ export function excerpts(
   short = 14
 ): IExcerpt[] | null {
   const lines = text.split('\n');
-  const parts = flags.map(flag => flag.text).filter(Boolean);
-  if (lines.length <= short || !parts.length) {
+  if (lines.length <= short || !flags.some(flag => flag.text)) {
     return null;
   }
   const keep = new Set<number>();
-  lines.forEach((line, index) => {
-    if (parts.some(part => line.includes(part))) {
-      for (let at = index - around; at <= index + around; at++) {
-        if (at >= 0 && at < lines.length) {
-          keep.add(at);
-        }
+  for (const index of flaggedLines(text, flags)) {
+    for (let at = index - around; at <= index + around; at++) {
+      if (at >= 0 && at < lines.length) {
+        keep.add(at);
       }
     }
-  });
+  }
   if (!keep.size) {
     return null;
   }

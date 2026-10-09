@@ -1,0 +1,64 @@
+{
+  "about": "The columns of a frame, and what shows that the read that made it went wrong, or null when it looks right. frame_looks_misread in whybook/server/questions/cells.py and frameLooksMisread in src/model/assumptions.ts hold the same rule: test_read_defaults.py and src/__tests__/assumptions.spec.ts check both against these cases.",
+  "cases": [
+    {
+      "frame": "homes",
+      "columns": ["home_id;region;floor_area_m2;heating"],
+      "sign": "homes has one column, whose name holds semicolons"
+    },
+    {
+      "frame": "homes",
+      "columns": ["home_id\tregion"],
+      "sign": "homes has one column, whose name holds tabs"
+    },
+    {
+      "frame": "homes",
+      "columns": ["home_id|region"],
+      "sign": "homes has one column, whose name holds pipes"
+    },
+    {
+      "frame": "homes",
+      "columns": ["home_id,region"],
+      "sign": "homes has one column, whose name holds commas"
+    },
+    {
+      "frame": "homes",
+      "columns": ["home_id|region;heating"],
+      "sign": "homes has one column, whose name holds semicolons"
+    },
+    { "frame": "homes", "columns": ["home_id"], "sign": null },
+    { "frame": "homes", "columns": [], "sign": null },
+    {
+      "frame": "homes",
+      "columns": ["Unnamed: 0", "home_id", "region"],
+      "sign": "homes has a column named Unnamed: 0"
+    },
+    {
+      "frame": "homes",
+      "columns": ["Unnamed: 0", "Unnamed: 1", "home_id"],
+      "sign": "homes has 2 columns named Unnamed"
+    },
+    {
+      "frame": "homes",
+      "columns": ["home_id", " "],
+      "sign": "homes has a column without a name"
+    },
+    {
+      "frame": "homes",
+      "columns": ["1", "103.5", "2", "Gas"],
+      "sign": "homes has numbers for column names: 1, 103.5, 2"
+    },
+    {
+      "frame": "homes",
+      "columns": ["-1.5", "+2", "region"],
+      "sign": "homes has numbers for column names: -1.5, +2"
+    },
+    { "frame": "homes", "columns": ["1", "region"], "sign": null },
+    { "frame": "homes", "columns": ["region", "2024", "2025"], "sign": null },
+    {
+      "frame": "homes",
+      "columns": ["home_id", "region", "floor_area_m2"],
+      "sign": null
+    }
+  ]
+}

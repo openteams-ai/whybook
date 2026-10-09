@@ -246,3 +246,39 @@ def test_a_call_kept_in_another_form_is_left_out():
     decision = Decision.from_json({"name": "how", "value": "'inner'", "provenance": "library_default", "calls": [{"line": 2, "col": 13}, {"line": "2"}, "x"]})
     assert decision.calls == (DecisionCall(2, 13),)
     assert Decision.from_json({"name": "how", "value": "'inner'", "calls": {"line": 2}}).calls == ()
+
+
+def test_a_value_goes_into_each_call_of_a_decision_of_several_functions():
+    """[20] of the NHEFS video: two means and a sum leave skipna=True. The
+    view shows one chip of the three calls, each of which names its function,
+    and a value goes into each call by its own function."""
+    cell = CellInfo("c20", "[20]", "means = (x0.mean(), x1.mean())\ntotal = missing.sum()")
+    skipna = Decision.from_json(
+        {
+            "name": "skipna",
+            "value": "True",
+            "provenance": "library_default",
+            "param": "skipna",
+            "function": "Series.mean",
+            "found": {"by": None, "library": "pandas", "version": "3.0.6"},
+            "calls": [
+                {"line": 1, "col": 12, "target": None, "function": "Series.mean"},
+                {"line": 1, "col": 23, "target": None, "function": "Series.mean"},
+                {"line": 2, "col": 16, "target": None, "function": "Series.sum"},
+            ],
+        }
+    )
+    every = decision_options(cell, skipna, Context(), value="False")
+    assert texts(every) == ["What if skipna were False in all 3 calls?"]
+    assert "means_if_false = (x0.mean(skipna=False), x1.mean(skipna=False))\ntotal_if_false = missing.sum(skipna=False)" in every["options"][0]["code"]
+    assert skipna.calls[2] == DecisionCall(2, 16, None, "Series.sum")
+    assert skipna.functions() == ("mean", "sum")
+    # The sum alone, as the chip's menu offers it.
+    alone = decision_options(cell, skipna, Context(), value="False", calls=skipna.calls[2:])
+    assert texts(alone) == ["What if skipna were False in the sum on line 2?"]
+    assert "means_if_false = (x0.mean(), x1.mean())\ntotal_if_false = missing.sum(skipna=False)" in alone["options"][0]["code"]
+    assert where_text(skipna, skipna.calls[:1]) == "the mean on line 1"
+    # The choice written in the cell names both functions.
+    chosen = option(decision_options(cell, skipna, Context()), "Choose skipna in [20], in all 3 calls")
+    assert chosen["code"].startswith("skipna = True  # chosen here; was the default of Series.mean and Series.sum\n")
+    assert "missing.sum(skipna=skipna)" in chosen["code"]

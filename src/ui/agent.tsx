@@ -58,7 +58,11 @@ export function AgentRunView(props: {
       <div className="jp-Epi-agentrun-head">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-agentrun-kind">Agent</span>
-        <span className="jp-Epi-agentrun-question">{run.question}</span>
+        {/* Two lines at most in the strip and the card, cut after the
+            second: its tooltip has the whole question. */}
+        <span className="jp-Epi-agentrun-question" title={run.question}>
+          {run.question}
+        </span>
         <span className="jp-Epi-agentrun-status">
           {runStatus(run)}
           {busy && seconds !== null ? ` · ${seconds} s` : ''}
@@ -394,7 +398,9 @@ export function AgentPointer(props: {
       <div className="jp-Epi-strip-row">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-strip-action">Agent</span>
-        <span className="jp-Epi-strip-text">{run.question}</span>
+        <span className="jp-Epi-strip-text" title={run.question}>
+          {run.question}
+        </span>
         <span className="jp-Epi-strip-stage">
           {runStatus(run)} ·{' '}
           {model.settings.agentView === 'sidebar'
@@ -532,7 +538,9 @@ export function AgentElsewhere(props: {
       <div className="jp-Epi-strip-row">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-strip-action">Agent</span>
-        <span className="jp-Epi-strip-text">{run.question}</span>
+        <span className="jp-Epi-strip-text" title={run.question}>
+          {run.question}
+        </span>
         <span className="jp-Epi-strip-stage">
           {state} · {here === 1 ? '1 cell' : `${here} cells`} here · asked in{' '}
           {PathExt.basename(askedIn)}

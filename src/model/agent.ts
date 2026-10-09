@@ -3,9 +3,11 @@ import { PathExt } from '@jupyterlab/coreutils';
 import type { IOutputModel } from '@jupyterlab/rendermime';
 
 import type {
+  IEpiCellMeta,
   IEpiNotebookMeta,
   IPlotPayload,
   IWrittenBy,
+  QuestionType,
   StreamEvent
 } from '../tokens';
 import { PLOT_MIME } from '../tokens';
@@ -15,6 +17,7 @@ import { readHtml } from './frametable';
 import { outputText } from './logs';
 import { outputKind } from './notebook';
 import { plotGlyph } from './outputs';
+import { keywordType } from './own';
 import { pyString } from './pycode';
 import { keptCells } from './runs';
 import { htmlOf, tableInfo, tableText } from './tables';
@@ -503,6 +506,91 @@ export function cellByLabel(
   }
   const wanted = label.trim().replace(/^\[?/, '[').replace(/\]?$/, ']');
   return cells.find(cell => cell.label === wanted)?.id ?? null;
+}
+
+/**
+ * The type of a cell that a step of an agent's run wrote, by the rules that
+ * type a typed question (./own.ts): the type that the words of the cell's
+ * title give, else those of the step's why, else those of its code, else
+ * descriptive. "Read NHEFS data" is descriptive, "Prepare complete-case
+ * analysis" is data quality, and a cell that calls .fit() is a model check.
+ */
+export function stepType(
+  title: string,
+  why: string,
+  code: string
+): QuestionType {
+  return (
+    keywordType(title) ?? keywordType(why) ?? keywordType(code) ?? 'descriptive'
+  );
+}
+
+/**
+ * The type that a cell's badge shows: the type of its own step, for a cell
+ * of an agent's run, else the type of the question that it answers.
+ */
+export function cellType(meta: IEpiCellMeta): QuestionType | undefined {
+  return meta.step_type ?? meta.question?.type;
+}
+
+/** A cell as finish names it: "[7]", "7", "[5b]", or "R [2]" in a notebook that the run made. */
+const NAMED_CELL = /^\s*(?:([A-Za-z][\w.+#-]*)\s+)?\[?(\d+[a-z]?)\]?\s*$/;
+
+/**
+ * The labels that an answer cites, alone or in a list, with the word before
+ * them, as the server reads them (CITED in whybook/server/agent.py).
+ */
+const CITED_CELLS =
+  /(?:([A-Za-z][\w.+#-]*)\s+)?\[(\d+[a-z]?(?:\s*,\s*\d+[a-z]?)*)\]/g;
+
+/**
+ * The cells of a run that hold its answer: those that finish named in
+ * `cells`, else those that the answer cites. Each is given by its notebook,
+ * '' for the notebook where the question was asked or the path of a
+ * notebook that the run made, and by its id. "[7]" names a cell of the
+ * first notebook, and "R [2]" a cell of the notebook that the run made with
+ * R, as the agent's prompt says. Only the run's own cells count: the
+ * analyst's [4] is not one. `cellsOf` gives the run's cells in a notebook,
+ * with their labels.
+ */
+export function answerHolders(
+  run: IAgentRun,
+  cellsOf: (notebook: string) => { id: string; label: string }[]
+): { notebook: string; id: string }[] {
+  const notebookOf = (word: string | undefined) => {
+    const language = (word ?? '').toLowerCase();
+    return (
+      run.notebooks?.find(item => item.label.toLowerCase() === language)
+        ?.path ?? ''
+    );
+  };
+  const find = (named: [string, string][]) => {
+    const found: { notebook: string; id: string }[] = [];
+    for (const [notebook, label] of named) {
+      const cell = cellsOf(notebook).find(item => item.label === label);
+      if (cell && !found.some(item => item.id === cell.id)) {
+        found.push({ notebook, id: cell.id });
+      }
+    }
+    return found;
+  };
+  const listed = run.answerCells.flatMap((item): [string, string][] => {
+    const match = NAMED_CELL.exec(item);
+    return match ? [[notebookOf(match[1]), `[${match[2]}]`]] : [];
+  });
+  const holders = find(listed);
+  if (holders.length) {
+    return holders;
+  }
+  const cited = [...(run.answer ?? '').matchAll(CITED_CELLS)].flatMap(match =>
+    match[2]
+      .split(',')
+      .map((label): [string, string] => [
+        notebookOf(match[1]),
+        `[${label.trim()}]`
+      ])
+  );
+  return find(cited);
 }
 
 /**

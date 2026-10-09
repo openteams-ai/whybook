@@ -1,12 +1,13 @@
 /**
- * The chips of a file read, and where "Worth asking next" asks about it
+ * The chips of a file read, and when "Worth asking next" asks about it
  * (design iterations 1.91 and 1.92, from the demo video of 7 October 2026).
  *
  * The first cell of the video read nhefs.csv and showed its first rows, and
  * its chips were header infer, sep <no_default>, n 5 and na_values None:
  * pandas' marker for "not given" in place of the comma that the read used,
  * and the number of rows that head() shows. "Worth asking next" asked about
- * the same defaults first, through the whole analysis.
+ * the same defaults first, through the whole analysis. It asks about them
+ * only when the read's frame looks wrong.
  *
  * No model is called: the first test answers the model's route itself, and
  * the fixture aborts any other.
@@ -183,7 +184,7 @@ test('shows the separator that a read uses, and no chip for the rows that a cell
   );
 });
 
-test('asks about a read that looks right after the choices of the analysis, and first when the read looks wrong', async ({
+test('asks nothing about the defaults of a read that looks right or of a merge, and asks about a read that looks wrong', async ({
   page,
   tmpPath
 }) => {
@@ -195,20 +196,27 @@ test('asks about a read that looks right after the choices of the analysis, and 
     'pairs = data.merge(data, on="id")\npairs.shape'
   ]);
   await openAndRun(page, file);
+  const block = page.locator('.jp-Epi-exploration .jp-Epi-block', {
+    hasText: 'Worth asking next'
+  });
   const steps = page.locator('.jp-Epi-exploration .jp-Epi-next');
   const texts = steps.locator('.jp-Epi-next-text');
-  // The merge's inner join is a choice of the analysis; the header of the
-  // read comes after it. In the video's notebook the header came first.
-  await expect(texts).toHaveText(
-    [
-      "Does how = 'inner' change the result of [2]?",
-      "Does header = 'infer' change the result of [1]?"
-    ],
+  const count = page
+    .locator('.jp-Epi-exploration .jp-Epi-numbers > div')
+    .filter({ hasText: 'open assumption' });
+  // No rule shows that the header of the read or the inner join of the
+  // merge changes a result: the list and the count leave them out. In the
+  // video's notebook they were the first questions, and each was counted.
+  await expect(block).toContainText(
+    'No suggestions yet: no cell leaves a choice open',
     { timeout: 60000 }
   );
-  await expect(steps.nth(1).locator('.jp-Epi-next-why')).toHaveText(
-    'Open assumption in [1]'
-  );
+  await expect(steps).toHaveCount(0);
+  await expect(count).toHaveText('0open assumptions');
+  // The chip of the header stays, in the colour of a value that nobody chose.
+  await expect(
+    chips(page, 'cell-0').filter({ hasText: 'header infer' })
+  ).toHaveClass(/jp-mod-open/);
 
   // A file with semicolons, read with the comma of read_csv: one column.
   await page.evaluate(() => {
@@ -227,16 +235,14 @@ test('asks about a read that looks right after the choices of the analysis, and 
   await expect(card.locator('.jp-Epi-label')).toHaveText('[3]', {
     timeout: 60000
   });
-  // Its header comes first now, with what shows that the read went wrong.
-  await expect(texts.first()).toHaveText(
-    "Does header = 'infer' change the result of [3]?",
+  // Its header is an open assumption now, asked about with what shows that
+  // the read went wrong. The read that looks right is still left out.
+  await expect(texts).toHaveText(
+    ["Does header = 'infer' change the result of [3]?"],
     { timeout: 60000 }
   );
   await expect(steps.first().locator('.jp-Epi-next-why')).toHaveText(
     'semi has one column, whose name holds semicolons'
   );
-  // The read that looks right is still last.
-  await expect(texts.last()).toHaveText(
-    "Does header = 'infer' change the result of [1]?"
-  );
+  await expect(count).toHaveText('1open assumption');
 });

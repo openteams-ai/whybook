@@ -306,13 +306,13 @@ describe('the chips of an R cell', () => {
       provenance: 'library_default',
       value: 'TRUE'
     });
-    // One chip each, with no line to tell them apart: t.test, chisq.test
-    // and prop.test are three functions.
+    // One chip each, named by its function and not by a line: t.test,
+    // chisq.test and prop.test are three functions.
     const chips = decisionChips([
       correct('stats::chisq.test'),
       correct('stats::prop.test')
     ]);
-    expect(chips.map(chip => chip.target)).toEqual([null, null]);
+    expect(chips.map(chip => chip.target)).toEqual(['chisq.test', 'prop.test']);
   });
 
   it("shows a default of the analyst's own file as the Python view does", () => {

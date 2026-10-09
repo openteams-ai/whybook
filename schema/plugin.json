@@ -68,7 +68,7 @@
         {
           "const": "auto",
           "title": "Auto",
-          "description": "The most used first, then the largest"
+          "description": "Tables from files first, then the most used"
         },
         {
           "const": "used",

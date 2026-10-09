@@ -210,7 +210,7 @@ test('the list of Variables explored scrolls past five rows under its head and i
   await expect(head.locator('.jp-Epi-section-count')).toHaveText('12');
   await expect(head).toHaveAttribute(
     'title',
-    'Order: Auto, the most used first, then the largest. Right-click to change it, or press Shift+F10.'
+    'Order: Auto, tables from files first, then the most used. Right-click to change it, or press Shift+F10.'
   );
   expect(await names()).toEqual(AUTO);
 

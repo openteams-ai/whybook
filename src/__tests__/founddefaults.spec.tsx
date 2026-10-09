@@ -12,7 +12,12 @@ import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { Api, IKeptDefaults, IServerStatus } from '../model/api';
-import { chipText, decisionChips } from '../model/decisions';
+import {
+  allCalls,
+  callChoice,
+  chipText,
+  decisionChips
+} from '../model/decisions';
 import type { IDecisionAsk } from '../model/epimodel';
 import type { IFunctionPicks, ISignature } from '../model/founddefaults';
 import {
@@ -230,6 +235,127 @@ describe('the defaults that a model found', () => {
         []
       ).map(chipText)
     ).toEqual(['use_t None', 'alpha 0.05', 'skipna True']);
+  });
+
+  it('make one chip of the same default of two functions of one library, whose tooltip and menu name the function of each call', () => {
+    // [20] of the NHEFS video: x0.mean() and x1.mean() on line 12 and
+    // missing_wt.sum() on line 14 leave skipna at True, and x0.eq(1) and
+    // x1.eq(1) leave fill_value at None. It showed "skipna True ×2" and
+    // "skipna True" side by side.
+    const series = (
+      name: string,
+      params: ISignature['params'],
+      calls: ISignature['calls']
+    ): ISignature => ({
+      function: `pandas.core.series.Series.${name}`,
+      name: `Series.${name}`,
+      module: 'pandas.core.series',
+      library: 'pandas',
+      version: '3.0.6',
+      params,
+      calls
+    });
+    const eq = series(
+      'eq',
+      [{ name: 'fill_value', default: 'None' }],
+      [
+        { line: 10, col: 102, target: null, defaulted: ['fill_value'] },
+        { line: 10, col: 170, target: null, defaulted: ['fill_value'] }
+      ]
+    );
+    const mean = series(
+      'mean',
+      [{ name: 'skipna', default: 'True' }],
+      [
+        { line: 12, col: 101, target: null, defaulted: ['skipna'] },
+        { line: 12, col: 149, target: null, defaulted: ['skipna'] }
+      ]
+    );
+    const sum = series(
+      'sum',
+      [
+        { name: 'skipna', default: 'True' },
+        { name: 'min_count', default: '0' }
+      ],
+      [{ line: 14, col: 45, target: null, defaulted: ['skipna', 'min_count'] }]
+    );
+    const picks: Record<string, IFunctionPicks> = {
+      [eq.function]: {
+        picks: [{ param: 'fill_value', why: 'How missing values compare.' }],
+        by: BY
+      },
+      [mean.function]: {
+        picks: [{ param: 'skipna', why: 'Missing values leave the mean.' }],
+        by: BY
+      },
+      [sum.function]: {
+        picks: [
+          { param: 'skipna', why: 'Missing values leave the sum.' },
+          { param: 'min_count', why: 'A sum of no values is 0.' }
+        ],
+        by: BY
+      }
+    };
+    const found = foundDecisions(
+      [eq, mean, sum],
+      signature => picks[signature.function],
+      []
+    );
+    const chips = decisionChips(found);
+    // The place of the second skipna goes to the next pick.
+    expect(chips.map(chip => [chip.text, chip.count])).toEqual([
+      ['fill_value None', 2],
+      ['skipna True', 3],
+      ['min_count 0', 1]
+    ]);
+    const skipna = found[1];
+    expect(skipna.calls).toEqual([
+      { line: 12, col: 101, target: null, function: 'Series.mean' },
+      { line: 12, col: 149, target: null, function: 'Series.mean' },
+      { line: 14, col: 45, target: null, function: 'Series.sum' }
+    ]);
+    expect(chips[1].tooltip.split('\n')).toEqual([
+      'skipna = True',
+      'In all 3 calls: the mean (line 12), the mean (line 12) and the sum (line 14).'
+    ]);
+    // "Where the value goes" in the chip's popover.
+    expect(allCalls(skipna)).toBe('all 3 calls');
+    expect(skipna.calls!.map(call => callChoice(skipna, call))).toEqual([
+      'mean on line 12',
+      'mean on line 12',
+      'sum on line 14'
+    ]);
+    // The calls of one function keep no name of their own.
+    expect(found[0].calls).toEqual([
+      { line: 10, col: 102, target: null },
+      { line: 10, col: 170, target: null }
+    ]);
+    // The same value of another library's parameter of that name is a chip
+    // of its own, and each chip names the function of its calls.
+    const other: ISignature = {
+      ...series('nanmean', [{ name: 'skipna', default: 'True' }], []),
+      function: 'otherlib.reduce.nanmean',
+      name: 'nanmean',
+      module: 'otherlib.reduce',
+      library: 'otherlib',
+      calls: [{ line: 16, col: 4, target: null, defaulted: ['skipna'] }]
+    };
+    picks[other.function] = {
+      picks: [{ param: 'skipna', why: 'Missing values leave the mean.' }],
+      by: BY
+    };
+    expect(
+      decisionChips(
+        foundDecisions(
+          [mean, other],
+          signature => picks[signature.function],
+          []
+        )
+      ).map(chip => [chip.text, chip.count, chip.target])
+    ).toEqual([
+      ['skipna True', 2, 'mean'],
+      ['skipna True', 1, 'nanmean']
+    ]);
   });
 
   it('are none for a function without an answer, or a pick that the calls pass', () => {

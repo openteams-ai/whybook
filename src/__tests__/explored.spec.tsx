@@ -176,6 +176,33 @@ describe('The order of Variables explored', () => {
     ]);
   });
 
+  it('puts the tables that cells read from files first in Auto, then the frames that the most cells read', () => {
+    // The NHEFS notebook: three cells read the frame of the analysis, and one
+    // reads the codebook.
+    const nhefs = [
+      { name: 'analysis', cells: 3, size: 17226, loaded: false },
+      { name: 'nhefs_codebook', cells: 1, size: 128, loaded: true },
+      { name: null, cells: 0, size: 0, loaded: false },
+      { name: 'nhefs', cells: 2, size: 104256, loaded: true },
+      { name: 'result', cells: 1, size: 5, loaded: false }
+    ];
+    expect(names(orderExplored(nhefs, 'auto'))).toEqual([
+      'nhefs',
+      'nhefs_codebook',
+      'analysis',
+      'result',
+      null
+    ]);
+    // Most used counts the cells alone.
+    expect(names(orderExplored(nhefs, 'used'))).toEqual([
+      'analysis',
+      'nhefs',
+      'nhefs_codebook',
+      'result',
+      null
+    ]);
+  });
+
   it('keeps the order of the notebook in Most used among frames that as many cells read', () => {
     expect(names(orderExplored(rows, 'used'))).toEqual([
       'readings',
@@ -270,6 +297,105 @@ describe('The rows of Variables explored', () => {
     expect(row('switchers').size).toBe(22961 * 17);
   });
 
+  it('list the tables that cells read from files first in Auto', () => {
+    const cell = (
+      id: string,
+      source: string,
+      defs: string[],
+      uses: string[],
+      file?: string
+    ) => ({
+      cell_type: 'code',
+      id,
+      source,
+      metadata: {
+        whybook: {
+          analysis: storedAnalysis(
+            {
+              defs,
+              uses,
+              formulas: [],
+              columns: {},
+              decisions: file
+                ? [
+                    {
+                      name: 'filepath_or_buffer',
+                      value: `'${file}'`,
+                      provenance: 'literal',
+                      param: 'filepath_or_buffer',
+                      function: 'read_csv'
+                    }
+                  ]
+                : [],
+              attachments: []
+            },
+            source
+          )
+        }
+      },
+      execution_count: 1,
+      outputs: []
+    });
+    const frame = (name: string, rows: number, columns: number) => ({
+      name,
+      label: name,
+      kind: 'dataframe',
+      rows,
+      n_columns: columns,
+      columns: Array.from({ length: columns }, (_, index) => ({
+        label: `${name}_${index}`,
+        kind: 'numeric',
+        tag: 'num'
+      }))
+    });
+    const { model } = benchModel({
+      cells: [
+        cell(
+          'load',
+          'nhefs = pd.read_csv("nhefs.csv")',
+          ['nhefs'],
+          ['pd'],
+          'nhefs.csv'
+        ),
+        cell(
+          'codebook',
+          'nhefs_codebook = pd.read_csv("nhefs_codebook.csv")',
+          ['nhefs_codebook'],
+          ['pd', 'nhefs_codebook'],
+          'nhefs_codebook.csv'
+        ),
+        cell('prepare', 'analysis = nhefs.dropna()', ['analysis'], ['nhefs']),
+        cell('fit', 'fit = ols(analysis)', ['fit'], ['analysis']),
+        cell('plot', 'plot(analysis)', [], ['analysis']),
+        cell('table', 'table(analysis)', [], ['analysis'])
+      ],
+      metadata: {
+        whybook: {
+          variables: [
+            { ...frame('nhefs', 1629, 64), cell: 'load' },
+            { ...frame('nhefs_codebook', 64, 2), cell: 'codebook' },
+            { ...frame('analysis', 1566, 11), cell: 'prepare' }
+          ]
+        }
+      },
+      nbformat: 4,
+      nbformat_minor: 5
+    } as any);
+    // The two tables read from files come first, although fewer cells read them.
+    expect(coverage(model).map(row => [row.name, row.cells])).toEqual([
+      ['nhefs', 1],
+      ['nhefs_codebook', 1],
+      ['analysis', 3]
+    ]);
+    // Most used puts the frame of the analysis first.
+    expect(coverage(model, 'used').map(row => row.name)).toEqual([
+      'analysis',
+      'nhefs',
+      'nhefs_codebook'
+    ]);
+    model.dispose();
+  });
+
   it('come in the order of the setting', () => {
     const { model } = benchModel(notebook());
     expect(coverage(model).map(row => row.name)).toEqual(AUTO);
@@ -328,7 +454,7 @@ describe('The block Variables explored', () => {
     // The head takes the focus, and says how to change the order.
     expect(head.tabIndex).toBe(0);
     expect(head.title).toBe(
-      'Order: Auto, the most used first, then the largest. Right-click to change it, or press Shift+F10.'
+      'Order: Auto, tables from files first, then the most used. Right-click to change it, or press Shift+F10.'
     );
     // The name of a row gives what the order compares.
     const first = list!.querySelector('.jp-Epi-coverage-head span')!;

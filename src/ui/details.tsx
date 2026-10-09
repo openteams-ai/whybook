@@ -3,6 +3,7 @@ import type { CodeEditor, IEditorServices } from '@jupyterlab/codeeditor';
 import { caretDownIcon, caretRightIcon } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
+import { cellType } from '../model/agent';
 import { dataLinks } from '../model/datalinks';
 import type { EpiModel, IEpiCell } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
@@ -88,6 +89,8 @@ function DetailsOf(props: {
   // A markdown cell: its place, the code around it and its questions, in
   // place of what only code has.
   const text = cell.type === 'markdown';
+  // A cell of an agent's run shows the type of its own step.
+  const badge = cellType(meta);
   return (
     <>
       <div className="jp-Epi-panel-head jp-Epi-details-head">
@@ -97,7 +100,7 @@ function DetailsOf(props: {
           <CellLabel cell={cell} />
         )}
         <span className="jp-Epi-details-title">{cell.title}</span>
-        {meta.question && <TypeBadge type={meta.question.type} />}
+        {badge && <TypeBadge type={badge} />}
       </div>
       <div className="jp-Epi-details-links">
         <button

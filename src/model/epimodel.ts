@@ -128,12 +128,14 @@ import type {
 import {
   agentFilePath,
   agentOutputs,
+  answerHolders,
   cellByLabel,
   cellError,
   cellOutputText,
   FILE_CHARS,
   markedFile,
-  runCap
+  runCap,
+  stepType
 } from './agent';
 import type {
   IComparedCell,
@@ -2052,7 +2054,8 @@ export class EpiModel implements IDisposable {
   /**
    * The variables, less the names of agents' runs (`runNames`): the main
    * list of the Variables panel, the frames that the map draws, and the
-   * frames of Variables explored (../ui/exploration.tsx).
+   * Derived row of Variables explored, whose source frames come from
+   * `variables()` with a filter of their own (../ui/exploration.tsx).
    */
   mainVariables(): IVariable[] {
     const groups = this.runNames();
@@ -6524,6 +6527,9 @@ export class EpiModel implements IDisposable {
           run.steps.flatMap(step => step.cells)
         );
         run.answerCells = (event.cells as string[] | undefined) ?? [];
+        // The cells that hold the answer show the question's type; the
+        // run's other cells keep the type of their own step.
+        this._answerType(run);
         run.followUp = (event.follow_up as string[] | undefined) ?? [];
         run.by = writtenBy(
           this.settings.models.cells,
@@ -7259,9 +7265,13 @@ export class EpiModel implements IDisposable {
     const letter = parent ? this._nextLetter(parent) : undefined;
     const index = this._insertIndex(parent ?? after);
     const blank = this.isBlank() ? cellsOf(this.notebook) : [];
+    const title = branch?.title ?? step.title;
     const inserted = insertCodeCell(this.notebook, index, code, {
-      title: branch?.title ?? step.title,
+      title,
       question,
+      // The cell's badge shows what its own step does; the cells that hold
+      // the answer show the question's type once the run ends (_answerType).
+      step_type: stepType(title, step.why, code),
       asked_by: 'user',
       written_by: 'agent',
       placement: parent
@@ -7302,6 +7312,39 @@ export class EpiModel implements IDisposable {
       first ? ((parent ?? after)?.id ?? null) : undefined
     );
     return inserted;
+  }
+
+  /**
+   * The cells that hold a run's answer, in this notebook or in a notebook
+   * that the run made, lose the type of their own step: their badge shows
+   * the question's type (./agent.ts, answerHolders).
+   */
+  private _answerType(run: IAgentRun): void {
+    const models = new Map<string, EpiModel>([['', this]]);
+    for (const notebook of run.notebooks ?? []) {
+      const other =
+        this._runModels?.get(notebook.path) ??
+        this.runs.host?.modelOf(notebook.path) ??
+        null;
+      if (other && !other.context.isDisposed) {
+        models.set(notebook.path, other);
+      }
+    }
+    const holders = answerHolders(run, notebook => {
+      const model = models.get(notebook);
+      const ours = new Set(
+        run.steps
+          .filter(step => (step.notebook ?? '') === notebook)
+          .flatMap(step => keptCells(step))
+      );
+      return model ? model.cells().filter(cell => ours.has(cell.id)) : [];
+    });
+    for (const { notebook, id } of holders) {
+      const cell = findCell(models.get(notebook)!.notebook, id);
+      if (cell && cellMeta(cell).step_type) {
+        setCellMeta(cell, { step_type: undefined });
+      }
+    }
   }
 
   /**
@@ -7365,10 +7408,15 @@ export class EpiModel implements IDisposable {
     const code = String(input.code ?? '');
     // The key of the agent's code goes first, so that the change is not
     // taken for the analyst's (./handedit.ts); Remove compares the cell
-    // with the code of its step.
+    // with the code of its step. The cell's type is read from the new code.
     setCellMeta(cell.model, {
       view_code_key: codeKey(code),
-      view_code: undefined
+      view_code: undefined,
+      step_type: stepType(
+        cellMeta(cell.model).title ?? step.title,
+        step.why,
+        code
+      )
     });
     cell.model.sharedModel.setSource(code);
     step.code = { ...step.code, [cell.id]: code };

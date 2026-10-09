@@ -131,21 +131,24 @@ def call_site(node: ast.Call) -> Site:
     return _name_site(node.func)
 
 
-def calls_to(tree: ast.AST, function: str, at: Collection[Site] | None = None) -> list[ast.Call]:
+def calls_to(tree: ast.AST, function: str | Collection[str], at: Collection[Site] | None = None) -> list[ast.Call]:
     """Calls of ``function``: ``f(...)``, ``module.f(...)``, ``obj.f(...)`` or ``obj.pipe(f, ...)``.
 
-    With ``at``, only the calls that name the function at one of those places.
+    ``function`` is a name, or several, such as ``("mean", "sum")`` for the
+    calls of one decision. With ``at``, only the calls that name the
+    function at one of those places.
     """
+    names = {function} if isinstance(function, str) else set(function)
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         callee = node.func
-        if isinstance(callee, ast.Name) and callee.id == function:
+        if isinstance(callee, ast.Name) and callee.id in names:
             found.append(node)
-        elif isinstance(callee, ast.Attribute) and callee.attr == function:
+        elif isinstance(callee, ast.Attribute) and callee.attr in names:
             found.append(node)
-        elif _pipes(node, function):
+        elif any(_pipes(node, name) for name in names):
             found.append(node)
     if at is not None:
         places = set(at)
@@ -153,8 +156,8 @@ def calls_to(tree: ast.AST, function: str, at: Collection[Site] | None = None) -
     return found
 
 
-def add_keyword(source: str, function: str, param: str, value: str, at: Collection[Site] | None = None) -> str | None:
-    """Pass ``param=value`` in every call of ``function``, replacing a value already passed.
+def add_keyword(source: str, function: str | Collection[str], param: str, value: str, at: Collection[Site] | None = None) -> str | None:
+    """Pass ``param=value`` in every call of ``function``, or of several functions, replacing a value already passed.
 
     With ``at``, only in the calls that name the function at those places,
     such as the second merge of a chain alone.
@@ -412,8 +415,8 @@ def replace_assignment(source: str, name: str, text: str) -> str | None:
     return _apply(source, edits) if edits else None
 
 
-def replace_argument(source: str, function: str, old: str, text: str, at: Collection[Site] | None = None) -> str | None:
-    """Replace a positional argument of ``function`` whose source text is ``old``, in the calls at ``at`` if given."""
+def replace_argument(source: str, function: str | Collection[str], old: str, text: str, at: Collection[Site] | None = None) -> str | None:
+    """Replace a positional argument of ``function``, or of several functions, whose source text is ``old``, in the calls at ``at`` if given."""
     tree = _parse(source)
     if tree is None:
         return None
@@ -427,8 +430,8 @@ def replace_argument(source: str, function: str, old: str, text: str, at: Collec
     return _apply(source, edits) if edits else None
 
 
-def replace_keyword_value(source: str, function: str, param: str, text: str, at: Collection[Site] | None = None) -> str | None:
-    """Replace the source text of ``param=...`` in calls of ``function``, in the calls at ``at`` if given."""
+def replace_keyword_value(source: str, function: str | Collection[str], param: str, text: str, at: Collection[Site] | None = None) -> str | None:
+    """Replace the source text of ``param=...`` in calls of ``function``, or of several functions, in the calls at ``at`` if given."""
     tree = _parse(source)
     if tree is None:
         return None
@@ -453,18 +456,44 @@ class ModelCall:
     fit_target: str | None
 
 
-def _formula_call(source: str, node: ast.AST, target: str | None = None) -> ModelCall | None:
-    """The parts of ``node`` when it is a call of a model with a formula as its first argument: ``smf.ols("y ~ x", data=d)``."""
+def _formula_text(node: ast.AST | None, formulas: dict[str, str]) -> str | None:
+    """The formula that ``node`` gives: a string with ``~``, or a name that ``formulas`` holds."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str) and "~" in node.value:
+        return node.value
+    if isinstance(node, ast.Name):
+        return formulas.get(node.id)
+    return None
+
+
+def _track_formula(statement: ast.stmt, formulas: dict[str, str]) -> None:
+    """Keep ``formulas`` at the names that hold a formula after ``statement``: ``formula = "y ~ x"`` sets one, any other assignment to the name drops it."""
+    if not (isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name)):
+        return
+    name, value = statement.targets[0].id, statement.value
+    if isinstance(value, ast.Constant) and isinstance(value.value, str) and "~" in value.value:
+        formulas[name] = value.value
+    else:
+        formulas.pop(name, None)
+
+
+def _formula_call(source: str, node: ast.AST, target: str | None = None, formulas: dict[str, str] | None = None) -> ModelCall | None:
+    """The parts of ``node`` when it is a call of a model with a formula: ``smf.ols("y ~ x", data=d)``.
+
+    The formula is the first argument or the keyword ``formula``: a string, or
+    a name that the cell set to one before the call (``formulas``), as in
+    ``formula = "y ~ x"`` and then ``smf.ols(formula, data=d)``.
+    """
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
         return None
-    first = node.args[0] if node.args else None
-    if not (isinstance(first, ast.Constant) and isinstance(first.value, str) and "~" in first.value):
+    given = {kw.arg: kw.value for kw in node.keywords if kw.arg}
+    formula = _formula_text(node.args[0] if node.args else given.get("formula"), formulas or {})
+    if formula is None:
         return None
-    keywords = {kw.arg: ast.get_source_segment(source, kw.value) for kw in node.keywords if kw.arg}
+    keywords = {name: ast.get_source_segment(source, value) for name, value in given.items() if name != "formula"}
     data = keywords.pop("data", None)
     if data is None and len(node.args) > 1:
         data = ast.get_source_segment(source, node.args[1])
-    return ModelCall(node.func.attr, first.value, data, keywords, target)
+    return ModelCall(node.func.attr, formula, data, keywords, target)
 
 
 def model_call(source: str) -> ModelCall | None:
@@ -472,14 +501,16 @@ def model_call(source: str) -> ModelCall | None:
     tree = _parse(source)
     if tree is None:
         return None
+    formulas: dict[str, str] = {}
     for statement in tree.body:
         target = None
         if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
             target = statement.targets[0].id
         for node in ast.walk(statement):
-            call = _formula_call(source, node, target)
+            call = _formula_call(source, node, target, formulas)
             if call is not None:
                 return call
+        _track_formula(statement, formulas)
     return None
 
 
@@ -514,23 +545,30 @@ def fitted_models(source: str) -> list[FittedModel]:
     found: list[FittedModel] = []
     # The models assigned before their fit: model = smf.ols(...).
     unfitted: dict[str, tuple[ModelCall, int, Site]] = {}
-    for statement in tree.body:
+    # The names that hold a formula so far: formula = "y ~ x".
+    formulas: dict[str, str] = {}
+
+    def read(statement: ast.stmt) -> None:
         if not (isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name)):
-            continue
+            return
         name, value = statement.targets[0].id, statement.value
         if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute) and value.func.attr == "fit":
             receiver = value.func.value
             if isinstance(receiver, ast.Name) and receiver.id in unfitted:
                 call, start, site = unfitted[receiver.id]
                 found.append(FittedModel(ModelCall(call.function, call.formula, call.data, call.keywords, name), name, start, statement.end_lineno or statement.lineno, site))
-                continue
-            call = _formula_call(source, receiver, name)
+                return
+            call = _formula_call(source, receiver, name, formulas)
             if call is not None and isinstance(receiver, ast.Call):
                 found.append(FittedModel(call, name, statement.lineno, statement.end_lineno or statement.lineno, call_site(receiver)))
-            continue
-        call = _formula_call(source, value, name)
+            return
+        call = _formula_call(source, value, name, formulas)
         if call is not None and isinstance(value, ast.Call):
             unfitted[name] = (call, statement.lineno, call_site(value))
+
+    for statement in tree.body:
+        read(statement)
+        _track_formula(statement, formulas)
     return found
 
 
@@ -642,6 +680,19 @@ class Crossing:
     modifier: str
     added: bool
     crossed: bool
+
+
+def formula_exposure(formula: str) -> str | None:
+    """The column of a formula's exposure, as ``cross_exposure`` reads it: "qsmk" in ``wt82_71 ~ qsmk + C(sex) + age``.
+
+    None for a formula that the templates do not read.
+    """
+    parts = formula_terms(formula)
+    if parts is None:
+        return None
+    first = next((term for term in parts[1] if term not in ("0", "1")), None)
+    factors = term_factors(first) if first is not None else None
+    return factor_column(factors[0]) if factors else None
 
 
 def cross_exposure(formula: str, column: str, levels: bool) -> Crossing | None:

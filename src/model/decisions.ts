@@ -55,7 +55,7 @@ export function shortFunction(decision: IDecision): string {
  * Readers, whose file is the chip: pandas' read_csv and polars' scan_csv, R's
  * read.csv and readRDS, readr's read_csv.
  */
-const READER = /^(read|scan)[_.]|^readRDS$/;
+export const READER = /^(read|scan)[_.]|^readRDS$/;
 
 /**
  * The join that R's merge makes, by the value of `all`, `all.x` or `all.y`
@@ -144,9 +144,27 @@ export function chipText(decision: IDecision): string {
   return `${decision.name} ${value}`;
 }
 
-/** What one call of a decision's function is, and several: merge and merges, read and reads. */
+/**
+ * The name of the function that a call of a decision names: `sum` for a
+ * call that names its function, as the calls of a decision of several
+ * functions do, else the decision's.
+ */
+export function callFunction(decision: IDecision, call: IDecisionCall): string {
+  return call.function ? shortName(call.function) : shortFunction(decision);
+}
+
+/**
+ * What one call of a decision's function is, and several: merge and merges,
+ * read and reads. The calls of several functions are calls.
+ */
 function callNouns(decision: IDecision): [string, string] {
   const name = shortFunction(decision);
+  const names = new Set(
+    callsOf(decision).map(call => callFunction(decision, call))
+  );
+  if (names.size > 1) {
+    return ['call', 'calls'];
+  }
   if (JOINS.has(name)) {
     const noun = name === 'join' ? 'join' : 'merge';
     return [noun, `${noun}s`];
@@ -159,8 +177,9 @@ function callNouns(decision: IDecision): [string, string] {
 
 /**
  * One call of a decision, named by the frame it joins or reads: "the merge
- * with weather", "the read of homes", "the ribbon of february". Its line
- * follows where the frame does not tell it from the decision's other calls,
+ * with weather", "the read of homes", "the ribbon of february", and by its
+ * function where the decision's calls are of several: "the sum of x1". Its
+ * line follows where these do not tell it from the decision's other calls,
  * or always with `line` true, and never with `line` false.
  */
 export function callName(
@@ -169,7 +188,7 @@ export function callName(
   line: boolean | null = null
 ): string {
   const [noun] = callNouns(decision);
-  const name = noun === 'call' ? shortFunction(decision) : noun;
+  const name = noun === 'call' ? callFunction(decision, call) : noun;
   const what = !call.target
     ? `the ${name}`
     : noun === 'merge' || noun === 'join'
@@ -177,7 +196,11 @@ export function callName(
       : `the ${name} of ${call.target}`;
   const alike =
     !call.target ||
-    callsOf(decision).filter(other => other.target === call.target).length > 1;
+    callsOf(decision).filter(
+      other =>
+        other.target === call.target &&
+        callFunction(decision, other) === callFunction(decision, call)
+    ).length > 1;
   return (line ?? alike) ? `${what} on line ${call.line}` : what;
 }
 
@@ -214,6 +237,8 @@ export interface IChip {
   /**
    * The frame that the chip's one call joins or reads, where other calls of
    * its function leave another value: `weather` for `left join · weather`.
+   * Else the functions of its calls, where another chip shows the same words
+   * for calls of other functions: `sum` for `skipna False · sum`.
    */
   target: string | null;
   /**
@@ -257,12 +282,22 @@ export function sourceNote(decision: IDecision, note: string): string {
  * leaves the same value, `inner join ×2`. Where calls of one function leave
  * different values, each chip names the frame of its call, in one word:
  * `inner join · homes` and `left join · weather`. A chip does not repeat a
- * word it shows: `homes.csv` needs no `· homes`.
+ * word it shows: `homes.csv` needs no `· homes`. Two chips that show the
+ * same words for calls of different functions each name their functions:
+ * `skipna False · mean` and `skipna False · sum`.
  */
 export function decisionChips(decisions: IDecision[]): IChip[] {
-  return decisions.map(decision => {
+  const texts = decisions.map(chipText);
+  const functions = decisions.map(decision => {
     const calls = callsOf(decision);
-    const text = chipText(decision);
+    const names = calls.length
+      ? calls.map(call => callFunction(decision, call))
+      : [shortFunction(decision)];
+    return [...new Set(names)].filter(Boolean).join(', ');
+  });
+  return decisions.map((decision, index) => {
+    const calls = callsOf(decision);
+    const text = texts[index];
     const differs =
       !!decision.function &&
       !!decision.param &&
@@ -277,6 +312,13 @@ export function decisionChips(decisions: IDecision[]): IChip[] {
       const word = calls[0].target || `line ${calls[0].line}`;
       const shown = text.split(/[^\w]+/).includes(word);
       target = shown ? null : word;
+    }
+    const twin = texts.some(
+      (other, at) =>
+        at !== index && other === text && functions[at] !== functions[index]
+    );
+    if (target === null && twin && functions[index]) {
+      target = functions[index];
     }
     return {
       decision,
@@ -313,7 +355,7 @@ function tooltipLines(
       call => `${callName(decision, call, false)} (line ${call.line})`
     );
     lines.push(`In ${allCalls(decision)}: ${listed(each)}.`);
-  } else if (target !== null) {
+  } else if (target !== null && calls.length === 1) {
     lines.push(
       `In ${callName(decision, calls[0], false)} (line ${calls[0].line}).`
     );

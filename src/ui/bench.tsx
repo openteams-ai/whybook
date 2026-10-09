@@ -13,6 +13,7 @@ import {
 import * as React from 'react';
 
 import type { IAgentRun } from '../model/agent';
+import { cellType } from '../model/agent';
 import type { EpiModel, IEpiCell, ISection, IStrip } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
 import { cellWrittenBy } from '../model/writtenby';
@@ -1277,6 +1278,8 @@ function CellCard(props: ICardProps): JSX.Element {
   );
   const attachments = cell.analysis?.attachments ?? [];
   const off = aiOffReason(model);
+  // A cell of an agent's run shows the type of its own step.
+  const badge = cellType(cell.meta);
   const selectDecision = (decision: IDecision) => {
     if (model.variable(decision.name)) {
       model.select(decision.name);
@@ -1289,18 +1292,15 @@ function CellCard(props: ICardProps): JSX.Element {
       ref={drop.target}
       className={`jp-Epi-cell${cell.branchOf ? ' jp-mod-branch' : ''}${armed ? ' jp-mod-target' : ''}${drop.over ? ' jp-mod-over' : ''}${drop.file ? ' jp-mod-filedrop' : ''}`}
       data-cell-id={cell.id}
-      data-question-type={cell.meta.question?.type}
+      data-question-type={badge}
       onMouseDown={() => model.setCurrentCell(cell.id)}
       {...drop.handlers}
     >
       <div className="jp-Epi-cell-head" onClick={pickByHead(model, cell)}>
         <CellLabel cell={cell} />
         <CellTitle model={model} cell={cell} />
-        {cell.meta.question && (
-          <TypeBadge
-            type={cell.meta.question.type}
-            light={type => model.lightType(type)}
-          />
+        {badge && (
+          <TypeBadge type={badge} light={type => model.lightType(type)} />
         )}
         {cell.meta.guess && <GuessChip guess={cell.meta.guess.value} />}
         {cell.branchOf && (

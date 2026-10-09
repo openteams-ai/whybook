@@ -4679,16 +4679,21 @@ test('starts a new Whybook from the launcher and the data next to it, and offers
       (window as any).jupyterapp.shell.currentWidget.context.model.cells.length
   );
   expect(cells).toBe(1);
-  // The kernel has data now: Worth asking next offers the choice that the
-  // load left open, the header that read_csv takes by default, where it said
-  // "Suggestions appear once the kernel has data."
-  await expect(
-    page.locator('.jp-Epi-exploration .jp-Epi-block', {
-      hasText: 'Worth asking next'
-    })
-  ).toContainText("Does header = 'infer' change the result of [1]?", {
-    timeout: 30000
+  // The kernel has data now: Worth asking next says why it has no question,
+  // where it said "Suggestions appear once the kernel has data." The header
+  // that read_csv takes by default is no question: the frame of the load
+  // looks right, and the chip of the header shows the default.
+  const next = page.locator('.jp-Epi-exploration .jp-Epi-block', {
+    hasText: 'Worth asking next'
   });
+  await expect(next).toContainText(
+    'No suggestions yet: no cell leaves a choice open',
+    { timeout: 30000 }
+  );
+  await expect(next.locator('.jp-Epi-next')).toHaveCount(0);
+  await expect(
+    page.locator('.jp-Epi-chip.jp-mod-open', { hasText: 'header infer' })
+  ).toBeVisible();
 });
 
 test('opens the later demo with its map, panels and labels before a run', async ({
@@ -6776,10 +6781,18 @@ test('names a cell in a question by its id, and shows its current label once it 
   page,
   tmpPath
 }) => {
+  // A file with semicolons, read with the comma of read_csv: its frame has
+  // one column, so the header that the read leaves at its default is an
+  // open assumption, which Worth asking next asks about.
+  await page.contents.uploadContent(
+    'k;v\n1;3\n2;4\n',
+    'text',
+    `${tmpPath}/semi.csv`
+  );
   const file = `${tmpPath}/labels.ipynb`;
   await newNotebook(page, file, [
-    "import pandas as pd\nleft = pd.DataFrame({'k': [1, 2], 'v': [3, 4]})",
-    "joined = left.merge(left, on='k')\njoined"
+    'import pandas as pd',
+    'semi = pd.read_csv("semi.csv")\nsemi'
   ]);
   await openInWhybook(page, file);
   await kernelIdle(page);
@@ -6788,7 +6801,7 @@ test('names a cell in a question by its id, and shows its current label once it 
   await expect(card.locator('.jp-Epi-label')).toHaveText('[2]', {
     timeout: 60000
   });
-  // Worth asking next asks whether the merge's default changes [2].
+  // Worth asking next asks whether the read's default header changes [2].
   const next = page
     .locator('.jp-Epi-exploration .jp-Epi-next', {
       hasText: 'change the result of [2]'

@@ -203,6 +203,47 @@ def test_the_weighted_model_of_an_ipw_cell_is_the_one_crossed(capsys):
     assert capsys.readouterr().out.splitlines()[1].startswith("Interaction of qsmk and sex: ")
 
 
+# The cell of the demo's v2take11: the formula in a name, as the agent wrote it.
+NAMED = f"""import pandas as pd
+import statsmodels.formula.api as smf
+
+outcome = "wt82_71"
+covariates = ["sex", "race", "age", "education", "smokeintensity", "smokeyrs", "exercise", "active", "wt71"]
+needed = [outcome, "qsmk"] + covariates
+analysis = nhefs[needed].dropna().copy()
+formula = "{FORMULA}"
+fit = smf.ols(formula, data=analysis).fit(cov_type="HC3")
+lo, hi = fit.conf_int().loc["qsmk"]
+print(lo, hi)
+"""
+
+
+def test_a_formula_held_in_a_name_is_the_model_s_formula(capsys):
+    # The kernel read the formula of v2take11's model, but the server read a formula only
+    # as the call's own string: sex dropped on it asked nothing about the effect by sex.
+    frame = nhefs()
+    cell = {**model_cell(NAMED), "formulas": [FORMULA]}
+    asked = question(options(column(frame, "sex"), cell, context(frame)), "Does the effect of qsmk on wt82_71 differ by sex?")
+    assert asked is not None
+    assert '"wt82_71 ~ qsmk * C(sex) + C(race) + age + C(education) + smokeintensity + smokeyrs + C(exercise) + C(active) + wt71"' in asked["code"]
+    assert asked["code"].splitlines()[-1] == 'whybook.effect_by(fit_by_sex, "qsmk", "sex")'
+    exec(asked["code"], {"nhefs": frame})  # noqa: S102
+    assert capsys.readouterr().out.startswith("Effect of qsmk on wt82_71: ")
+
+
+def test_the_mediation_question_names_the_model_s_exposure():
+    # After v2take11 compared the 63 people with no 1982 weight, the smallest frame with
+    # seqn held "wt82 missing", and sex dropped on the adjusted model asked "Could sex
+    # mediate the effect of wt82 missing?": the column that splits the units, not the model's exposure.
+    frame = nhefs()
+    missing = pd.DataFrame({"seqn": frame["seqn"][:63], "wt82 missing": True})
+    ctx = context(frame, missing=missing)
+    ctx["frames"]["missing"]["columns"]["wt82 missing"] = "bool"
+    texts = [option["text"] for option in options(column(frame, "sex"), model_cell(ADJUSTED), ctx)]
+    assert "Could sex mediate the effect of qsmk?" in texts, texts
+    assert not [text for text in texts if "wt82 missing" in text]
+
+
 def test_a_model_that_crosses_them_already_is_read_as_it_is(capsys):
     frame = nhefs()
     source = 'crossed_fit = smf.ols("wt82_71 ~ qsmk * C(sex) + age", data=nhefs).fit()\ncrossed_fit.summary().tables[1]'
@@ -260,6 +301,14 @@ def test_fitted_models_lists_each_fit_with_its_lines():
     source = 'import statsmodels.formula.api as smf\nm = smf.mixedlm("y ~ x", d,\n    groups="g")\nfit = m.fit(reml=False)\nother = smf.ols("y ~ x", data=d).fit()\nfor b in [1, 2]:\n    looped = smf.ols("y ~ x", data=d).fit()\n'
     found = codegen.fitted_models(source)
     assert [(model.fit, model.call.function, model.call.data, model.start, model.end) for model in found] == [("fit", "mixedlm", "d", 2, 4), ("other", "ols", "d", 5, 5)]
+
+
+def test_a_formula_is_read_from_a_name_set_before_the_call_or_from_the_keyword():
+    source = 'f = "y ~ x"\nfit = smf.ols(f, data=d).fit()\nf = "y ~ x + z"\nlater = smf.ols(f, data=d).fit()\nother = smf.ols(unknown, data=d).fit()\nnamed = smf.ols(formula="y ~ w", data=d).fit()\n'
+    found = codegen.fitted_models(source)
+    assert [(model.fit, model.call.formula, model.call.data) for model in found] == [("fit", "y ~ x", "d"), ("later", "y ~ x + z", "d"), ("named", "y ~ w", "d")]
+    assert codegen.model_call(source).formula == "y ~ x"
+    assert codegen.model_call('fit = smf.ols(formula="y ~ w", data=d).fit()').keywords == {}
 
 
 # The helper that the code calls: whybook.effect_by.

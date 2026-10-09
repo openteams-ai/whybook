@@ -5,12 +5,14 @@ import {
   AI_FILE_MARK,
   agentFilePath,
   agentOutputs,
+  answerHolders,
   cellByLabel,
   cellOutputText,
   markedFile,
   RESULT_TEXT,
   runCap,
-  runStatus
+  runStatus,
+  stepType
 } from '../model/agent';
 
 function output(type: string, data: Record<string, unknown>): IOutputModel {
@@ -524,5 +526,137 @@ describe('a run that works in a notebook it made', () => {
       error: 'only an R module, a name ending in .R'
     });
     expect('error' in agentFilePath('study/pain.ipynb', 'models.R')).toBe(true);
+  });
+});
+
+describe('the type of a cell of a run', () => {
+  it('reads the type from the title, then the why, then the code, by the rules of typed questions', () => {
+    // Cells of the NHEFS demo, which all showed the type of their question.
+    expect(
+      stepType(
+        'Read NHEFS data',
+        '',
+        'nhefs <- read.csv("nhefs.csv", na.strings = "NA")'
+      )
+    ).toBe('descriptive');
+    expect(
+      stepType(
+        'Prepare complete-case analysis',
+        '',
+        'cc <- nhefs[complete.cases(nhefs), ]'
+      )
+    ).toBe('quality');
+    expect(
+      stepType(
+        'Find baseline variables',
+        'Locate variables explicitly described as measured at baseline in the codebook.',
+        'nhefs_codebook[nhefs_codebook.description.str.contains("baseline")]'
+      )
+    ).toBe('descriptive');
+    expect(
+      stepType(
+        'Test quadratic adjustment terms',
+        '',
+        'fit_sq = smf.ols("wt82_71 ~ qsmk + age + I(age ** 2)", nhefs).fit()\nfit_sq.params.round(2)'
+      )
+    ).toBe('model');
+    // The title comes first: a comparison that fits a model is an association.
+    expect(
+      stepType(
+        'Compare weight gain of quitters and continuers',
+        '',
+        'smf.ols("wt82_71 ~ qsmk", nhefs).fit().params'
+      )
+    ).toBe('association');
+    // Then the step's why, before the code.
+    expect(
+      stepType(
+        'Weight gain by group',
+        'Adjust for age and sex',
+        'smf.ols("wt82_71 ~ qsmk + age + sex", nhefs).fit().params'
+      )
+    ).toBe('causal');
+  });
+
+  it("names the cells that hold the answer by finish's cells, else by the answer's labels, each in the notebook that its label names", () => {
+    const R_NOTEBOOK = 'nhefs/nhefs_results.R.ipynb';
+    const made = {
+      path: R_NOTEBOOK,
+      kernel: 'xr',
+      displayName: 'R 4.4.3 (xr)',
+      label: 'R',
+      sandboxed: true,
+      intro: null
+    };
+    const run = (patch: Partial<IAgentRun>): IAgentRun => ({
+      id: 'r',
+      stripId: 'a',
+      question: 'How did quitters and continuers differ?',
+      anchor: null,
+      state: 'done',
+      steps: [],
+      notes: [],
+      thinking: null,
+      answer: null,
+      answerCells: [],
+      followUp: [],
+      by: null,
+      costUsd: null,
+      error: null,
+      started: 0,
+      keepLocal: false,
+      ...patch
+    });
+    // The run's cells in each notebook, with their labels.
+    const cellsOf = (notebook: string) =>
+      notebook === ''
+        ? [
+            { id: 'h3', label: '[3]' },
+            { id: 'h4', label: '[4]' }
+          ]
+        : notebook === R_NOTEBOOK
+          ? [
+              { id: 'r1', label: '[1]' },
+              { id: 'r2', label: '[2]' }
+            ]
+          : [];
+    expect(answerHolders(run({ answerCells: ['[4]'] }), cellsOf)).toEqual([
+      { notebook: '', id: 'h4' }
+    ]);
+    expect(
+      answerHolders(run({ answerCells: ['3', ' [4] ', '[4]'] }), cellsOf)
+    ).toEqual([
+      { notebook: '', id: 'h3' },
+      { notebook: '', id: 'h4' }
+    ]);
+    // "R [2]" is a cell of the notebook that the run made with R. A label
+    // alone is a cell of the first notebook, where the run has no [1].
+    expect(
+      answerHolders(
+        run({ notebooks: [made], answerCells: ['R [2]', '[1]'] }),
+        cellsOf
+      )
+    ).toEqual([{ notebook: R_NOTEBOOK, id: 'r2' }]);
+    // Without cells, the labels that the answer cites, in a list too.
+    expect(
+      answerHolders(
+        run({
+          notebooks: [made],
+          answer: 'The means agree ([3, 4] and R [1]).'
+        }),
+        cellsOf
+      )
+    ).toEqual([
+      { notebook: '', id: 'h3' },
+      { notebook: '', id: 'h4' },
+      { notebook: R_NOTEBOOK, id: 'r1' }
+    ]);
+    // A label of no cell of the run names none.
+    expect(
+      answerHolders(
+        run({ answerCells: ['[9]'], answer: 'As [9] shows.' }),
+        cellsOf
+      )
+    ).toEqual([]);
   });
 });

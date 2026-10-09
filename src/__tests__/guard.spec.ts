@@ -9,10 +9,13 @@ import { Api } from '../model/api';
 import type { IGuardEvent, IGuardFlag, IGuardHeld } from '../model/guard';
 import {
   DEFAULT_GUARD,
+  flaggedLines,
   flagsByRule,
   guardBody,
   heldWords,
+  levelWords,
   markedParts,
+  marksByRule,
   readGuard
 } from '../model/guard';
 import { readSettings } from '../model/settings';
@@ -148,6 +151,40 @@ describe('the marks of the dialog', () => {
         by: ['rules']
       }
     ]);
+  });
+
+  it('words each level as what it means for sending the text or running the code', () => {
+    expect([
+      levelWords('privacy', 'reject'),
+      levelWords('privacy', 'ask'),
+      levelWords('execution', 'reject'),
+      levelWords('execution', 'ask')
+    ]).toEqual([
+      'Should not leave this machine:',
+      'Might be fine to send:',
+      'Should not run:',
+      'Might be fine to run:'
+    ]);
+  });
+
+  it('counts the lines that hold a flagged part, and the places that each rule marks', () => {
+    const ask: IGuardFlag = {
+      kind: 'identifier',
+      text: 'P187',
+      rule: 'an identifier of a person or a household',
+      level: 'ask',
+      by: 'rules'
+    };
+    const text = 'P042, age 41\nno one\nP187 and P187\nP042 again';
+    expect(flaggedLines(text, [ID, AGE, ask])).toEqual([0, 2, 3]);
+    // A flag of the whole text marks no line.
+    expect(flaggedLines(text, [{ ...ID, text: '' }])).toEqual([]);
+    expect(marksByRule(text, [ID, AGE, ask])).toEqual(
+      new Map([
+        ['an identifier next to age', 3],
+        ['an identifier of a person or a household', 2]
+      ])
+    );
   });
 
   it('lists a part once when another part of its rule holds it', () => {

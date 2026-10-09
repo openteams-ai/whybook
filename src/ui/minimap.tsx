@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { cellType } from '../model/agent';
 import type { EpiModel } from '../model/epimodel';
 
 /** The sizes of the minimap's parts at full size, in pixels. */
@@ -168,7 +169,7 @@ export function Minimap(props: { model: EpiModel }): JSX.Element {
               <span
                 key={cell.id}
                 data-minimap-cell={cell.id}
-                data-type={cell.meta.question?.type}
+                data-type={cellType(cell.meta)}
                 className={`jp-Epi-minimap-cell${cell.branchOf ? ' jp-mod-branch' : ''}${model.jobs.jobFor(cell.id)?.status === 'running' ? ' jp-mod-running' : ''}`}
               />
             ))}

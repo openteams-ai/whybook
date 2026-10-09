@@ -138,6 +138,10 @@ def test_the_prompt_names_the_kernels_the_folders_files_and_for_a_comparison_the
     assert "Never install a package, in any kernel." in system
     assert "a cell's code is in the language of its notebook's kernel" in system
     assert "When it saved none, say that its side has no results." in system
+    # A second notebook only when the question asks for one: in YRBS take 12 the agent made an
+    # R notebook "for R's survey design methods", then ran every cell in the analyst's notebook.
+    assert "When the question asks for another language" in system
+    assert "otherwise work in the analyst's notebook" in system
 
 
 def test_a_comparison_asks_for_the_analysis_one_step_a_cell():

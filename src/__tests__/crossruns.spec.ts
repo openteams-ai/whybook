@@ -16,6 +16,7 @@ import type { ICodeCellModel } from '@jupyterlab/cells';
 import type * as nbformat from '@jupyterlab/nbformat';
 
 import type { IAgentEvent, IAgentRun } from '../model/agent';
+import { cellType } from '../model/agent';
 import { AgentRuns } from '../model/runs';
 import type { IFakeCell } from './fakes/model-fake';
 import { fakeModel, settle, sources, until } from './fakes/model-fake';
@@ -612,6 +613,65 @@ describe('a run that answers in a notebook of its own', () => {
     expect(secondRecord.cells).toHaveLength(3);
     expect(second().model.context.save).toHaveBeenCalled();
     expect(run.state).toBe('done');
+  });
+
+  it("gives each cell in the R notebook the type of its own step, and the question's type to the cell that holds the answer", async () => {
+    const { tool, second, stream, ending } = await asked();
+    await tool('c1', 'new_notebook', {
+      kernel: 'xr',
+      name: 'pain_diary_cohort.R.ipynb'
+    });
+    const steps = [
+      [
+        'Read the weekly means',
+        'weekly <- read.csv("from_python/weekly.csv")\nweekly'
+      ],
+      [
+        'Count missing weeks per arm',
+        'table(weekly$treatment_arm, is.na(weekly$pain_score))'
+      ],
+      ['Mean pain, arm B, week 12', 'weekly[weekly$week == 12, ]']
+    ];
+    for (const [index, [title, code]] of steps.entries()) {
+      await tool(`c${index + 2}`, 'run_cell', {
+        notebook: 'pain_diary_cohort.R.ipynb',
+        title,
+        code
+      });
+    }
+    const types = () =>
+      second()
+        .model.codeCells()
+        .map((cell: any) => [cell.label, cellType(cell.meta)]);
+    expect(types()).toEqual([
+      ['[1]', 'descriptive'],
+      ['[2]', 'quality'],
+      ['[3]', 'descriptive']
+    ]);
+    stream.deliver({
+      type: 'result',
+      answer: 'The weekly means agree: 0.7507 in [4] and in R [3].',
+      // [1] alone is a cell of the first notebook, where the run has no
+      // cell [1]: R [1] keeps its own type.
+      cells: ['R [3]', '[1]'],
+      follow_up: [],
+      model: 'claude-opus-5-5',
+      provider: 'anthropic',
+      cost_usd: 0.1,
+      elapsed: 30
+    });
+    stream.finish();
+    await ending;
+    expect(types()).toEqual([
+      ['[1]', 'descriptive'],
+      ['[2]', 'quality'],
+      ['[3]', 'model']
+    ]);
+    // The R notebook counts the question once, as a model check.
+    const { asked: counted } = second().model.askedCounts();
+    expect(
+      counted.map((question: any) => [question.text, question.type])
+    ).toEqual([[QUESTION, 'model']]);
   });
 
   it('stops the run where its cell runs: a Python kernel is interrupted, an R kernel is not', async () => {

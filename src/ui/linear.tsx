@@ -2,6 +2,7 @@ import type { IEditorServices } from '@jupyterlab/codeeditor';
 import { addIcon, Button, runIcon } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
+import { cellType } from '../model/agent';
 import type { EpiModel, IEpiCell } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
 import { cellWrittenBy } from '../model/writtenby';
@@ -305,6 +306,8 @@ function LinearCode(props: {
     model.ask?.kind === 'region' && model.ask.cellId === cell.id
       ? { x0: model.ask.x0, x1: model.ask.x1, y: model.ask.y }
       : null;
+  // A cell of an agent's run shows the type of its own step.
+  const badge = cellType(cell.meta);
   const selectDecision = (decision: IDecision) => {
     if (model.variable(decision.name)) {
       model.select(decision.name);
@@ -317,18 +320,15 @@ function LinearCode(props: {
       // A cell just added is drawn at once, so that its editor takes the cursor.
       style={focus ? { contentVisibility: 'visible' } : undefined}
       data-cell-id={cell.id}
-      data-question-type={cell.meta.question?.type}
+      data-question-type={badge}
       onMouseDown={() => model.setCurrentCell(cell.id)}
       {...drop.handlers}
       {...reorder.target}
     >
       <div className="jp-Epi-linear-head">
         <CellTitle model={model} cell={cell} />
-        {cell.meta.question && (
-          <TypeBadge
-            type={cell.meta.question.type}
-            light={type => model.lightType(type)}
-          />
+        {badge && (
+          <TypeBadge type={badge} light={type => model.lightType(type)} />
         )}
         {cell.meta.guess && <GuessChip guess={cell.meta.guess.value} />}
         {cell.branchOf && (

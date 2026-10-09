@@ -2,6 +2,8 @@ import type { IEditorServices } from '@jupyterlab/codeeditor';
 import { Button } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
+import { countOpenAssumptions } from '../model/assumptions';
+import { readsFile } from '../model/decisions';
 import type { EpiModel } from '../model/epimodel';
 import type { ExploredOrder } from '../model/exploredorder';
 import { exploredOrder, orderExplored } from '../model/exploredorder';
@@ -52,12 +54,17 @@ export interface ICoverage {
   shape: { rows: number | null; columns: number } | null;
   /** Rows times columns, which Largest compares. */
   size: number;
+  /** A cell read the frame from a file: Auto lists it first. */
+  loaded: boolean;
 }
 
 /**
  * How much of each source frame the analysis uses, and how many derived
  * variables later cells use, in the order of the setting `exploredOrder`
- * (../model/exploredorder.ts).
+ * (../model/exploredorder.ts). The frames of an agent's run stay out
+ * (../model/runnames.ts), except a table that the run read from a file: it
+ * is data that the analysis starts from. In a notebook that a run made,
+ * such as its notebook in R, every name is the run's.
  */
 export function coverage(
   model: EpiModel,
@@ -76,9 +83,24 @@ export function coverage(
       readers.set(name, (readers.get(name) ?? 0) + 1);
     }
   }
+  // The names that a cell which reads a file defines, such as nhefs of
+  // `nhefs = pd.read_csv("nhefs.csv")`: the cell has the chip nhefs.csv.
+  const loaded = new Set<string>();
+  for (const cell of cells) {
+    if (cell.decisions.some(readsFile)) {
+      (cell.analysis?.defs ?? []).forEach(name => loaded.add(name));
+    }
+  }
+  const ofRuns = new Set(model.runNames().flatMap(group => group.names));
   const frames = model
-    .mainVariables()
-    .filter(v => v.kind === 'dataframe' && !v.selection && v.columns);
+    .variables()
+    .filter(
+      v =>
+        v.kind === 'dataframe' &&
+        !v.selection &&
+        v.columns &&
+        (!ofRuns.has(v.name) || loaded.has(v.name))
+    );
   const sources = frames.filter(frame => {
     const home = definitions.get(frame.name);
     return !home || home.sectionId === first;
@@ -93,7 +115,8 @@ export function coverage(
       name: frame.name,
       cells: readers.get(frame.name) ?? 0,
       shape,
-      size: (shape.rows ?? 1) * shape.columns
+      size: (shape.rows ?? 1) * shape.columns,
+      loaded: loaded.has(frame.name)
     };
     const all = frame.columns ?? [];
     const columns = all.filter(column => column.tag !== 'id');
@@ -165,7 +188,8 @@ export function coverage(
       name: null,
       cells: 0,
       shape: null,
-      size: 0
+      size: 0,
+      loaded: false
     });
   }
   return orderExplored(rows, order);
@@ -287,14 +311,14 @@ export function ExploredBlock(props: {
   );
 }
 
+/**
+ * The open assumptions of the notebook (../model/assumptions.ts): the values
+ * that its cells leave to the defaults of the analyst's or an agent's code,
+ * and the library defaults of a read whose frame looks wrong. The count
+ * leaves out the other library defaults, whose chips show them.
+ */
 export function openAssumptions(model: EpiModel): number {
-  let count = 0;
-  for (const cell of model.codeCells()) {
-    count += cell.decisions.filter(
-      d => d.provenance === 'defaulted' || d.provenance === 'library_default'
-    ).length;
-  }
-  return count;
+  return countOpenAssumptions(model.codeCells(), model.variables());
 }
 
 /** Whether the view knows an outcome of the analysis: set by hand, or inferred (../model/inferred.ts). */
@@ -324,6 +348,16 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
   }
   const max = Math.max(1, ...Object.values(counts));
   const causalShare = asked.length ? counts.causal / asked.length : 0;
+  // The line on causal questions waits for the first one: a notebook made
+  // to check one estimate, or to describe the data, asks none.
+  const spread =
+    asked.length === 0
+      ? 'No questions yet.'
+      : counts.causal === 0
+        ? null
+        : causalShare < 0.15
+          ? 'Few causal questions so far: the effect estimate rests on untested paths.'
+          : 'Good spread across question types.';
   const meta = notebookMeta(model.notebook);
   const branches = model.codeCells().filter(cell => cell.branchOf).length;
   // A kernel of another language: no columns read, and no questions offered.
@@ -376,13 +410,7 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
             Darker: questions you typed. Lighter: questions you picked.
           </div>
         )}
-        <div className="jp-Epi-caption">
-          {asked.length === 0
-            ? 'No questions yet.'
-            : causalShare < 0.15
-              ? 'Few causal questions so far: the effect estimate rests on untested paths.'
-              : 'Good spread across question types.'}
-        </div>
+        {spread && <div className="jp-Epi-caption">{spread}</div>}
         {failed.length > 0 && (
           <div
             className="jp-Epi-caption jp-Epi-failedcount"

@@ -17,6 +17,12 @@ export interface ITableInfo {
   columns: number | null;
   /** How many HTML tables the output holds. */
   tables: number;
+  /**
+   * Where the output writes the table's size itself: below the table, as
+   * pandas does under a table that it cuts, or above it, as polars and R
+   * do. Absent when the output does not write it.
+   */
+  sizeLine?: 'above' | 'below';
 }
 
 export type TableLevel = 'inline' | 'miniature' | 'tile';
@@ -33,6 +39,13 @@ export const COMPACT_SCALE = 0.7;
 
 // pandas writes the full size in a paragraph under a table that it cuts.
 const DIMENSIONS = /^\s*(\d[\d,]*) rows × (\d[\d,]*) columns\s*$/;
+// R writes the size in the table's caption: "A data.frame: 6 × 3", "A
+// tibble: 291 × 5", "A matrix: 2 × 2 of type int".
+const R_CAPTION = /^\s*An? [\w.]+: (\d[\d,]*) × (\d[\d,]*)/;
+
+function count(value: string): number {
+  return parseInt(value.replace(/,/g, ''), 10);
+}
 
 function text(value: unknown): string {
   return Array.isArray(value) ? value.join('') : String(value ?? '');
@@ -52,8 +65,23 @@ export function tableInfo(html: string): ITableInfo {
     .map(paragraph => DIMENSIONS.exec(paragraph.textContent ?? ''))
     .find(match => match !== null);
   if (footer) {
-    const count = (value: string) => parseInt(value.replace(/,/g, ''), 10);
-    return { rows: count(footer[1]), columns: count(footer[2]), tables: 1 };
+    return {
+      rows: count(footer[1]),
+      columns: count(footer[2]),
+      tables: 1,
+      sizeLine: 'below'
+    };
+  }
+  // IRkernel draws the first and last rows of a long table, so the rows
+  // drawn are not its size.
+  const caption = R_CAPTION.exec(tables[0].caption?.textContent ?? '');
+  if (caption) {
+    return {
+      rows: count(caption[1]),
+      columns: count(caption[2]),
+      tables: 1,
+      sizeLine: 'above'
+    };
   }
   // polars writes the size above the table, and a row of dtypes under its
   // header, in <td> cells that are not data.
@@ -63,7 +91,7 @@ export function tableInfo(html: string): ITableInfo {
       ? polarsShape(line.textContent ?? '')
       : null;
   if (shape) {
-    return { ...shape, tables: 1 };
+    return { ...shape, tables: 1, sizeLine: 'above' };
   }
   // Header cells are <th>, and so is the index of a pandas frame.
   const rows = Array.from(tables[0].querySelectorAll('tr')).filter(row =>
@@ -74,6 +102,16 @@ export function tableInfo(html: string): ITableInfo {
     ...rows.map(row => row.querySelectorAll('td').length)
   );
   return { rows: rows.length, columns, tables: 1 };
+}
+
+/**
+ * Whether a miniature of the table shows the line in which the output
+ * writes the table's size: the line above it always, and pandas' line
+ * under it unless the miniature cuts the table off before it. The view
+ * writes the size under the miniature only when it does not.
+ */
+export function showsSize(info: ITableInfo, clipped: boolean): boolean {
+  return info.sizeLine === 'above' || (info.sizeLine === 'below' && !clipped);
 }
 
 /** The table as text, for Claude: the plain-text form when the output has one. */

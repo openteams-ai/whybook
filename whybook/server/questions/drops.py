@@ -346,7 +346,11 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tup
                     new_source = None
             code = new_source
         options.append(_option(f"Add {column.label} as a covariate", "model", 0.55, edit, code, f"Refits the model with {column.label}", column.name, cell.id))
-    exposure = group_column(context)
+    # The exposure of the model that the cell fits, else the column that splits the units.
+    # The column alone named the smallest frame's: "Could sex mediate the effect of wt82
+    # missing?" on the adjusted model of the demo's v2take11.
+    fitted = codegen.fitted_models(cell.source)
+    exposure = (codegen.formula_exposure(fitted[-1].call.formula) if fitted else None) or group_column(context)
     # Nothing causes a unit's id or the week of a visit (design iteration 1.75).
     timeless = not templates.is_unit(column, context) and not templates.is_time(column)
     if outcome and exposure and column.label not in (exposure, outcome) and timeless:

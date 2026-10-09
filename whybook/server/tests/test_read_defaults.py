@@ -1,17 +1,23 @@
-"""The chips of a file read and of the rows a cell shows, and where their questions go in "Worth asking next".
+"""The chips of a file read and of the rows a cell shows, and which of their defaults "Worth asking next" asks about.
 
 Design iterations 1.91 and 1.92, from the demo video of 7 October 2026. The
 first cell of the video, ``nhefs = pd.read_csv("nhefs.csv")`` and
 ``nhefs.head()``, showed the chips ``header infer``, ``sep <no_default>``,
 ``n 5`` and ``na_values None``, and "Worth asking next" asked about the same
-defaults first, through the whole analysis. The kernel's analysis runs in an
-in-process IPython shell on the pain diary's state, as the kernel runs it.
+defaults first, through the whole analysis. The chips still show. A library
+default is an open assumption, which "Worth asking next" asks about, only
+when a rule finds a sign that it changes the result: the defaults of a read
+whose frame looks wrong. The kernel's analysis runs in an in-process IPython
+shell on the pain diary's state, as the kernel runs it.
 """
+
+import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, alternative_code, decision_options, next_steps
+from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, alternative_code, decision_options, frame_looks_misread, next_steps
 from whybook.server.questions.models import Context
 
 demo_only = pytest.mark.demo
@@ -109,7 +115,7 @@ def test_a_value_that_names_data_or_belongs_to_a_helper_is_no_chip(demo):
     assert chips(analyse(demo, source)) == [("alpha", "0.05"), ("label", "'baseline'")]
 
 
-# 1.92: what "Worth asking next" asks about a read.
+# Which defaults are open assumptions, which "Worth asking next" asks about.
 
 HOMES = ("home_id", "region", "floor_area_m2", "heating", "occupants")
 READ = CellInfo(
@@ -127,6 +133,10 @@ MERGE = CellInfo(
     uses=("readings", "homes"),
     decisions=(Decision("how", "'inner'", "library_default", param="how", function="DataFrame.merge", calls=(DecisionCall(1, 17, "homes"),)),),
 )
+# A constant of the analyst's module that the cell leaves at its default, as
+# MIN_DAYS = 14 of the pain diary's prep.py.
+DAYS = Decision("MIN_DAYS", "14", "defaulted", param="min_days", function="weekly_means", source_file="prep.py", source_line=12)
+WEEKLY = CellInfo("c3", "[3]", "weekly = weekly_means(daily)", defs=("weekly",), uses=("weekly_means", "daily"), decisions=(DAYS,))
 
 
 def context(homes=HOMES, **more):
@@ -144,22 +154,38 @@ def texts(steps):
 
 HEADER = "Does header = 'infer' change the result of [1]?"
 HOW = "Does how = 'inner' change the result of [2]?"
+MIN_DAYS = "Does MIN_DAYS = 14 change the result of [3]?"
 
 
-def test_the_assumptions_of_a_read_that_looks_right_come_after_every_other_question():
-    steps = next_steps([READ, MERGE], context(outcome="kwh_import", unit="home_id"), {}, set())
-    assert texts(steps)[0] == HOW
-    # After the merge's choice, and after the columns not explored yet.
-    assert texts(steps)[-1] == HEADER
-    assert len(steps) > 2
-    header = steps[-1]
-    assert header.reasons[:2] == ["Open assumption in [1]", "how [1] reads a file, whose frame looks right"]
-    assert header.probability < min(step.probability for step in steps[:-1])
+def test_a_library_default_that_no_rule_shows_to_change_the_result_is_not_asked_about():
+    """The videos asked "Does header = 'infer' change the result of [1]?" right after the load, and "Does how = 'inner' change the result of [13]?" from 04:02 to 08:22 of the survey video."""
+    steps = next_steps([READ, MERGE, WEEKLY], context(outcome="kwh_import", unit="home_id"), {}, set())
+    assert HEADER not in texts(steps)
+    assert HOW not in texts(steps)
+    # The constant that the analyst's module chose is still asked about, as
+    # are the columns not explored yet.
+    [days] = [step for step in steps if step.text == MIN_DAYS]
+    assert days.reasons[0] == "Open assumption in [3]"
+    assert "How does floor_area_m2 relate to kwh_import?" in texts(steps)
 
 
-def test_a_read_alone_is_still_asked_about():
-    """Right after a file is loaded, its read is all that the notebook holds."""
-    assert texts(next_steps([READ], context(), {}, set())) == [HEADER]
+def test_right_after_a_load_that_looks_right_nothing_is_asked_about_the_read():
+    """The chips of the read show its defaults. The list asks once the analysis makes a choice or names its outcome."""
+    assert next_steps([READ], context(), {}, set()) == []
+
+
+def test_an_open_assumption_is_a_default_of_the_analysts_code_or_a_library_default_that_a_rule_shows_to_matter():
+    from whybook.server.questions.cells import open_assumption
+
+    right = context()
+    assert open_assumption(WEEKLY, DAYS, right) == (True, None)
+    assert open_assumption(READ, READ.decisions[0], right) == (False, None)
+    assert open_assumption(MERGE, MERGE.decisions[0], right) == (False, None)
+    wrong = context(homes=("home_id;region;floor_area_m2;heating",))
+    assert open_assumption(READ, READ.decisions[0], wrong) == (True, "homes has one column, whose name holds semicolons")
+    # A value that somebody wrote is a choice, not an open assumption.
+    written = Decision("how", "'left'", "literal", param="how", function="merge")
+    assert open_assumption(MERGE, written, wrong) == (False, None)
 
 
 @pytest.mark.parametrize(
@@ -171,9 +197,9 @@ def test_a_read_alone_is_still_asked_about():
         (("1", "103.5", "2", "Gas"), "homes has numbers for column names: 1, 103.5, 2"),
     ],
 )
-def test_the_assumptions_of_a_read_that_looks_wrong_come_first_with_what_shows_it(columns, sign):
-    steps = next_steps([READ, MERGE], context(homes=columns), {}, set())
-    assert texts(steps)[:2] == [HEADER, HOW]
+def test_the_defaults_of_a_read_that_looks_wrong_are_asked_about_first_with_what_shows_it(columns, sign):
+    steps = next_steps([READ, MERGE, WEEKLY], context(homes=columns), {}, set())
+    assert texts(steps) == [HEADER, MIN_DAYS]
     assert steps[0].reasons[:2] == [sign, "Open assumption in [1]"]
 
 
@@ -185,10 +211,21 @@ def test_a_frame_that_a_read_got_wrong_gives_no_question_about_its_columns():
     # The columns of the frames that look right are still asked about.
     assert "How does date relate to kwh_import?" in texts(steps) or "How does tou_active relate to kwh_import?" in texts(steps)
 
+
+# The view counts open assumptions by the same rule (src/model/assumptions.ts),
+# and src/__tests__/assumptions.spec.ts checks it against the same cases.
+MISREAD = json.loads((Path(__file__).parent / "data" / "misread_frames.json").read_text())["cases"]
+
+
+@pytest.mark.parametrize("case", MISREAD, ids=lambda case: repr(case["columns"]))
+def test_the_signs_of_a_frame_that_a_read_got_wrong(case):
+    assert frame_looks_misread(case["frame"], case["columns"]) == case["sign"]
+
+
 def test_names_that_are_numbers_in_a_frame_with_names_look_right():
     """A frame of years beside a name, as a wide table has them, is no header read from the data."""
     steps = next_steps([READ, MERGE], context(homes=("region", "2024", "2025")), {}, set())
-    assert texts(steps) == [HOW, HEADER]
+    assert texts(steps) == []
 
 
 def test_a_read_of_r_looks_wrong_by_the_same_signs():
@@ -200,19 +237,17 @@ def test_a_read_of_r_looks_wrong_by_the_same_signs():
         decisions=(Decision("na.strings", '"NA"', "library_default", param="na.strings", function="utils::read.csv", calls=(DecisionCall(1, 10, "homes"),)),),
     )
     right = next_steps([read, MERGE], context(), {}, set())
-    assert texts(right) == [HOW, 'Does na.strings = "NA" change the result of [1]?']
+    assert texts(right) == []
     wrong = next_steps([read, MERGE], context(homes=("Unnamed: 0", "home_id")), {}, set())
-    assert texts(wrong)[0] == 'Does na.strings = "NA" change the result of [1]?'
-
+    assert texts(wrong) == ['Does na.strings = "NA" change the result of [1]?']
 
 
 def test_of_two_choices_that_score_the_same_the_newest_cell_leads():
     """In the video, the open choices of [2] and [3] would stay first through the whole analysis, above the models fitted in [7] to [13]."""
-    how = Decision("how", "'inner'", "library_default", param="how", function="DataFrame.merge")
-    first = CellInfo("c1", "[1]", "w = d.merge(e, on='k')", decisions=(how,))
-    newest = CellInfo("c2", "[2]", "v = d.merge(f, on='k')", decisions=(how,))
+    first = CellInfo("c1", "[1]", "w = weekly_means(d)", decisions=(DAYS,))
+    newest = CellInfo("c2", "[2]", "v = weekly_means(e)", decisions=(DAYS,))
     steps = next_steps([first, newest], Context(), {}, set())
-    assert texts(steps) == ["Does how = 'inner' change the result of [2]?", "Does how = 'inner' change the result of [1]?"]
+    assert texts(steps) == ["Does MIN_DAYS = 14 change the result of [2]?", "Does MIN_DAYS = 14 change the result of [1]?"]
     assert steps[0].probability == steps[1].probability
 
 
@@ -247,8 +282,9 @@ def test_a_default_that_a_model_found_gets_no_value_by_its_name_alone():
     )
     assert method.found
     assert alternative_code(cell, method) is None
-    step = next(s for s in next_steps([CellInfo(cell.id, cell.label, cell.source, decisions=(method,))], Context(), {}, set()))
-    assert (step.text, step.code) == ("Does method = 'newton' change the result of [12]?", None)
+    # No rule finds a sign that the optimizer changes the fit, so Worth
+    # asking next does not ask about it. The menu of its chip still does.
+    assert next_steps([CellInfo(cell.id, cell.label, cell.source, decisions=(method,))], Context(), {}, set()) == []
     result = decision_options(cell, method, Context())
     assert not [option for option in result["options"] if "spearman" in option["text"]]
     assert result["ask_model"] is True

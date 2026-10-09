@@ -148,6 +148,20 @@ describe('analysisFor', () => {
     expect(analysisFor(kept, 'weekly = diary')).toBeNull();
     expect(analysisFor(undefined, 'x')).toBeNull();
   });
+
+  it('leaves out a piece of a formula that a notebook kept, and keeps a whole one', () => {
+    // [35] of the survey video builds its formula from a string and a join.
+    const source =
+      "formula = 'sad_or_hopeless ~ frequent_use + ' + ' + '.join(covariates)";
+    const kept = storedAnalysis(
+      {
+        ...analysis,
+        formulas: ['sad_or_hopeless ~ frequent_use + ', '~month']
+      },
+      source
+    );
+    expect(analysisFor(kept, source)?.formulas).toEqual(['~month']);
+  });
 });
 
 describe('namesIn', () => {

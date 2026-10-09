@@ -27,6 +27,11 @@ calls. Each call also names, in one word, the frame that it joins or reads
 column counts UTF-8 bytes from the start of the line, as ``ast`` does, and
 ``codegen.call_site`` on the server finds the call by the same place.
 
+A formula is whole: one that the cell builds, as
+``'y ~ x + ' + ' + '.join(covariates)``, is read with the names it joins,
+or with what the join adds in words, and a piece such as "y ~ x +" is no
+formula (``formula_texts``).
+
 With ``signatures`` in the arguments (the view's setting "Find more defaults
 with AI", design iteration 1.53), a cell also lists the library functions
 that it calls, under ``signatures``: each function's module, its library and
@@ -641,10 +646,273 @@ def _whybook_analyze_cells(args):
                 return node.id
         return None
 
+    # A formula that a cell builds, such as 'y ~ x + ' + ' + '.join(covariates),
+    # is read whole from the values that it is built from: texts, numbers,
+    # and lists and dicts of them. Reading them runs no code of the analyst.
+    unknown = object()
+    max_formula = 600
+    # A text that ends in an operator is a piece of a formula: "y ~ x +".
+    dangling = re.compile(r"[-+*/:~|^(,]\s*$")
+    scalars = (str, int, float, bool)
+    # The tests of a comprehension's condition, such as v != "sex".
+    comparisons = {
+        ast.Eq: lambda left, right: left == right,
+        ast.NotEq: lambda left, right: left != right,
+        ast.In: lambda left, right: left in right,
+        ast.NotIn: lambda left, right: left not in right,
+    }
+
+    def plain(value, nested=False):
+        """Whether a value of the kernel is one that a formula is built from: a text, a number, or a list or a dict of them."""
+        if type(value) in scalars:
+            return not isinstance(value, str) or len(value) <= max_formula
+        if not nested and type(value) in (list, tuple) and len(value) <= 200:
+            return all(plain(item, True) for item in value)
+        if not nested and type(value) is dict and len(value) <= 200:
+            return all(type(key) in (str, int) and plain(item, True) for key, item in value.items())
+        return False
+
+    def is_join(node):
+        """Whether a node is ``sep.join(items)``."""
+        return isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "join" and len(node.args) == 1 and not node.keywords
+
+    def text_value(node, scope, stored):
+        """What a string expression evaluates to, read without running code; ``unknown`` when it cannot be read.
+
+        It reads texts and numbers, lists and dicts of them, ``+``, f-strings,
+        an index or a slice, ``sep.join(...)``, and a comprehension over a
+        list with conditions such as ``v != "sex"``, which ``==``, ``!=``,
+        ``in``, ``not in``, ``not``, ``and`` and ``or`` make. A name is the
+        value that the cell assigned it above
+        (``scope``), else the kernel's, unless the cell also sets it in
+        another way (``stored``), as a loop does.
+        """
+        if isinstance(node, ast.Constant):
+            return node.value if type(node.value) in scalars else unknown
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+            value = text_value(node.operand, scope, stored)
+            return -value if type(value) in (int, float) else unknown
+        if isinstance(node, ast.Name):
+            if node.id in scope:
+                return scope[node.id]
+            value = unknown if node.id in stored else ns.get(node.id, unknown)
+            if value is unknown or not plain(value):
+                return unknown
+            return list(value) if type(value) is tuple else value
+        if isinstance(node, (ast.List, ast.Tuple)):
+            items = [text_value(item, scope, stored) for item in node.elts]
+            return unknown if any(item is unknown for item in items) else items
+        if isinstance(node, ast.Subscript):
+            base = text_value(node.value, scope, stored)
+            if isinstance(node.slice, ast.Slice):
+                parts = (node.slice.lower, node.slice.upper, node.slice.step)
+                bounds = [None if part is None else text_value(part, scope, stored) for part in parts]
+                if isinstance(base, (str, list)) and all(bound is None or type(bound) is int for bound in bounds) and bounds[2] != 0:
+                    return base[slice(*bounds)]
+                return unknown
+            key = text_value(node.slice, scope, stored)
+            if isinstance(base, (str, list)) and type(key) is int and -len(base) <= key < len(base):
+                return base[key]
+            if isinstance(base, dict) and type(key) in (str, int) and key in base:
+                return base[key]
+            return unknown
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = text_value(node.left, scope, stored), text_value(node.right, scope, stored)
+            if (isinstance(left, str) and isinstance(right, str)) or (isinstance(left, list) and isinstance(right, list)):
+                return left + right
+            return unknown
+        if isinstance(node, ast.JoinedStr):
+            parts = []
+            for part in node.values:
+                if isinstance(part, ast.Constant):
+                    parts.append(str(part.value))
+                    continue
+                value = text_value(part.value, scope, stored) if part.format_spec is None else unknown
+                if type(value) not in scalars or part.conversion not in (-1, 114, 115):
+                    return unknown
+                parts.append(repr(value) if part.conversion == 114 else str(value))
+            return "".join(parts)
+        if is_join(node):
+            separator, items = text_value(node.func.value, scope, stored), text_value(node.args[0], scope, stored)
+            if isinstance(separator, str) and isinstance(items, list) and all(isinstance(item, str) for item in items):
+                return separator.join(items)
+            return unknown
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and type(node.ops[0]) in comparisons:
+            left, right = text_value(node.left, scope, stored), text_value(node.comparators[0], scope, stored)
+            if left is unknown or right is unknown or (type(node.ops[0]) in (ast.In, ast.NotIn) and not isinstance(right, (str, list, dict))):
+                return unknown
+            if isinstance(right, str) and type(node.ops[0]) in (ast.In, ast.NotIn) and not isinstance(left, str):
+                return unknown
+            return comparisons[type(node.ops[0])](left, right)
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            value = text_value(node.operand, scope, stored)
+            return not value if type(value) is bool else unknown
+        if isinstance(node, ast.BoolOp):
+            values = [text_value(item, scope, stored) for item in node.values]
+            if any(type(value) is not bool for value in values):
+                return unknown
+            return all(values) if isinstance(node.op, ast.And) else any(values)
+        if isinstance(node, (ast.ListComp, ast.GeneratorExp)) and len(node.generators) == 1:
+            loop = node.generators[0]
+            items = text_value(loop.iter, scope, stored)
+            if loop.is_async or not isinstance(loop.target, ast.Name) or not isinstance(items, list):
+                return unknown
+            values = []
+            for item in items:
+                inner = {**scope, loop.target.id: item}
+                kept = [text_value(condition, inner, stored) for condition in loop.ifs]
+                if any(type(keep) is not bool for keep in kept):
+                    return unknown
+                if all(kept):
+                    values.append(text_value(node.elt, inner, stored))
+            return unknown if any(value is unknown for value in values) else values
+        return unknown
+
+    def in_words(node, scope, stored):
+        """A string expression as text, with what each join adds in words: "y ~ x + the 9 names of covariates".
+
+        The names are counted when the list is known. None where a part
+        that is no join cannot be read.
+        """
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = in_words(node.left, scope, stored), in_words(node.right, scope, stored)
+            return left + right if left is not None and right is not None else None
+        if isinstance(node, ast.JoinedStr):
+            parts = []
+            for part in node.values:
+                if isinstance(part, ast.FormattedValue) and is_join(part.value) and part.format_spec is None and part.conversion == -1:
+                    parts.append(in_words(part.value, scope, stored))
+                else:
+                    value = text_value(ast.JoinedStr(values=[part]), scope, stored)
+                    parts.append(value if isinstance(value, str) else None)
+            return None if None in parts else "".join(parts)
+        if is_join(node):
+            items = node.args[0]
+            if isinstance(items, (ast.ListComp, ast.GeneratorExp)) and len(items.generators) == 1:
+                if items.generators[0].ifs:
+                    # A condition picks some of the names: no count says how many.
+                    return None
+                items = items.generators[0].iter
+            elif isinstance(items, ast.Call) and isinstance(items.func, ast.Name) and items.func.id == "map" and len(items.args) == 2:
+                items = items.args[1]
+            name = ast.unparse(items)
+            if len(name) > 40:
+                return None
+            known = text_value(items, scope, stored)
+            if not isinstance(known, list):
+                return f"the names of {name}"
+            return f"the name of {name}" if len(known) == 1 else f"the {len(known)} names of {name}"
+        value = text_value(node, scope, stored)
+        return value if isinstance(value, str) else None
+
+    def operands(node):
+        """The parts that a string expression adds up: those of ``a + b``, and those of an f-string."""
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            return operands(node.left) + operands(node.right)
+        return list(node.values) if isinstance(node, ast.JoinedStr) else [node]
+
+    def holds_pieces(value, node):
+        """Whether a text holds the strings that an expression writes itself, in their order."""
+        at = 0
+        for part in operands(node):
+            if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                at = value.find(part.value, at)
+                if at < 0:
+                    return False
+                at += len(part.value)
+        return True
+
+    def formula_texts(tree, pieces):
+        """The formulas of a cell, from its strings that hold "~" (``pieces``), each whole and in their order.
+
+        A formula that the cell writes as one string is that string. One
+        that it builds, as ``'y ~ x + ' + ' + '.join(covariates)``, is the
+        text that the code builds (``text_value``); else the kernel's value
+        of the name that the cell assigns it to, when that value holds the
+        strings of the code; else the text with what a join adds in words,
+        "y ~ x + the 9 names of covariates" (``in_words``). For a name that
+        the cell changes after, as ``formula += " + age"`` does, the
+        kernel's value comes first. A function's names are its own, so a
+        formula in a function is read only when it is written whole. A piece
+        that cannot be read whole, such as "y ~ x +", is no formula.
+        """
+        if not pieces:
+            return []
+        parents = {}
+        for node in ast.walk(tree):
+            for child in ast.iter_child_nodes(node):
+                parents[child] = node
+        # The names that the cell sets in another way than ``name = ...`` at
+        # its top level, such as a loop's: they hold no one value to read.
+        plain_targets = {
+            id(statement.targets[0])
+            for statement in tree.body
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name)
+        }
+        stored = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and id(node) not in plain_targets}
+        # What the assignments at the top level hold before each statement.
+        scopes, scope = {}, {}
+        for statement in tree.body:
+            scopes[statement] = dict(scope)
+            if isinstance(statement, ast.Assign) and id(statement.targets[0]) in plain_targets:
+                name = statement.targets[0].id
+                try:
+                    value = text_value(statement.value, scope, stored)
+                except Exception:
+                    value = unknown
+                if value is unknown or name in stored:
+                    scope.pop(name, None)
+                else:
+                    scope[name] = value
+
+        def whole(text):
+            return isinstance(text, str) and "~" in text and len(text) <= max_formula and not dangling.search(text)
+
+        def read(top):
+            statement, inside = top, False
+            while not isinstance(parents[statement], ast.Module):
+                statement = parents[statement]
+                inside = inside or isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda))
+            if inside:
+                return top.value if isinstance(top, ast.Constant) and whole(top.value) and len(top.value) < 300 else None
+            # The kernel's value of the name that the statement assigns the formula to.
+            assigned = isinstance(statement, ast.Assign) and parents[top] is statement and id(statement.targets[0]) in plain_targets
+            kept = ns.get(statement.targets[0].id) if assigned else None
+            kept = kept if whole(kept) and holds_pieces(kept, top) else None
+            if kept and statement.targets[0].id in stored:
+                # The cell changes the name after, as formula += " + age" does.
+                return kept
+            if isinstance(top, ast.Constant):
+                return top.value if whole(top.value) and len(top.value) < 300 else None
+            built = text_value(top, scopes[statement], stored)
+            if whole(built):
+                return built
+            if kept:
+                return kept
+            words = in_words(top, scopes[statement], stored)
+            return words if whole(words) else None
+
+        found, seen = [], set()
+        for piece in pieces:
+            top = piece
+            while (isinstance(parents.get(top), ast.BinOp) and isinstance(parents[top].op, ast.Add)) or isinstance(parents.get(top), ast.JoinedStr):
+                top = parents[top]
+            if top in seen:
+                continue
+            seen.add(top)
+            try:
+                text = read(top)
+            except Exception:
+                text = None
+            if text is not None and text not in found:
+                found.append(text)
+        return found
+
     def analyze(source):
         tree = parse(source)
         defs, uses, strings = [], [], []
-        formulas = []
+        # The strings that hold "~": formulas, or pieces of one.
+        pieces = []
         made = building(tree)
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
@@ -657,8 +925,9 @@ def _whybook_analyze_cells(args):
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
                 if id(node) not in made:
                     strings.append(node.value)
-                if "~" in node.value and len(node.value) < 300:
-                    formulas.append(node.value)
+                if "~" in node.value:
+                    pieces.append(node)
+        formulas = formula_texts(tree, pieces)
         used_frames = [name for name in dict.fromkeys(uses) if name in frames]
         defined_frames = [name for name in dict.fromkeys(defs) if name in frames]
         touched = {}

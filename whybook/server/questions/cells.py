@@ -26,19 +26,28 @@ class DecisionCall:
     """One call that a decision covers: where the cell names the function, and the frame the call joins or reads.
 
     ``line`` counts from 1, and ``col`` counts UTF-8 bytes from the start of
-    the line, as ``ast`` does (``codegen.call_site``).
+    the line, as ``ast`` does (``codegen.call_site``). ``function`` is the
+    function that the call names, where the calls of one decision are of
+    several functions, as ``Series.sum`` beside ``Series.mean`` for skipna
+    True of both; without it, the call is of the decision's function.
     """
 
     line: int
     col: int
     target: str | None = None
+    function: str | None = None
 
     @classmethod
     def from_json(cls, data: Any) -> DecisionCall:
         if not isinstance(data, dict) or not isinstance(data.get("line"), int) or not isinstance(data.get("col"), int):
             raise InvalidRequest("a call of a decision needs a line and a column")
-        target = data.get("target")
-        return cls(line=data["line"], col=data["col"], target=target if isinstance(target, str) and target else None)
+        target, function = data.get("target"), data.get("function")
+        return cls(
+            line=data["line"],
+            col=data["col"],
+            target=target if isinstance(target, str) and target else None,
+            function=function if isinstance(function, str) and function else None,
+        )
 
     @property
     def site(self) -> codegen.Site:
@@ -96,6 +105,17 @@ class Decision:
     def short_function(self) -> str:
         """``merge`` for ``DataFrame.merge``: the name that the cell calls."""
         return (self.function or "").rsplit(".", 1)[-1]
+
+    def call_function(self, call: DecisionCall) -> str:
+        """The name that one call of the decision calls: ``sum`` for its own ``Series.sum``, ``t.test`` for ``stats::t.test``, else the decision's."""
+        if not call.function:
+            return self.short_function
+        return call.function.rsplit("::", 1)[-1] if "::" in call.function else call.function.rsplit(".", 1)[-1]
+
+    def functions(self, calls: tuple[DecisionCall, ...] | None = None) -> tuple[str, ...]:
+        """The names that ``calls``, or all the decision's calls, call, for the code edits: ``("mean", "sum")``."""
+        chosen = self.calls if calls is None else calls
+        return tuple(dict.fromkeys(self.call_function(call) for call in chosen)) if chosen else (self.short_function,)
 
     def sites(self, calls: tuple[DecisionCall, ...] | None = None) -> list[codegen.Site] | None:
         """The places of ``calls``, or of all the decision's calls; None for a decision that lists none."""
@@ -275,8 +295,13 @@ JOINS = {"merge", "join", "merge_asof", "merge_ordered"}
 
 
 def call_nouns(decision: Decision) -> tuple[str, str]:
-    """What one call of a decision's function is, and several: merge and merges, read and reads, call and calls."""
+    """What one call of a decision's function is, and several: merge and merges, read and reads, call and calls.
+
+    The calls of several functions, as a mean and a sum, are calls.
+    """
     function = decision.short_function
+    if len(decision.functions()) > 1:
+        return "call", "calls"
     if function in JOINS:
         noun = "join" if function == "join" else "merge"
         return noun, f"{noun}s"
@@ -286,16 +311,16 @@ def call_nouns(decision: Decision) -> tuple[str, str]:
 
 
 def call_name(decision: Decision, call: DecisionCall) -> str:
-    """One call of a decision, as the what-if menu names it: "the merge with weather".
+    """One call of a decision, as the what-if menu names it: "the merge with weather", "the sum on line 14".
 
     A call is named by the frame it joins or reads, and by its line where
-    that does not tell it from the decision's other calls.
+    that does not tell it from the decision's other calls of its function.
     """
     noun, _ = call_nouns(decision)
-    function = decision.short_function
+    function = decision.call_function(call)
     if call.target:
         what = f"the {noun} with {call.target}" if noun in ("merge", "join") else f"the {noun} of {call.target}" if noun == "read" else f"the {function} of {call.target}"
-        if sum(other.target == call.target for other in decision.calls) == 1:
+        if sum(other.target == call.target and decision.call_function(other) == function for other in decision.calls) == 1:
             return what
         return f"{what} on line {call.line}"
     return f"the {noun if noun != 'call' else function} on line {call.line}"
@@ -324,12 +349,13 @@ def what_if_code(cell: CellInfo, decision: Decision, value: str, calls: tuple[De
     of its function.
     """
     function = decision.short_function
+    names = decision.functions(calls)
     at = decision.sites(calls)
     if function and decision.param:
         if decision.provenance == "literal":
-            body = codegen.replace_keyword_value(cell.source, function, decision.param, value, at) or codegen.replace_argument(cell.source, function, decision.value, value, at)
+            body = codegen.replace_keyword_value(cell.source, names, decision.param, value, at) or codegen.replace_argument(cell.source, names, decision.value, value, at)
         else:
-            body = codegen.add_keyword(cell.source, function, decision.param, value, at)
+            body = codegen.add_keyword(cell.source, names, decision.param, value, at)
     else:
         body = codegen.replace_assignment(cell.source, decision.name, value)
     if body is None:
@@ -412,9 +438,11 @@ def decision_options(
             options.append(option)
         function = decision.short_function
         if decision.is_open and function and decision.param:
-            explicit = codegen.add_keyword(cell.source, function, decision.param, decision.name, decision.sites(calls)) if python else None
+            explicit = codegen.add_keyword(cell.source, decision.functions(calls), decision.param, decision.name, decision.sites(calls)) if python else None
             if explicit is not None or not python:
-                origin = f" in {where}" if where else f" of {decision.function}"
+                # The function of each call: "of Series.mean and Series.sum".
+                owners = list(dict.fromkeys(call.function or decision.function for call in (calls or decision.calls))) or [decision.function]
+                origin = f" in {where}" if where else f" of {' and '.join(owners)}"
                 code = f"{decision.name} = {decision.value}  {codegen.comment(f'chosen here; was the default{origin}')}\n{explicit}" if python else None
                 edit = Placement("edit", cell.id, f"edit {cell.label} in place")
                 option = _question(f"Choose {decision.name} in {cell.label}{f', in {place}' if place else ''}", "model", 0.5, edit, code, "An explicit choice in the cell, to change there", cell.id, decision.name)
@@ -472,7 +500,7 @@ def sweep_code(
     # A public name, so the decision chip reads as the values that were tried.
     listed = codegen.identifier(f"{decision.name}_values")
     rows, index, value = codegen.temporary(result, "rows"), codegen.temporary(decision.name, "index"), codegen.temporary(decision.name, "value")
-    body = codegen.add_keyword(cell.source, decision.short_function, decision.param, value, decision.sites(calls))
+    body = codegen.add_keyword(cell.source, decision.functions(calls), decision.param, value, decision.sites(calls))
     if body is None:
         return None
     renamed = sweep_names(cell.source, decision.name)
@@ -535,7 +563,7 @@ def alternative_code(cell: CellInfo, decision: Decision) -> str | None:
     replacement = alternative_value(decision)
     if replacement is None or not decision.function or not decision.param:
         return None
-    body = codegen.add_keyword(cell.source, decision.short_function, decision.param, replacement, decision.sites())
+    body = codegen.add_keyword(cell.source, decision.functions(), decision.param, replacement, decision.sites())
     if body is None:
         return None
     suffix = codegen.identifier(f"{decision.param}_{replacement.strip(chr(34))}")
@@ -965,6 +993,33 @@ def misread_frames(cells: list[CellInfo], context: Context) -> set[str]:
     return found
 
 
+def default_matters(cell: CellInfo, decision: Decision, context: Context) -> str | None:
+    """The sign that a library default changes the result of ``cell``, from a rule; None when no rule finds one.
+
+    One rule finds such a sign: a read whose frame looks wrong
+    (``read_looks_wrong``), such as one column whose name holds semicolons.
+    """
+    return read_looks_wrong(cell, decision, context) if reads_a_file(decision) else None
+
+
+def open_assumption(cell: CellInfo, decision: Decision, context: Context) -> tuple[bool, str | None]:
+    """Whether ``decision`` is an open assumption of ``cell``, with the sign that a rule found, if any.
+
+    A value that the cell leaves to the default of code that the analyst or
+    an agent wrote, such as MIN_DAYS = 14 of prep.py, is an open assumption.
+    A library default, such as header='infer' of read_csv or how='inner' of
+    merge, is one only when a rule finds a sign that it changes the cell's
+    result (``default_matters``). Its chip shows it either way. The view
+    counts open assumptions by the same rule (src/model/assumptions.ts).
+    """
+    if decision.provenance == "defaulted":
+        return True, None
+    if decision.provenance != "library_default":
+        return False, None
+    sign = default_matters(cell, decision, context)
+    return sign is not None, sign
+
+
 def _without_labels(text: str) -> str:
     return _LABEL.sub("[]", text)
 
@@ -972,15 +1027,15 @@ def _without_labels(text: str) -> str:
 def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[dict]], dismissed: set[str]) -> list[Candidate]:
     """Questions tied to gaps: open assumptions, unexplored columns and thin column groups.
 
-    The open assumptions of a file's read, such as the header of read_csv,
-    come last, after every other question, while the frame that the read
-    made looks right: they come first when it looks wrong
-    (``read_looks_wrong``, design iteration 1.92). Of the other open
-    assumptions that score the same, those of the newest cells come first.
+    An open assumption (``open_assumption``) of a read whose frame looks
+    wrong comes first, with the sign under it. A library default with no
+    sign that it changes the result, such as the header of a read whose
+    frame looks right or the inner join of merge, gives no question here.
+    Its chip shows it, and a click on the chip offers other values. Of the
+    open assumptions that score the same, those of the newest cells come
+    first.
     """
     steps = []
-    # The questions about a read whose frame looks right.
-    last = []
     # The questions that a branch of each cell answers. A label is an execution
     # count, so a branch that answers "... of [4]?" answers "... of [10]?" once
     # its cell has run again.
@@ -991,7 +1046,8 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
     # keeps this order between equals.
     for cell in reversed(cells):
         for decision in cell.decisions:
-            if not decision.is_open:
+            is_open, sign = open_assumption(cell, decision, context)
+            if not is_open:
                 continue
             text = f"Does {decision.name} = {decision.value} change the result of {cell.label}?"
             if (cell.id, _without_labels(text)) in branched:
@@ -999,15 +1055,10 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             code = sweep_code(cell, decision, context) if decision.provenance == "defaulted" else alternative_code(cell, decision)
             reasons = [f"Open assumption in {cell.label}"]
             prior = 0.6
-            read = reads_a_file(decision)
-            wrong = read_looks_wrong(cell, decision, context) if read else None
-            if wrong:
-                reasons.insert(0, wrong)
+            if sign:
+                reasons.insert(0, sign)
                 prior = 0.75
-            elif read:
-                reasons.append(f"how {cell.label} reads a file, whose frame looks right")
-                prior = 0.3
-            (last if read and not wrong else steps).append(
+            steps.append(
                 Candidate(
                     id=question_id(text),
                     text=text,
@@ -1053,6 +1104,12 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
     if outcome:
         for frame, columns in context.frames.items():
             if len(columns) > 60 or frame in misread:
+                continue
+            # A frame that holds neither the outcome nor a key of the outcome's
+            # frame has no row that matches a row of the data: a table of a
+            # model's estimates, whose rows are terms or ways to compute a
+            # variance. None of its columns goes against the outcome.
+            if source and outcome not in columns and not codegen.join_keys(context.frames[source], columns, context.unit):
                 continue
             stubs = numbered.get(frame, {})
             for column, tag in columns.items():
@@ -1135,18 +1192,16 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
         )
     asked = {question.text for question in context.asked}
     steps = [step for step in steps if step.text not in dismissed and step.text not in asked]
-    last = [step for step in last if step.text not in dismissed and step.text not in asked]
-    for step in steps + last:
+    for step in steps:
         score_candidate(step, [], context)
     steps.sort(key=lambda s: s.probability or 0.0, reverse=True)
-    last.sort(key=lambda s: s.probability or 0.0, reverse=True)
     # The best question of each type first, so the short list covers several
-    # kinds of gap; a read that looks right takes no type's first place.
+    # kinds of gap.
     first, rest, seen = [], [], set()
     for step in steps:
         (rest if step.type in seen else first).append(step)
         seen.add(step.type)
-    return first + rest + last
+    return first + rest
 
 
 def _association_plan(source: str, column: str, frame: str, context: Context) -> str | None:

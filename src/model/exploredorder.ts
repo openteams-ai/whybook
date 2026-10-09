@@ -1,7 +1,8 @@
 /**
  * The order of the rows of "Variables explored", in the Exploration panel
  * (design iteration 1.82). No model takes part: the view orders the frames
- * by what it counts itself, how many cells use each one and how large it is.
+ * by what it knows itself: whether a cell read each one from a file, how
+ * many cells use it, and how large it is.
  */
 
 /** The orders, as the setting `exploredOrder` names them. */
@@ -20,7 +21,7 @@ export const EXPLORED_ORDERS: readonly IExploredOrder[] = [
   {
     id: 'auto',
     title: 'Auto',
-    caption: 'The most used first, then the largest'
+    caption: 'Tables from files first, then the most used'
   },
   { id: 'used', title: 'Most used', caption: 'Used by the most cells first' },
   { id: 'size', title: 'Largest', caption: 'The biggest tables first' },
@@ -42,10 +43,13 @@ export interface IExploredKeys {
   cells: number;
   /** The frame's rows times its columns. */
   size: number;
+  /** A cell read the frame from a file, such as `pd.read_csv("nhefs.csv")`. */
+  loaded?: boolean;
 }
 
 type Compare = (a: IExploredKeys, b: IExploredKeys) => number;
 
+const byLoaded: Compare = (a, b) => Number(!!b.loaded) - Number(!!a.loaded);
 const byUse: Compare = (a, b) => b.cells - a.cells;
 const bySize: Compare = (a, b) => b.size - a.size;
 const byName: Compare = (a, b) =>
@@ -55,8 +59,9 @@ const byName: Compare = (a, b) =>
   });
 
 const COMPARE: Record<ExploredOrder, Compare> = {
-  // The most used first; of those used by as many cells, the largest.
-  auto: (a, b) => byUse(a, b) || bySize(a, b),
+  // The tables read from files first, which the analysis starts from; then
+  // the most used, and of those used by as many cells, the largest.
+  auto: (a, b) => byLoaded(a, b) || byUse(a, b) || bySize(a, b),
   used: byUse,
   size: bySize,
   name: byName

@@ -152,7 +152,7 @@ test.describe('1.45 the review guard', () => {
       'The result of [2] would go to OpenRouter: x, a model on another machine.'
     );
     await expect(dialog.locator('.jp-Epi-guard-findings li')).toHaveText([
-      'Likely wrong: an identifier next to age. Flagged: P042, age 41. Found by the rules.'
+      'Should not leave this machine: an identifier next to age. 2 parts are marked below. Found by the rules.'
     ]);
     await expect(dialog.locator('mark')).toHaveText(['P042', 'age 41']);
     // The text shows as it would leave, without line numbers.
