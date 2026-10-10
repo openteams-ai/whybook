@@ -10,6 +10,7 @@ import { Signal } from '@lumino/signaling';
 import type { Widget } from '@lumino/widgets';
 import * as React from 'react';
 
+import { addCellItem, cellUnderMenu } from './cellmenu';
 import { checkupIcon } from './icons';
 import { checkupOf, existingCheckup } from './model/checkup';
 import type { EpiModel } from './model/epimodel';
@@ -240,9 +241,7 @@ export const checkupPlugin: JupyterFrontEndPlugin<void> = {
       model: EpiModel;
       cellId: string;
     } | null => {
-      const node = app.contextMenuHitTest(
-        item => item.dataset.cellId !== undefined
-      );
+      const node = cellUnderMenu(app);
       const cellId = node?.dataset.cellId;
       const panel = node
         ? whybookViews().find(view => view.node.contains(node))
@@ -319,10 +318,9 @@ export const checkupPlugin: JupyterFrontEndPlugin<void> = {
       }
     });
     for (const index of [0, 1]) {
-      app.contextMenu.addItem({
+      addCellItem(app, {
         command: CommandIDs.compare,
         args: { index },
-        selector: '.jp-Epi [data-cell-id]',
         rank: 0.035 + index / 1000
       });
     }

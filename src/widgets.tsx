@@ -5,7 +5,7 @@ import type { DocumentRegistry } from '@jupyterlab/docregistry';
 import { ABCWidgetFactory, DocumentWidget } from '@jupyterlab/docregistry';
 import type { INotebookModel } from '@jupyterlab/notebook';
 import type { IRenderMime, IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import type { ServerConnection } from '@jupyterlab/services';
+import type { ServerConnection, User } from '@jupyterlab/services';
 import type { ITranslator } from '@jupyterlab/translation';
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { Message } from '@lumino/messaging';
@@ -22,15 +22,15 @@ import type { AgentRuns } from './model/runs';
 import { aiSummary, modelName, TASKS } from './model/models';
 import type { IPlotPayload } from './tokens';
 import { PLOT_MIME, PROGRESS_MIME } from './tokens';
-import { PARALLEL_HELP, ProgressBar, useModel } from './ui/common';
+import { PARALLEL_HELP, ProgressBar, notebookKey, useModel } from './ui/common';
 import {
   DocumentView,
   DetailSlider,
-  LayoutSelect,
   ModeSwitch,
   RunAllButton,
   ViewSwitch
 } from './ui/document';
+import { LayoutItem } from './ui/layoutitem';
 import { coverage } from './ui/exploration';
 import { AIButton } from './ui/aipanel';
 import { createRunIndicator } from './ui/runindicator';
@@ -58,7 +58,8 @@ export class EpiContent extends ReactWidget {
       serverSettings: options.serverSettings,
       settings: options.settings,
       runs: options.runs,
-      askGuard
+      askGuard,
+      user: options.user
     });
     this._editorServices = options.editorServices;
     this._openFile = options.openFile;
@@ -147,6 +148,8 @@ export namespace EpiContent {
     openFile: (notebookPath: string, path: string, line: number | null) => void;
     /** The agents' runs of every open notebook, which its views share. */
     runs?: AgentRuns;
+    /** JupyterLab's user, `app.serviceManager.user`: a question records who asked it. */
+    user?: User.IManager;
   }
 }
 
@@ -238,7 +241,9 @@ export function createToolbarItem(
     case 'epi-mode':
       return ReactWidget.create(<ModeSwitch model={model} />);
     case 'epi-layout':
-      return ReactWidget.create(<LayoutSelect model={model} />);
+      // Three icons, folded into one menu button when the toolbar is short
+      // of room (src/ui/layoutitem.tsx).
+      return new LayoutItem({ model, toolbar: panel.toolbar });
     case 'epi-detail':
       return ReactWidget.create(<DetailSlider model={model} />);
     case 'epi-run-all':
@@ -298,6 +303,8 @@ export namespace EpiFactory {
     openSettings: () => void;
     /** The agents' runs of every open notebook, which its views share. */
     runs?: AgentRuns;
+    /** JupyterLab's user, `app.serviceManager.user`: a question records who asked it. */
+    user?: User.IManager;
   }
 }
 
@@ -342,9 +349,21 @@ function Following(props: {
   current: CurrentModel;
   render: (model: EpiModel) => JSX.Element;
   empty?: string;
+  /** The node of the panel, which carries the key of the notebook it follows. */
+  host: HTMLElement;
 }): JSX.Element {
   const model = useCurrent(props.current);
   useModel(model);
+  // The panel is part of the notebook that it follows: the variables of that
+  // notebook are found in it (notebookKey, ./ui/common.tsx).
+  const { host } = props;
+  React.useLayoutEffect(() => {
+    if (model) {
+      host.dataset.epiNotebook = notebookKey(model);
+    } else {
+      delete host.dataset.epiNotebook;
+    }
+  }, [host, model]);
   if (!model) {
     return (
       <div className="jp-Epi-empty jp-Epi-sidebar-empty">
@@ -381,6 +400,7 @@ export class FollowingWidget extends ReactWidget {
         current={this._current}
         render={this._render}
         empty={this._empty}
+        host={this.node}
       />
     );
   }

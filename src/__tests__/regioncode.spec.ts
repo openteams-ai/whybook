@@ -104,7 +104,7 @@ describe('the questions about a region', () => {
     // The line break of the name stays inside the comment.
     expect(lines.slice(0, 2)).toEqual([
       '# Who is still in df for week',
-      '# 1 0.0012–2.5, by arm "A"?'
+      '# 1 0.0012 to 2.5, by arm "A"?'
     ]);
     expect(lines).toContain('_before = df[df["week\\n1"] < 0.0012]');
     expect(lines).toContain(

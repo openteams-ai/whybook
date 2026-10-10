@@ -192,6 +192,43 @@ function popover(page: IJupyterLabPageFixture): Locator {
   return page.locator('.jp-Epi-popover');
 }
 
+/**
+ * Select these words in the text of a markdown cell, as a drag of the mouse
+ * over them does: the questions about the words open beside them.
+ */
+async function askAboutWords(
+  page: IJupyterLabPageFixture,
+  cellId: string,
+  words: string
+): Promise<void> {
+  await page.locator(`[data-cell-id="${cellId}"]`).evaluate((node, words) => {
+    const walker = document.createTreeWalker(
+      node.querySelector('.jp-Epi-note-text')!,
+      NodeFilter.SHOW_TEXT
+    );
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      const at = text.textContent!.indexOf(words);
+      if (at >= 0) {
+        const range = document.createRange();
+        range.setStart(text, at);
+        range.setEnd(text, at + words.length);
+        window.getSelection()!.removeAllRanges();
+        window.getSelection()!.addRange(range);
+        const box = range.getBoundingClientRect();
+        text.parentElement!.dispatchEvent(
+          new MouseEvent('mouseup', {
+            bubbles: true,
+            clientX: box.right,
+            clientY: box.bottom
+          })
+        );
+        return;
+      }
+    }
+    throw new Error(`no "${words}" in the text`);
+  }, words);
+}
+
 /** Wait until the current view has the server's status. */
 async function statusRead(page: IJupyterLabPageFixture): Promise<void> {
   await expect
@@ -460,10 +497,20 @@ test('moves and deletes cells from their menu, and moves them by the prompt in t
   const item = (label: string) =>
     menu.locator('.lm-Menu-item', { hasText: new RegExp(`^${label}$`) });
 
-  // The ⋯ button of a card opens the cell's menu, as a right-click does.
+  // The ⋯ button of a card opens the cell's menu, with the items of a right
+  // click. It ends with "Delete cell": JupyterLab's line about the browser's
+  // menu is about a right click, and stays in the menu of a right click.
   await page
     .locator('.jp-Epi-cell[data-cell-id="cell-1"] .jp-Epi-cellmenu')
     .click();
+  await expect(
+    menu
+      .locator(
+        '.lm-Menu-item[data-type="command"]:not(.lm-mod-hidden) .lm-Menu-itemLabel'
+      )
+      .last()
+  ).toHaveText('Delete cell');
+  await expect(menu).not.toContainText('Browser Menu');
   await item('Move up').click();
   await expect.poll(order).toEqual(['cell-1', 'cell-0', 'cell-2']);
   // The first cell has no place above it.
@@ -471,6 +518,7 @@ test('moves and deletes cells from their menu, and moves them by the prompt in t
     .locator('.jp-Epi-cell[data-cell-id="cell-1"] .jp-Epi-title')
     .click({ button: 'right' });
   await expect(item('Move up')).toHaveClass(/lm-mod-disabled/);
+  await expect(menu).toContainText('Shift+Right Click for Browser Menu');
   await page.keyboard.press('Escape');
 
   // A delete names the cells that use what the cell defined, and Undo puts
@@ -1643,15 +1691,24 @@ test('greys the questions that need AI when no model answers, says how to set on
   const status = await (await page.request.get('/whybook/status')).json();
   const { reason, setup } = status.claude as { reason: string; setup: string };
   expect(reason).toBeTruthy();
-  await page
+  // Every question about a text needs AI: with no model, the button says so,
+  // as the greyed questions do, and a click opens the AI models panel.
+  const question = page
     .locator('[data-cell-id="note"]')
-    .getByRole('button', { name: 'Question this text' })
-    .click();
+    .getByRole('button', { name: 'Question this text' });
+  await expect(question).toHaveText('Question this text · needs AI');
+  await expect(question.locator('.jp-Epi-needs')).toContainText('needs AI');
+  await question.click();
+  await expect(page.locator('.jp-Epi-aipanel')).toBeInViewport();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.jp-Epi-aipanel')).toHaveCount(0);
+  // Words selected in the text ask about them.
+  await askAboutWords(page, 'note', 'Pain fell by 26%');
   const box = popover(page);
   await expect(box.locator('.jp-Epi-aioff')).toHaveText(
     `Questions marked needs AI and your own questions are off: ${reason}. ${setup}`
   );
-  // Every question about a text needs AI: they stay, greyed, and do nothing.
+  // The questions stay, greyed, and do nothing.
   const option = box.locator('.jp-Epi-option').first();
   await expect(option).toHaveAttribute('aria-disabled', 'true');
   await expect(option).toHaveAttribute('title', `Needs an AI model: ${reason}`);
@@ -1690,6 +1747,108 @@ test('greys the questions that need AI when no model answers, says how to set on
     'title',
     'A long title for this cell, which the map shows on two lines of its card'
   );
+});
+
+// Critique 5, the app, A13: the note that no model is connected names the AI
+// models panel, and the words are a link to it. In the toolbar's menu of "⋯",
+// closed, the AI button has no box, and the panel opened out of the window.
+test('opens the AI models panel from the note that no model is connected, also with AI in the menu of "⋯"', async ({
+  page,
+  tmpPath
+}) => {
+  // The server of a new analyst: no model is connected.
+  await page.route(/\/whybook\/status/, async route => {
+    const response = await route.fetch();
+    const status = await response.json();
+    await route.fulfill({
+      response,
+      json: {
+        ...status,
+        claude_available: false,
+        claude: {
+          ...status.claude,
+          available: false,
+          provider: 'none',
+          reason: 'no model is connected',
+          setup: 'Connect one in the AI models panel.'
+        }
+      }
+    });
+  });
+  const file = `${tmpPath}/connect.ipynb`;
+  const notebook = {
+    cells: [
+      {
+        cell_type: 'markdown',
+        id: 'note',
+        metadata: {},
+        source: 'Pain fell by 26% in arm B.'
+      }
+    ],
+    metadata: {
+      kernelspec: {
+        display_name: 'Python 3 (ipykernel)',
+        language: 'python',
+        name: 'python3'
+      }
+    },
+    nbformat: 4,
+    nbformat_minor: 5
+  };
+  await page.contents.uploadContent(JSON.stringify(notebook), 'text', file);
+  // Wide enough for AI in the toolbar.
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await openInWhybook(page, file);
+  const panel = page.locator('.jp-Epi-aipanel');
+  const note = popover(page).locator('.jp-Epi-aioff');
+  const link = note.getByRole('button', { name: 'the AI models panel' });
+
+  // The link opens the panel under the AI button, as the button does.
+  await askAboutWords(page, 'note', 'Pain fell');
+  await expect(note).toHaveText(
+    'Questions marked needs AI and your own questions are off: no model is connected. Connect one in the AI models panel.'
+  );
+  await link.click();
+  await expect(panel).toBeInViewport();
+  const button = (await page.locator('.jp-Epi-aibutton').boundingBox())!;
+  let shown = (await panel.boundingBox())!;
+  expect(
+    Math.abs(shown.x + shown.width - (button.x + button.width))
+  ).toBeLessThanOrEqual(1);
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+
+  // A window too narrow for AI in the toolbar: AI goes into the menu of "⋯".
+  const folded = page.locator(
+    '.jp-Toolbar-responsive-popup [data-jp-item-name="epi-ai"]'
+  );
+  for (const width of [1200, 1100, 1000, 900, 800, 700, 600, 500]) {
+    await page.setViewportSize({ width, height: 900 });
+    const done = await expect(folded)
+      .toHaveCount(1, { timeout: 2000 })
+      .then(
+        () => true,
+        () => false
+      );
+    if (done) {
+      break;
+    }
+  }
+  await expect(folded).toHaveCount(1);
+  await expect(page.locator('.jp-Epi-aibutton')).toBeHidden();
+  // The panel opens under the toolbar, at the right edge of the notebook,
+  // where "⋯" is.
+  await askAboutWords(page, 'note', 'Pain fell');
+  await link.click();
+  await expect(panel).toBeInViewport();
+  const view = (await page.locator('.jp-Epi-document').boundingBox())!;
+  shown = (await panel.boundingBox())!;
+  expect(
+    Math.abs(shown.x + shown.width - (view.x + view.width))
+  ).toBeLessThanOrEqual(1);
+  expect(Math.abs(shown.y - (view.y + 2))).toBeLessThanOrEqual(1);
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
 });
 
 test('summarises a frame under its columns in Contents', async ({
@@ -2536,14 +2695,15 @@ test('offers other values of a constant under its chip, and tries a typed one', 
   await expect(typed).toHaveText('ALPHA_if_0_3 0.3', { timeout: 60000 });
   await expect(typed.locator('.jp-Epi-aitag')).toHaveCount(0);
   await expect(typed).not.toHaveClass(/jp-mod-open/);
-  // So does the question about it, where the AI's value says "The agent chose it".
+  // So does the question about it, where a value that Whybook chose says
+  // "Nobody checked it" or names the model that wrote the cell.
   await page.locator('.jp-Epi-views [data-value="map"]').click();
   await page.locator('.jp-Epi-map-cell.jp-mod-branch').click();
   const yours = popover(page).locator('.jp-Epi-option', {
     hasText: /= 0\.3 the right choice in/
   });
   await expect(yours).toContainText('You chose it; no cell has checked it');
-  await expect(yours).not.toContainText('The agent chose it');
+  await expect(yours).not.toContainText(/nobody checked it|Chosen by/i);
   await popover(page).locator('.jp-Epi-close').click();
   await page.locator('.jp-Epi-views [data-value="bench"]').click();
   // A value that is not Python says so, and runs nothing.
@@ -4350,25 +4510,26 @@ test('sizes plots by the level of detail, brushes a box on a scatter plot, copie
   );
   expect(types).toContain('image/png');
 
-  // A thumbnail opens the cell's details, which name the cell; a click on
-  // "Show in the view" shows the cell in the current view and flashes it.
+  // A thumbnail opens the cell's details, which name the cell. Their first
+  // link, named after the view in front, shows the cell there and flashes it.
   await slider.fill('0');
   await card.locator('.jp-Epi-miniature').click();
   await expect(page.locator('.jp-Epi-details-head')).toContainText('[2]');
   await expect(
     page.locator('.jp-Epi-details-output.jp-mod-opened svg.jp-Epi-plot')
   ).toBeVisible();
-  const link = page.locator('.jp-Epi-details-links button', {
-    hasText: 'Show in the view'
-  });
+  const link = page.locator('.jp-Epi-details-links > button');
+  await expect(link).toHaveText('Show on the bench');
   await link.click();
   await expect(card).toHaveClass(/jp-mod-flash/);
   await page.locator('.jp-Epi-views [data-value="linear"]').click();
+  await expect(link).toHaveText('Show in the Code view');
   await link.click();
   await expect(
     page.locator('.jp-Epi-linear-cell[data-cell-id="cell-1"]')
   ).toHaveClass(/jp-mod-flash/);
   await page.locator('.jp-Epi-views [data-value="map"]').click();
+  await expect(link).toHaveText('Show on the map');
   await link.click();
   const node = page.locator('.jp-Epi-map-cell[data-cell-id="cell-1"]');
   await expect(node).toHaveClass(/jp-mod-flash/);
@@ -4909,6 +5070,16 @@ test('questions the text of a markdown cell, and words selected in it', async ({
   page,
   tmpPath
 }) => {
+  // A model is set up, so that "Question this text" asks; no model runs.
+  // With no model, the button opens the AI models panel.
+  await page.route(/\/whybook\/status/, async route => {
+    const response = await route.fetch();
+    const status = await response.json();
+    await route.fulfill({
+      response,
+      json: { ...status, claude_available: true }
+    });
+  });
   await openLater(page, tmpPath);
   await expect(page.locator('.jp-Epi-bench > .jp-Epi-note')).toContainText(
     'Does treatment arm B change how pain evolves'
@@ -5342,7 +5513,7 @@ test('asks about the rows in a box selected on a Plotly chart', async ({
     steps: 10
   });
   await page.mouse.up();
-  await expect(popover(page)).toContainText(/week [\d.-]+–[\d.]+, pain/);
+  await expect(popover(page)).toContainText(/week [\d.-]+ to [\d.]+, pain/);
   await expect(popover(page)).toContainText('20 rows');
   await expect(popover(page)).toContainText('Keep selection as a variable');
 });

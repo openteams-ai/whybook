@@ -22,11 +22,12 @@ def test_the_questions_of_a_templates_value_say_that_the_template_chose_it():
 
 
 def test_a_templates_value_is_not_offered_as_the_agents_choice():
-    # "The agent chose it; nobody checked it" is said of the AI's values alone.
-    assert [option.effect for option in single_cell_questions(JOIN, Context()) if option.effect.startswith("The agent")] == []
+    # "Is how = "left" the right choice?" is asked of the values of code that a
+    # model wrote, or that does not record which wrote it (test_question_words.py).
+    assert [option.effect for option in single_cell_questions(JOIN, Context()) if "checked it" in option.effect] == []
     agent = CellInfo(id="c2", label="[2]", source=JOIN.source, decisions=[left("agent")])
     template = CellInfo(id="c2", label="[2]", source=JOIN.source, decisions=[left("template")])
-    assert [option.effect for option in single_cell_questions(agent, Context())] == ["The agent chose it; nobody checked it"]
+    assert [option.effect for option in single_cell_questions(agent, Context())] == ["Nobody checked it"]
     assert single_cell_questions(template, Context()) == []
 
 

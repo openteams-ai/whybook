@@ -629,9 +629,10 @@ export function rangeEnds(
 }
 
 /**
- * A range of values on an axis of a plot: 5–9, 0.0012–0.0048, 2024-01-03 to
- * 2024-01-10, or one value when both ends read the same. `values` are the
- * plot's own values on that axis (rangeEnds).
+ * A range of values, on an axis of a plot or of a column in Contents: 5 to
+ * 9, -3 to 2.99, 2024-01-03 to 2024-01-10, or one value when both ends read
+ * the same. With a dash between the ends, a negative low end reads like a
+ * subtraction. `values` are the plot's own values on that axis (rangeEnds).
  */
 export function rangeText(
   low: number,
@@ -640,10 +641,7 @@ export function rangeText(
   values: number[] = []
 ): string {
   const [from, to] = rangeEnds(low, high, axis, values);
-  if (from === to) {
-    return from;
-  }
-  return axis?.type === 'date' ? `${from} to ${to}` : `${from}–${to}`;
+  return from === to ? from : `${from} to ${to}`;
 }
 
 /** The values that a plot draws on one axis: its points, its lines or its bins. */

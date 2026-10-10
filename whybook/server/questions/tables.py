@@ -136,7 +136,7 @@ def table_options(drop: TableDrop, root: str | None) -> dict[str, Any]:
         sample = reader(drop, f"{everything} LIMIT {SAMPLE}") + [f"{name}_sample = _frame", "del _frame", f"{name}_sample.head()"]
         options.append(_option(f"Load the first {SAMPLE:,} rows of {drop.table}", "descriptive", 0.72, home, "\n".join(sample), f"{rows:,} rows in all: a sample first", drop))
     profile = reader(drop, f"{everything} LIMIT 100000") + ["", "import whybook", "", "whybook.profile(_frame)"]
-    options.append(_option(f"Profile {drop.table} before loading it", "quality", 0.6, preview, "\n".join(profile), "Types, missing values and duplicates · kept only if you pin it", drop))
+    options.append(_option(f"Profile {drop.table} before loading it", "quality", 0.6, preview, "\n".join(profile), f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop))
     # The frames that the cell loads or reads (design iteration 1.87): a cell that loads
     # sites shares its key with the visits dropped on it, though it reads no frame.
     frames = starts.cell_frames(cell, context)

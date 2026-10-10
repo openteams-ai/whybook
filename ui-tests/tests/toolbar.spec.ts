@@ -246,3 +246,299 @@ test.describe('with items left out and buttons added in the settings', () => {
     expect(await restarted).toBe(true);
   });
 });
+
+/**
+ * The three icons of the layouts fold into one menu button when, with them,
+ * an item before the spacer would go into "⋯" (Run all and AI among them),
+ * or when the button keeps an item in the row that the icons push into "⋯"
+ * (src/ui/layoutitem.tsx). The widths of the folded button and of the three
+ * icons, from style/toolbar.css and the segmented control of style/base.css.
+ */
+const BUTTON = 52;
+const ICONS = 106;
+
+/**
+ * How many items JupyterLab's toolbar keeps in its row, of items of these
+ * widths: as many as fit with its 2 + 5 px of padding and its 32 px "⋯"
+ * button, and the last one too when every item fits with the padding alone.
+ * The same count as `rowCount` of src/ui/layoutitem.tsx.
+ */
+function rowCount(widths: number[], room: number): number {
+  let total = 0;
+  let count = 0;
+  for (const width of widths) {
+    total += width;
+    if (7 + 32 + total >= room) {
+      break;
+    }
+    count++;
+  }
+  const all = widths.reduce((sum, width) => sum + width, 0);
+  if (count >= widths.length - 1 && 7 + all < room) {
+    return widths.length;
+  }
+  return Math.min(count, widths.length - 1);
+}
+
+interface IToolbarState {
+  /** The toolbar's width, as the toolbar reads it. */
+  room: number;
+  /** The items in the toolbar's row and in its "⋯" menu, in order. */
+  row: string[];
+  menu: string[];
+  folded: boolean;
+  /** The widths of the items in the row, as the toolbar counts them. */
+  widths: Record<string, number>;
+  /** The items of the row drawn past the toolbar's end or under its row. */
+  overflow: string[];
+  height: number;
+}
+
+function toolbarState(page: IJupyterLabPageFixture): Promise<IToolbarState> {
+  return page.evaluate(() => {
+    const toolbar = (window as any).jupyterapp.shell.currentWidget.toolbar;
+    const node = toolbar.node as HTMLElement;
+    const opener = toolbar.layout.widgets.find((item: any) =>
+      item.hasClass('jp-Toolbar-responsive-opener')
+    );
+    const items = toolbar.layout.widgets.filter((item: any) => item !== opener);
+    const box = node.getBoundingClientRect();
+    const widths: Record<string, number> = {};
+    const overflow: string[] = [];
+    for (const item of items) {
+      const name = item.node.dataset.jpItemName as string;
+      widths[name] = item.hasClass('jp-Toolbar-spacer')
+        ? 2
+        : item.node.clientWidth;
+      const rect = (item.node as HTMLElement).getBoundingClientRect();
+      if (
+        rect.width > 0 &&
+        (rect.right > box.right + 0.5 ||
+          rect.top < box.top - 0.5 ||
+          rect.bottom > box.bottom + 0.5)
+      ) {
+        overflow.push(name);
+      }
+    }
+    const layout = document.querySelector(
+      '[data-jp-item-name="epi-layout"]'
+    ) as HTMLElement;
+    return {
+      room: node.clientWidth,
+      row: items.map((item: any) => item.node.dataset.jpItemName),
+      menu: Array.from(
+        { length: opener.widgetCount() },
+        (_, index) => opener.widgetAt(index).node.dataset.jpItemName
+      ),
+      folded: layout.classList.contains('jp-mod-folded'),
+      widths,
+      overflow,
+      height: box.height
+    };
+  });
+}
+
+/** The state of the toolbar once it stays the same for half a second. */
+async function settledState(
+  page: IJupyterLabPageFixture
+): Promise<IToolbarState> {
+  let last = '';
+  await expect
+    .poll(
+      async () => {
+        const now = JSON.stringify(await toolbarState(page));
+        const same = now === last;
+        last = now;
+        return same;
+      },
+      { intervals: [500], timeout: 20000 }
+    )
+    .toBe(true);
+  return JSON.parse(last) as IToolbarState;
+}
+
+/** The widths of the items in "⋯", read with the menu open. */
+async function menuWidths(
+  page: IJupyterLabPageFixture
+): Promise<Record<string, number>> {
+  const opener = page
+    .locator(
+      '.jp-MainAreaWidget:not(.lm-mod-hidden) .jp-Toolbar-responsive-opener'
+    )
+    .first();
+  if (!(await opener.isVisible())) {
+    return {};
+  }
+  await opener.click();
+  const widths = await page.evaluate(() => {
+    const toolbar = (window as any).jupyterapp.shell.currentWidget.toolbar;
+    const menu = toolbar.layout.widgets.find((item: any) =>
+      item.hasClass('jp-Toolbar-responsive-opener')
+    );
+    const result: Record<string, number> = {};
+    for (let index = 0; index < menu.widgetCount(); index++) {
+      const item = menu.widgetAt(index);
+      result[item.node.dataset.jpItemName] = item.hasClass('jp-Toolbar-spacer')
+        ? 2
+        : item.node.clientWidth;
+    }
+    return result;
+  });
+  await opener.click();
+  return widths;
+}
+
+/**
+ * At each width of the window, with both side panels open: the items that
+ * the toolbar shows and those in "⋯", whether the three icons fold, and that
+ * no item overflows the toolbar. The side panels open at the widths of a
+ * fresh JupyterLab, or at their 250 px minimum in a workspace saved while a
+ * panel was closed: the checks below hold at both, and the items in each
+ * place follow from the widths that the browser gives the items.
+ */
+const WINDOWS: {
+  width: number;
+  check: (state: IToolbarState) => void;
+}[] = [
+  {
+    width: 1024,
+    check: state => {
+      // The button stays in the toolbar, where the three icons went into "⋯".
+      expect(state.folded).toBe(true);
+      expect(state.row).toEqual(['epi-view', 'epi-mode', 'epi-layout']);
+    }
+  },
+  {
+    width: 1280,
+    check: state => {
+      expect(state.folded).toBe(true);
+      expect(state.row).toContain('epi-detail');
+      expect(state.menu).toContain('epi-ai');
+    }
+  },
+  {
+    width: 1366,
+    check: state => {
+      expect(state.row).toContain('epi-run-all');
+      expect(state.menu).toEqual(
+        expect.arrayContaining(['kernelName', 'executionProgress'])
+      );
+    }
+  },
+  {
+    width: 1440,
+    check: state => {
+      expect(state.row).toEqual(
+        expect.arrayContaining(['epi-run-all', 'epi-ai'])
+      );
+      expect(state.menu).toEqual(['kernelName', 'executionProgress']);
+    }
+  }
+];
+
+for (const { width, check } of WINDOWS) {
+  test.describe(`in a window ${width} px wide`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    test('shows the items that fit, folds the layout icons when room is short, and overflows nothing', async ({
+      page,
+      tmpPath
+    }) => {
+      await openInWhybook(page, `${tmpPath}/fold.ipynb`);
+      // Whybook opens both side panels with the first notebook.
+      await expect(page.locator('#epi-variables')).toBeVisible();
+      await expect(page.locator('#epi-exploration')).toBeVisible();
+      await expect(page.locator('.jp-Epi-layoutitem')).toHaveCount(1);
+      const state = await settledState(page);
+      const widths = { ...state.widths, ...(await menuWidths(page)) };
+      // The items keep their order, those in "⋯" after those shown.
+      expect([...state.row, ...state.menu]).toEqual(DEFAULT_ITEMS);
+      expect(state.overflow).toEqual([]);
+      expect(state.height).toBeLessThan(40);
+      // The layout's item measures what the toolbar counts for its form.
+      expect(widths['epi-layout']).toBe(state.folded ? BUTTON : ICONS);
+      // The toolbar's rows with the three icons and with the button.
+      const sizes = (layout: number) =>
+        DEFAULT_ITEMS.map(name =>
+          name === 'epi-layout' ? layout : widths[name]
+        );
+      const withIcons = rowCount(sizes(ICONS), state.room);
+      const withButton = rowCount(sizes(BUTTON), state.room);
+      const beforeSpacer = DEFAULT_ITEMS.indexOf('spacer');
+      expect({ width, folded: state.folded }).toEqual({
+        width,
+        folded: withIcons < beforeSpacer || withButton > withIcons
+      });
+      expect(state.row).toEqual(
+        DEFAULT_ITEMS.slice(0, state.folded ? withButton : withIcons)
+      );
+      // The three icons show only with Run all and AI in the toolbar.
+      if (!state.folded) {
+        expect(state.row).toEqual(
+          expect.arrayContaining(['epi-run-all', 'epi-ai'])
+        );
+      }
+      check(state);
+      test.info().annotations.push({
+        type: 'toolbar',
+        description: JSON.stringify({
+          width,
+          room: state.room,
+          folded: state.folded,
+          row: state.row,
+          menu: state.menu
+        })
+      });
+    });
+  });
+}
+
+test.describe('the layout menu button', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test('opens its menu from the keyboard, and gives the focus back on Escape', async ({
+    page,
+    tmpPath
+  }) => {
+    await openInWhybook(page, `${tmpPath}/menu.ipynb`);
+    await expect(page.locator('#epi-exploration')).toBeVisible();
+    const button = page.locator('.jp-Epi-layoutbutton');
+    await expect(button).toBeVisible();
+    await expect(button).toHaveAttribute('aria-haspopup', 'menu');
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    // Shift+Tab from the view reaches the toolbar, and the arrow keys move
+    // along its items to the button.
+    await page.locator('.jp-Epi-bench button').first().focus();
+    await page.keyboard.press('Shift+Tab');
+    for (
+      let i = 0;
+      i < 15 &&
+      !(await button.evaluate(node => node === document.activeElement));
+      i++
+    ) {
+      await page.keyboard.press('ArrowRight');
+    }
+    await expect(button).toBeFocused();
+    await page.keyboard.press('Enter');
+    const menu = page.locator('.jp-Epi-layoutmenu');
+    await expect(menu).toBeVisible();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    // The current layout, Panels in the sidebars, has the focus and the check.
+    const current = menu.locator('.lm-Menu-item').first();
+    await expect(current).toBeFocused();
+    await expect(current).toHaveAttribute('aria-checked', 'true');
+    await expect(menu.locator('.lm-Menu-itemLabel')).toHaveText([
+      'Panels in the sidebars',
+      'Variables beside the notebook',
+      'All panels beside the notebook'
+    ]);
+    await page.keyboard.press('ArrowDown');
+    await expect(menu.locator('.lm-Menu-item').nth(1)).toHaveClass(
+      /lm-mod-active/
+    );
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(button).toBeFocused();
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+});

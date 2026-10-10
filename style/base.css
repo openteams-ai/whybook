@@ -605,6 +605,57 @@
   white-space: nowrap;
 }
 
+/*
+ * In Variables, a size shows whole. The type before it takes the room that
+ * is left: it ends in an ellipsis where it does not fit, and does not show
+ * where fewer than about three letters fit, since a sliver such as "D" of
+ * "DataFrame" reads as nothing. Three letters and an ellipsis, "Dat…", take
+ * about 2.5em. A type narrower than that shows whole or not at all. The
+ * row's tooltip holds the whole type. The name gives way only where the
+ * size does not fit beside it. A constant's value can be long, and gives
+ * way itself, as above.
+ */
+.jp-Epi-variable:not(.jp-mod-value) .jp-Epi-item-name {
+  flex-shrink: 1;
+}
+
+/*
+ * The type's box is one line high, and the word in it wraps onto a second
+ * line, out of sight, where it does not fit: its basis of 2.5em, or its
+ * whole width if that is less, is the room that it needs. The box's
+ * ::before is the row's gap before the type, moved into the box, so that a
+ * type that does not show takes no gap. It holds a zero-width space, so
+ * that the box keeps the baseline of the type's text when the word wraps.
+ */
+.jp-Epi-variable:not(.jp-mod-value) .jp-Epi-item-type {
+  display: flex;
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  min-width: 0;
+  height: 1lh;
+  margin-left: -8px;
+  overflow: hidden;
+}
+
+.jp-Epi-variable:not(.jp-mod-value) .jp-Epi-item-type::before {
+  content: '\200b';
+  flex: none;
+  width: 8px;
+}
+
+.jp-Epi-variable:not(.jp-mod-value) .jp-Epi-item-type > span {
+  flex: 1 1 2.5em;
+  min-width: 0;
+  max-width: max-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jp-Epi-variable:not(.jp-mod-value) .jp-Epi-item-shape {
+  flex-shrink: 0;
+}
+
 .jp-Epi-column {
   align-items: center;
 }
@@ -633,23 +684,11 @@
   background: var(--jp-ui-inverse-font-color1);
 }
 
+/* Where the groups or the rows of a frame come from, above its columns. */
 .jp-Epi-repr {
-  display: flex;
-  gap: 6px;
-  align-items: center;
   font-size: var(--jp-ui-font-size0);
+  line-height: 1.4;
   color: var(--jp-ui-font-color2);
-}
-
-.jp-Epi-repr-label {
-  padding: 1px 6px;
-  border-radius: var(--jp-border-radius);
-  background: var(--jp-layout-color2);
-  color: var(--jp-ui-font-color1);
-}
-
-.jp-Epi-repr-who {
-  margin-left: auto;
 }
 
 .jp-Epi-groups {
@@ -3417,11 +3456,19 @@ button.jp-Epi-textoutput:hover,
   white-space: nowrap;
 }
 
+/* The link to the view in front, on a line of its own, and under it the others. */
 .jp-Epi-details-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: -4px;
+}
+
+.jp-Epi-details-elsewhere {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
-  margin-top: -4px;
 }
 
 .jp-Epi-details-section {
@@ -4322,6 +4369,15 @@ button.jp-Epi-textoutput:hover,
   max-width: 512px;
 }
 
+/* The paragraphs of a task's help: the task, then how its model was measured. */
+.jp-Epi-help-text > p {
+  margin: 0;
+}
+
+.jp-Epi-help-text > p + p {
+  margin-top: 6px;
+}
+
 /*
  * A select fills its column. Without a width it takes the width of its
  * longest option, such as "Remote AI model: OpenRouter:
@@ -4650,6 +4706,49 @@ button.jp-Epi-textoutput:hover,
   font-size: var(--jp-ui-font-size1);
   line-height: 1.4;
   color: var(--jp-ui-font-color1);
+}
+
+/*
+ * "Running all cells" while Run all runs: the dots count from one to three
+ * and start again. A hidden dot keeps its room, so that the words do not
+ * move. With reduced motion, an ellipsis stands still in their place.
+ */
+.jp-Epi-dots > span:nth-child(2) {
+  animation: jp-epi-dot-two 1.5s steps(1, end) infinite;
+}
+
+.jp-Epi-dots > span:nth-child(3) {
+  animation: jp-epi-dot-three 1.5s steps(1, end) infinite;
+}
+
+@keyframes jp-epi-dot-two {
+  0% {
+    opacity: 0;
+  }
+
+  33.333% {
+    opacity: 1;
+  }
+}
+
+@keyframes jp-epi-dot-three {
+  0% {
+    opacity: 0;
+  }
+
+  66.667% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jp-Epi-dots > span {
+    display: none;
+  }
+
+  .jp-Epi-dots::after {
+    content: '…';
+  }
 }
 
 /* A notebook whose file is still loading: the outline of two cells, and a line that says so. */

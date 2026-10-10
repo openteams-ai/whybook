@@ -13,7 +13,7 @@ import { Signal } from '@lumino/signaling';
 
 import type { Api } from '../model/api';
 import { modelsFieldRenderer } from '../ui/modelsfield';
-import { mount, settle } from './fakes/bench-render';
+import { mount, settle, step } from './fakes/bench-render';
 
 describe('The field of the models by task', () => {
   it('fills its column with each select, so that a long model name stops before the arrow', async () => {
@@ -60,5 +60,49 @@ describe('The field of the models by task', () => {
     } finally {
       style.remove();
     }
+  });
+});
+
+describe('The note and the help of "Question order"', () => {
+  it('reads one short sentence under the select, and the measurement is the last paragraph of the help', async () => {
+    const owner = {};
+    const settings = {
+      composite: { models: {}, keepDataLocal: false, customLocalModels: [] },
+      user: { models: {} },
+      changed: new Signal(owner),
+      set: async () => undefined
+    } as unknown as ISettingRegistry.ISettings;
+    const api = {
+      status: async () => {
+        throw new Error('no server in this test');
+      }
+    } as unknown as Api;
+    const Field = modelsFieldRenderer(api);
+    const view = await mount(
+      <Field
+        schema={{ title: 'AI models by task' }}
+        formContext={{ settings }}
+      />
+    );
+    await settle();
+    const task = view.host
+      .querySelector('#jp-Epi-model-ranking')!
+      .closest('.jp-Epi-modelsfield-task')!;
+    const note = task.querySelector('.jp-Epi-modelsfield-note')?.textContent;
+    const help = task.querySelector<HTMLButtonElement>('.jp-Epi-help')!;
+    await step(() => help.click());
+    const paragraphs = Array.from(
+      task.querySelectorAll('.jp-Epi-help-text > p')
+    ).map(paragraph => paragraph.textContent);
+    await view.unmount();
+    expect({
+      note,
+      paragraphs: paragraphs.length,
+      last: paragraphs[1]
+    }).toEqual({
+      note: 'Rules, then a learned order of the types of question.',
+      paragraphs: 2,
+      last: "Measured on 4,790 cells of public notebooks, asked again by dragging the variables they use: the first question had the type of the analyst's next question for 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order."
+    });
   });
 });

@@ -15,7 +15,7 @@ import {
   TASKS,
   WAITING
 } from '../model/models';
-import { HelpButton, useDismiss, useModel } from './common';
+import { HelpButton, useDismiss, useModel, viewOf } from './common';
 import { ModelOptions } from './modeloptions';
 import { ConnectionSection } from './connection';
 import { DataPolicyToggle, RetentionToggle } from './datapolicy';
@@ -40,13 +40,20 @@ export function AIButton(props: {
     right: number;
     top: number;
   } | null>(null);
+  // The element that had the focus when the panel opened, such as the link
+  // of a note, takes it back on Escape: the AI button, after its own click.
+  const opener = React.useRef<HTMLElement | null>(null);
   const open = React.useCallback(() => {
-    const box = button.current?.getBoundingClientRect();
-    if (box) {
-      // A model downloaded since the view opened shows up.
-      model.refreshStatus();
-      setWhere({ right: window.innerWidth - box.right, top: box.bottom + 2 });
-    }
+    // A model downloaded since the view opened shows up.
+    model.refreshStatus();
+    const active = document.activeElement;
+    opener.current =
+      active instanceof HTMLElement &&
+      active !== document.body &&
+      !panel.current?.contains(active)
+        ? active
+        : null;
+    setWhere(placeOf(button.current, viewOf(model)));
   }, [model]);
   React.useEffect(() => {
     model.modelsPanelRequested.connect(open);
@@ -81,7 +88,10 @@ export function AIButton(props: {
         const inside = panel.current?.contains(document.activeElement);
         setWhere(null);
         if (inside) {
-          button.current?.focus();
+          const back = opener.current?.isConnected
+            ? opener.current
+            : button.current;
+          back?.focus();
         }
       }
     };
@@ -219,6 +229,34 @@ export function AIButton(props: {
         )}
     </>
   );
+}
+
+/**
+ * Where the panel opens: under the AI button, with their right edges in
+ * line. The toolbar's "⋯" menu holds the items that the toolbar has no room
+ * for, and while it is closed the button in it has no box: the panel then
+ * opens under the toolbar, at the right edge of the notebook, where "⋯" is.
+ * With the notebook out of sight too, it opens at the top right of the window.
+ */
+function placeOf(
+  button: HTMLElement | null,
+  view: HTMLElement | null
+): { right: number; top: number } {
+  const under = boxOf(button);
+  if (under) {
+    return { right: window.innerWidth - under.right, top: under.bottom + 2 };
+  }
+  const area = boxOf(view);
+  if (area) {
+    return { right: window.innerWidth - area.right, top: area.top + 2 };
+  }
+  return { right: 8, top: 8 };
+}
+
+/** The box of an element on the page, or null when it shows nowhere. */
+function boxOf(element: HTMLElement | null): DOMRect | null {
+  const box = element?.getBoundingClientRect();
+  return box && (box.width > 0 || box.height > 0) ? box : null;
 }
 
 /**

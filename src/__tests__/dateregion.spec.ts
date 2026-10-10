@@ -131,7 +131,7 @@ describe('a box drawn over daily dates', () => {
     expect(askTitle(model)).toBe('day 2024-03-13 to 2024-03-31');
     model.ask = brushed([0.00469917816775469, 0.007449049900505685]);
     expect(askTitle(model)).toBe(
-      'day 2024-03-13 to 2024-03-31, dose_mg 0.0047–0.00745'
+      'day 2024-03-13 to 2024-03-31, dose_mg 0.0047 to 0.00745'
     );
   });
 

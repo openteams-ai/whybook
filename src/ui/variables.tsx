@@ -80,6 +80,21 @@ function shortType(variable: IVariable): string {
   return type.split('.').pop() ?? type;
 }
 
+/**
+ * The type in full, for the tooltip of a row of Variables, where the type
+ * can end in an ellipsis or not show at all (style/base.css): it holds the
+ * word that the row shows. "Selection of patients:
+ * pandas.core.frame.DataFrame" for a frame kept from a plot selection.
+ */
+function fullType(variable: IVariable): string {
+  const type = variable.type ?? variable.kind;
+  if (!variable.selection) {
+    return type;
+  }
+  const of = variable.selection.of;
+  return `${shortType(variable)}${of ? ` of ${of}` : ''}: ${type}`;
+}
+
 export function shapeOf(variable: IVariable): string {
   if (variable.kind === 'dataframe') {
     return `${(variable.rows ?? 0).toLocaleString()} × ${(variable.n_columns ?? 0).toLocaleString()}`;
@@ -109,8 +124,9 @@ export function columnMeta(column: IColumn): string {
   if (column.levels && column.levels.length === 2 && column.kind === 'binary') {
     parts.push(column.levels.join(' / '));
   } else if (column.tag === 'ord' && column.levels?.length) {
+    // "to", as in a range of numbers (rangeText): "-2 to 2".
     parts.push(
-      `${column.levels[0]}–${column.levels[column.levels.length - 1]}`
+      `${column.levels[0]} to ${column.levels[column.levels.length - 1]}`
     );
   } else if (
     (column.tag === 'cat' || column.tag === 'ord') &&
@@ -206,6 +222,12 @@ function VariableRow(props: {
   if (variable.stale) {
     classes.push('jp-mod-stale');
   }
+  // A size shows whole, and the type before it gives way; a constant's value
+  // can be long, and gives way itself (style/base.css).
+  if (variable.kind === 'constant') {
+    classes.push('jp-mod-value');
+  }
+  const size = shapeOf(variable);
   return (
     <button
       className={classes.join(' ')}
@@ -214,16 +236,20 @@ function VariableRow(props: {
       title={
         props.title ??
         (variable.stale
-          ? `${variable.type ?? variable.kind}, from the last run: not in the kernel`
-          : variable.type)
+          ? `${fullType(variable)}, from the last run: not in the kernel`
+          : fullType(variable))
       }
       data-variable={variable.name}
       tabIndex={props.tabIndex}
       onFocus={props.onFocus}
     >
       <span className="jp-Epi-item-name">{variable.name}</span>
-      <span className="jp-Epi-item-type">{shortType(variable)}</span>
-      <span className="jp-Epi-item-shape">{shapeOf(variable)}</span>
+      {/* The inner span goes where fewer than about three letters fit. */}
+      <span className="jp-Epi-item-type">
+        <span>{shortType(variable)}</span>
+      </span>
+      {/* No element without a size: its gap would widen the space after the type. */}
+      {size && <span className="jp-Epi-item-shape">{size}</span>}
     </button>
   );
 }
@@ -323,16 +349,19 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
         value={query}
         onChange={event => setQuery(event.target.value)}
       />
-      {stale > 0 && (
-        <div className="jp-Epi-stale-note">
-          {kernel
-            ? `${stale} from the last run, not in the kernel.`
-            : `No kernel is running: the ${stale} below ${stale === 1 ? 'is' : 'are'} from the last run.`}{' '}
-          <button className="jp-Epi-link" onClick={() => void model.runAll()}>
-            Run all
-          </button>
-        </div>
-      )}
+      {stale > 0 &&
+        (model.runningAll ? (
+          <RunningAllNote />
+        ) : (
+          <div className="jp-Epi-stale-note">
+            {kernel
+              ? `${stale} from the last run, not in the kernel.`
+              : `No kernel is running: the ${stale} below ${stale === 1 ? 'is' : 'are'} from the last run.`}{' '}
+            <button className="jp-Epi-link" onClick={() => void model.runAll()}>
+              Run all
+            </button>
+          </div>
+        ))}
       <div
         className="jp-Epi-list"
         role="list"
@@ -418,6 +447,26 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
   );
 }
 
+/**
+ * The note of Variables or Contents about names of the last run that the
+ * kernel lacks, while Run all runs: the cells that make them are queued or
+ * running, so the note offers no run. The dots count from one to three in a
+ * box of a fixed width, and stand still with reduced motion
+ * (style/base.css).
+ */
+function RunningAllNote(): JSX.Element {
+  return (
+    <div className="jp-Epi-stale-note">
+      Running all cells
+      <span className="jp-Epi-dots" aria-hidden="true">
+        <span>.</span>
+        <span>.</span>
+        <span>.</span>
+      </span>
+    </div>
+  );
+}
+
 /** The id of the head of a run's names among the rows of Variables. */
 function runRowId(run: string): string {
   return `run:${run}`;
@@ -475,7 +524,7 @@ function UndoneNames(props: {
         const name = variable.name;
         const removing = model.isRemoving(name);
         const question = model.undoneQuestion(name);
-        const type = variable.type ?? variable.kind;
+        const type = fullType(variable);
         return (
           <div
             key={name}
@@ -571,18 +620,22 @@ function ColumnRow(props: {
   };
   const armed =
     model.armed?.kind === 'column' && model.armed.name === column.name;
+  const meta = columnMeta(column);
   return (
     <button
       className={`jp-Epi-item jp-Epi-column${armed ? ' jp-mod-armed' : ''}`}
       {...itemHandlers(model, item)}
       aria-pressed={armed}
-      title={`${column.label} · ${column.dtype ?? column.tag}`}
+      // The whole line, which a narrow panel cuts with an ellipsis.
+      title={[column.label, column.dtype ?? column.tag, meta]
+        .filter(part => part)
+        .join(' · ')}
       tabIndex={props.tabIndex}
       onFocus={props.onFocus}
     >
       <span className="jp-Epi-column-tag">{column.tag}</span>
       <span className="jp-Epi-item-name">{column.label}</span>
-      <span className="jp-Epi-item-shape">{columnMeta(column)}</span>
+      <span className="jp-Epi-item-shape">{meta}</span>
       <span
         className={`jp-Epi-used${used ? ' jp-mod-used' : ''}`}
         title={used ? 'Used in the analysis' : 'Not used yet'}
@@ -674,16 +727,14 @@ function FrameContents(props: {
       ...listed.filter(c => !used.has(c.label))
     ];
   }
-  const repr = variable.groups
-    ? `grouped by ${variable.grouped_by ?? 'group'}`
+  // Where the groups or the rows come from, in one line of text. A plain
+  // list of columns has none: the caption under the search counts them.
+  const of = variable.selection?.of;
+  const source = variable.groups
+    ? `${variable.grouped_by ? `Grouped by ${variable.grouped_by}` : 'Grouped'}, from the frame's metadata.`
     : variable.selection
-      ? `rows of ${variable.selection.of}`
-      : 'column list';
-  const who = variable.groups
-    ? 'metadata'
-    : variable.selection
-      ? 'from a plot selection'
-      : 'metadata';
+      ? `Rows${of ? ` of ${of}` : ''}, from a plot selection.`
+      : null;
   let caption = counted(total, 'column', 'columns');
   if (variable.stale && columns.length < total) {
     caption = `${columns.length.toLocaleString()} of ${total.toLocaleString()} columns, as the notebook kept them`;
@@ -716,11 +767,7 @@ function FrameContents(props: {
         value={query}
         onChange={event => setQuery(event.target.value)}
       />
-      <div className="jp-Epi-repr">
-        <span>Shown as</span>
-        <span className="jp-Epi-repr-label">{repr}</span>
-        <span className="jp-Epi-repr-who">{who}</span>
-      </div>
+      {source && <div className="jp-Epi-repr">{source}</div>}
       {variable.selection?.where && (
         <div className="jp-Epi-caption">where {variable.selection.where}</div>
       )}
@@ -1013,17 +1060,20 @@ export function ContentsSection(props: { model: EpiModel }): JSX.Element {
           </button>
         )}
       </div>
-      {variable?.stale && (
-        <div className="jp-Epi-stale-note">
-          From the last run, not in the kernel now.{' '}
-          <button
-            className="jp-Epi-link"
-            onClick={event => model.askData(variable.name, anchorOf(event))}
-          >
-            Run the cells that make it
-          </button>
-        </div>
-      )}
+      {variable?.stale &&
+        (model.runningAll ? (
+          <RunningAllNote />
+        ) : (
+          <div className="jp-Epi-stale-note">
+            From the last run, not in the kernel now.{' '}
+            <button
+              className="jp-Epi-link"
+              onClick={event => model.askData(variable.name, anchorOf(event))}
+            >
+              Run the cells that make it
+            </button>
+          </div>
+        ))}
       {body}
       {variable && <VariableCells model={model} variable={variable} />}
     </div>

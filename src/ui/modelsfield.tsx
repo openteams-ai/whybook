@@ -130,7 +130,7 @@ function ModelsField(props: IFieldProps & { api: Api }): JSX.Element {
         const chosen = choices.find(choice => choice.id === value);
         return (
           <div className="jp-Epi-modelsfield-task" key={task.id}>
-            <TaskLabel task={task} />
+            <TaskLabel task={task} measured={chosen?.measured} />
             <HTMLSelect
               id={`jp-Epi-model-${task.id}`}
               value={value}
@@ -246,11 +246,16 @@ function ChoiceNote(props: {
 
 /**
  * A task's name with its help icon; the help shows as the tooltip, and under
- * the task after a click.
+ * the task after a click. How the chosen model did when it was measured is
+ * the last paragraph of the help.
  */
-function TaskLabel(props: { task: (typeof TASKS)[number] }): JSX.Element {
-  const { task } = props;
+function TaskLabel(props: {
+  task: (typeof TASKS)[number];
+  measured?: string;
+}): JSX.Element {
+  const { task, measured } = props;
   const [help, setHelp] = React.useState(false);
+  const paragraphs = measured ? [task.help, measured] : [task.help];
   return (
     <>
       <span className="jp-Epi-tasklabel">
@@ -262,12 +267,18 @@ function TaskLabel(props: { task: (typeof TASKS)[number] }): JSX.Element {
         </label>
         <HelpButton
           label={task.label}
-          text={task.help}
+          text={paragraphs.join('\n\n')}
           open={help}
           onToggle={() => setHelp(!help)}
         />
       </span>
-      {help && <div className="jp-Epi-help-text jp-mod-field">{task.help}</div>}
+      {help && (
+        <div className="jp-Epi-help-text jp-mod-field">
+          {paragraphs.map(text => (
+            <p key={text}>{text}</p>
+          ))}
+        </div>
+      )}
     </>
   );
 }

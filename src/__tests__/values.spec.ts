@@ -76,12 +76,12 @@ describe('columnMeta', () => {
   // The kernel lists six significant figures; Contents showed them all, cut
   // to "0.00100525–0.0…" (critique 4, the app).
   it('writes the range of a column as values in text, with three significant figures', () => {
-    expect(columnMeta(column(0.00100525, 0.00899545))).toBe('0.00101–0.009');
-    expect(columnMeta(column(2.35714, 9.3))).toBe('2.36–9.3');
+    expect(columnMeta(column(0.00100525, 0.00899545))).toBe('0.00101 to 0.009');
+    expect(columnMeta(column(2.35714, 9.3))).toBe('2.36 to 9.3');
   });
 
   it('writes a range of whole numbers whole, grouped', () => {
-    expect(columnMeta(column(1, 194, 'int'))).toBe('1–194');
-    expect(columnMeta(column(0, 129058, 'int'))).toBe('0–129,058');
+    expect(columnMeta(column(1, 194, 'int'))).toBe('1 to 194');
+    expect(columnMeta(column(0, 129058, 'int'))).toBe('0 to 129,058');
   });
 });

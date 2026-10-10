@@ -1,5 +1,6 @@
 import {
   cellWrittenBy,
+  codeModel,
   codeWriter,
   describeBy,
   noteFor,
@@ -178,5 +179,38 @@ describe('codeWriter', () => {
     expect(codeWriter({ written_by: 'agent', template: true })).toBe(
       'Whybook wrote the code from a template, with no model call.'
     );
+  });
+});
+
+describe('codeModel', () => {
+  it('names the model that wrote the code as Cell details does, and no one where the notebook records none', () => {
+    // The demo's model cell: the notebook does not record which wrote it.
+    expect(codeModel({ written_by: 'agent' })).toBeNull();
+    expect(codeModel({ written_by: 'agent', template: true })).toBeNull();
+    expect(codeModel({})).toBeNull();
+    expect(
+      codeModel({
+        written_by: 'agent',
+        generated_by: { agent: 'claude', model: 'a model', choice: 'remote' }
+      })
+    ).toBe('the remote AI model, a model');
+    expect(
+      codeModel({
+        written_by: 'agent',
+        generated_by: {
+          agent: 'llama.cpp',
+          model: 'Gemma 4 E2B',
+          choice: 'gemma-4-e2b',
+          at: AT
+        }
+      })
+    ).toBe('Gemma 4 E2B, a local model');
+    // Code that the analyst took over is theirs, as Cell details says.
+    expect(
+      codeModel({
+        written_by: 'user',
+        generated_by: { agent: 'claude', model: 'a model' }
+      })
+    ).toBeNull();
   });
 });

@@ -116,6 +116,29 @@ export function codeWriter(meta: IEpiCellMeta): string {
     : 'Whybook wrote the code, from a template or with an AI model; the notebook does not record which.';
 }
 
+/**
+ * The AI model that wrote a cell's code, in the words of Cell details
+ * (codeWriter): "the remote AI model, claude-opus-5-5". Null for the
+ * analyst's code, for a template's, and for code of the view that records
+ * no model. The questions about the values of the code name it
+ * (whybook/server/questions/cells.py).
+ */
+export function codeModel(meta: IEpiCellMeta): string | null {
+  const written = cellWrittenBy(meta.generated_by);
+  return written && meta.written_by !== 'user' ? writerOf(written) : null;
+}
+
+/** Who wrote or chose something: "the remote AI model, claude-opus-5-5". */
+function writerOf(by: IWrittenBy): string {
+  return isRemote(by.choice)
+    ? `the remote AI model${by.model ? `, ${by.model}` : ''}`
+    : by.choice === 'jev'
+      ? 'Jev, by TypeSafe'
+      : by.choice === 'script'
+        ? `${by.model ?? 'a script'} from the table's numbers, in place of an AI model`
+        : `${by.model ?? by.choice}, a local model`;
+}
+
 /** Who wrote or chose something, in words for the AI tag's tooltip. */
 export function describeBy(
   by: IWrittenBy | null | undefined,
@@ -124,13 +147,7 @@ export function describeBy(
   if (!by) {
     return `${verb} by an AI model; the notebook does not record which`;
   }
-  const who = isRemote(by.choice)
-    ? `the remote AI model${by.model ? `, ${by.model}` : ''}`
-    : by.choice === 'jev'
-      ? 'Jev, by TypeSafe'
-      : by.choice === 'script'
-        ? `${by.model ?? 'a script'} from the table's numbers, in place of an AI model`
-        : `${by.model ?? by.choice}, a local model`;
+  const who = writerOf(by);
   const date = new Date(by.at);
   const when = isNaN(date.getTime())
     ? ''

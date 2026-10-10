@@ -22,7 +22,7 @@ import { PLOT_MIME } from '../tokens';
 import { benchModel } from './fakes/bench-fake';
 import { mount, settle, step } from './fakes/bench-render';
 
-describe('"Show in the view" for a cell in a collapsed section', () => {
+describe('"Show on the bench" for a cell in a collapsed section', () => {
   const scrolled: Element[] = [];
   const scrollIntoView = Element.prototype.scrollIntoView;
   beforeAll(() => {

@@ -7,6 +7,7 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { IStatusBar } from '@jupyterlab/statusbar';
 import * as React from 'react';
 
+import { addCellItem, cellUnderMenu } from './cellmenu';
 import type { EpiModel } from './model/epimodel';
 import { AgentRuns, IAgentRuns } from './model/runs';
 import { viewExtensions } from './ui/extensions';
@@ -75,9 +76,7 @@ export const agentRunsPlugin: JupyterFrontEndPlugin<AgentRuns> = {
       if (!runs.history) {
         return null;
       }
-      const node = app.contextMenuHitTest(
-        item => item.dataset.cellId !== undefined
-      );
+      const node = cellUnderMenu(app);
       const cellId = node?.dataset.cellId;
       const panel = node
         ? Array.from(app.shell.widgets('main')).find(
@@ -102,11 +101,7 @@ export const agentRunsPlugin: JupyterFrontEndPlugin<AgentRuns> = {
         }
       }
     });
-    app.contextMenu.addItem({
-      command: SHOW_RUN,
-      selector: '.jp-Epi [data-cell-id]',
-      rank: 0.085
-    });
+    addCellItem(app, { command: SHOW_RUN, rank: 0.085 });
 
     if (settingRegistry) {
       void settingRegistry

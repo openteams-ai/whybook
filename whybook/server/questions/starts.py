@@ -35,6 +35,12 @@ SAMPLE = 1000
 NOT_KEYS = frozenset({"num", "date", "bool"})
 # A frame is the one with a row per key when it has at most a fifth of the rows of the other.
 FIFTH = 5
+# The end of the effect of a question that answers in a preview. Its verb is
+# the verb of the preview's button, Keep as a cell.
+UNLESS_KEPT = "no cell unless you keep it"
+# The endings of a last word that ends in s and is not a plural noun: glass,
+# status, analysis, demographics, and words such as diabetes and series.
+SINGULAR_ENDINGS = ("ss", "us", "is", "ics", "diabetes", "herpes", "measles", "mumps", "news", "rabies", "series", "species")
 
 # Makes the candidate of a question: its text, type, prior, placement, code and effect.
 Make = Callable[[str, str, float, Placement, str | None, str], Candidate]
@@ -54,6 +60,17 @@ def cell_frames(cell: CellInfo | None, context: Context) -> list[str]:
 
 def plural(noun: str) -> str:
     return f"{noun}s"
+
+
+def rows_of(name: str) -> str:
+    """What a question counts of a frame: "visits", or "rows of model_data" for a name that is not a plural noun.
+
+    The name is a plural noun when its last word ends in s, and not as
+    status, analysis or diabetes end (SINGULAR_ENDINGS). "How many
+    model_data per patient?" made the analyst read model_data as its rows.
+    """
+    word = name.lower().rstrip("_.0123456789")
+    return name if word.endswith("s") and not word.endswith(SINGULAR_ENDINGS) else f"rows of {name}"
 
 
 def _names(columns: Sequence[str], limit: int = 3) -> str:
@@ -132,7 +149,6 @@ def start_options(
     ``shape`` is None where no sample of the rows could be read: then the
     questions about numbers and levels are left out.
     """
-    kept = "kept only if you pin it"
 
     def question(text: str, what: str, prior: float, effect: str, body: str, imports: bool = False, shown: bool = True) -> Candidate:
         """A question: the data is read into a name of its own, the body prints or makes ``$answer``, and the data goes.
@@ -143,7 +159,7 @@ def start_options(
         data, answer = codegen.temporary(name, what), codegen.temporary(name, what, "answer")
         lines = [codegen.comment(text), *(["import whybook", ""] if imports else []), *read(data), ""]
         lines += [*_fill(body, data=data, answer=answer).split("\n"), f"del {data}", *([answer] if shown else [])]
-        return make(text, "descriptive", prior, place, "\n".join(lines), f"{effect} · {kept}")
+        return make(text, "descriptive", prior, place, "\n".join(lines), f"{effect} · {UNLESS_KEPT}")
 
     options = []
     text = f"What does one row of {label} hold?"
@@ -283,6 +299,8 @@ def combined_options(link: Link, load: list[str], make: Make, place: Placement, 
     key, one, many = link.key, link.one, link.many
     noun = unit_noun(key)
     nouns = plural(noun)
+    # What the questions count of the frame with several rows per key: "visits", or "rows of model_data".
+    counted = rows_of(many)
     quoted = codegen.literal(key)
     head = [*load, ""] if load else []
     options = []
@@ -290,30 +308,30 @@ def combined_options(link: Link, load: list[str], make: Make, place: Placement, 
     def code(text: str, lines: list[str], imports: bool = False) -> str:
         return "\n".join([codegen.comment(text), *(["import whybook", ""] if imports else []), *head, *lines])
 
-    text = f"How many {many} per {noun}?"
+    text = f"How many {counted} per {noun}?"
     lines = [f"whybook.rows_per_unit({many}, {quoted})"]
     options.append(make(text, "descriptive", 0.8, place, code(text, lines, imports=True), f"The rows of {many} for each {noun}, and the {nouns} with the fewest"))
 
     # The counts take the keys of the one frame, so that a key that the other frame lacks counts 0.
     counts, answer = (codegen.temporary(many, noun, word) for word in ("counts", "outliers"))
     first, third, low, high = (codegen.temporary(many, noun, word) for word in ("q1", "q3", "low", "high"))
-    text = f"Is any {noun} an outlier for the number of {many}?"
+    text = f"Is any {noun} an outlier for the number of {counted}?"
     lines = [
         f"{counts} = {many}.groupby({quoted}).size().reindex({one}[{quoted}].drop_duplicates(), fill_value=0)",
         f"{first}, {third} = {counts}.quantile([0.25, 0.75])",
         f"{low}, {high} = {first} - 1.5 * ({third} - {first}), {third} + 1.5 * ({third} - {first})",
         f"{answer} = {counts}[({counts} < {low}) | ({counts} > {high})].rename({codegen.literal(many)}).to_frame()",
-        f'print(len({answer}), "of", len({counts}), {codegen.literal(nouns)}, "are outliers for the number of {many}. Outside", format({low}, ".1f"), "to", format({high}, ".1f"), "(1.5 times the interquartile range beyond the quartiles).")',
+        f'print(len({answer}), "of", len({counts}), {codegen.literal(nouns)}, "are outliers for the number of {counted}. Outside", format({low}, ".1f"), "to", format({high}, ".1f"), "(1.5 times the interquartile range beyond the quartiles).")',
         f"del {counts}, {first}, {third}, {low}, {high}",
         answer,
     ]
-    options.append(make(text, "quality", 0.76, place, code(text, lines), f"The {many} of each {noun}, and those beyond 1.5 times the interquartile range"))
+    options.append(make(text, "quality", 0.76, place, code(text, lines), f"The {counted} for each {noun}, and those beyond 1.5 times the interquartile range"))
 
-    text = f"Which {nouns} have no {many}?"
+    text = f"Which {nouns} have no {counted}?"
     answer = codegen.temporary(one, "without", many)
     lines = [
         f"{answer} = {one}[~{one}[{quoted}].isin({many}[{quoted}])]",
-        f'print(len({answer}), "of", len({one}), {codegen.literal(nouns)}, "have no {many}.")',
+        f'print(len({answer}), "of", len({one}), {codegen.literal(nouns)}, "have no {counted}.")',
         answer,
     ]
     options.append(make(text, "quality", 0.72, place, code(text, lines), f"The rows of {one} whose {key} {many} does not hold"))

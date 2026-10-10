@@ -102,7 +102,6 @@ export function Segmented<T extends string>(props: {
  * the view.
  */
 function LayoutIcon(props: { left: boolean; right: boolean }): JSX.Element {
-  const inside = { left: props.left, right: props.right };
   return (
     <svg
       width="18"
@@ -111,37 +110,74 @@ function LayoutIcon(props: { left: boolean; right: boolean }): JSX.Element {
       aria-hidden="true"
       className="jp-Epi-layout-icon"
     >
-      <rect
-        x={inside.left ? 0.5 : 4.5}
-        y="0.5"
-        width={17 - (inside.left ? 0 : 4) - (inside.right ? 0 : 4)}
-        height="13"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-      />
-      <rect
-        x={inside.left ? 2 : 0}
-        y={inside.left ? 2 : 0.5}
-        width="3"
-        height={inside.left ? 10 : 13}
-        rx="0.75"
-        fill="currentColor"
-      />
-      <rect
-        x={inside.right ? 13 : 15}
-        y={inside.right ? 2 : 0.5}
-        width="3"
-        height={inside.right ? 10 : 13}
-        rx="0.75"
-        fill="currentColor"
-      />
+      {layoutRects(props.left, props.right).map((rect, index) => (
+        <rect key={index} {...rect} />
+      ))}
     </svg>
   );
 }
+
+/**
+ * The three shapes of a layout's icon: the view's frame, and the left and
+ * right panels, inside the frame or outside it.
+ */
+function layoutRects(
+  left: boolean,
+  right: boolean
+): Record<string, string | number>[] {
+  return [
+    {
+      x: left ? 0.5 : 4.5,
+      y: 0.5,
+      width: 17 - (left ? 0 : 4) - (right ? 0 : 4),
+      height: 13,
+      rx: 1.5,
+      fill: 'none',
+      stroke: 'currentColor'
+    },
+    {
+      x: left ? 2 : 0,
+      y: left ? 2 : 0.5,
+      width: 3,
+      height: left ? 10 : 13,
+      rx: 0.75,
+      fill: 'currentColor'
+    },
+    {
+      x: right ? 13 : 15,
+      y: right ? 2 : 0.5,
+      width: 3,
+      height: right ? 10 : 13,
+      rx: 0.75,
+      fill: 'currentColor'
+    }
+  ];
+}
+
+/** Which panels each layout puts inside the view: the left one, the right one. */
+const LAYOUT_PANELS = {
+  sidebars: [false, false],
+  'variables-here': [true, false],
+  'all-here': [true, true]
+} as const;
 
 export const LAYOUT_ICONS = {
   sidebars: <LayoutIcon left={false} right={false} />,
   'variables-here': <LayoutIcon left={true} right={false} />,
   'all-here': <LayoutIcon left={true} right={true} />
 };
+
+/**
+ * A layout's icon as the text of an SVG file, drawn as in `LAYOUT_ICONS`, for
+ * the icons of JupyterLab's menus.
+ */
+export function layoutIconSvg(layout: keyof typeof LAYOUT_PANELS): string {
+  const [left, right] = LAYOUT_PANELS[layout];
+  const rects = layoutRects(left, right).map(
+    rect =>
+      `<rect ${Object.entries(rect)
+        .map(([name, value]) => `${name}="${value}"`)
+        .join(' ')}/>`
+  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" viewBox="0 0 18 14">${rects.join('')}</svg>`;
+}

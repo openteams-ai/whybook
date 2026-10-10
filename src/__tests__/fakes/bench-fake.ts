@@ -6,6 +6,7 @@
 import type * as nbformat from '@jupyterlab/nbformat';
 import { NotebookModel } from '@jupyterlab/notebook';
 import type { IRenderMimeRegistry } from '@jupyterlab/rendermime';
+import type { User } from '@jupyterlab/services';
 import { ServerConnection } from '@jupyterlab/services';
 import { Signal } from '@lumino/signaling';
 
@@ -89,6 +90,8 @@ export function benchModel(
     runs?: AgentRuns;
     /** Another view of the same notebook: the new model shares its document. */
     view?: IBench;
+    /** JupyterLab's user, as `app.serviceManager.user` holds it. */
+    user?: User.IManager;
   } = {}
 ): IBench {
   const serverSettings = ServerConnection.makeSettings({
@@ -103,7 +106,8 @@ export function benchModel(
       rendermime: options.rendermime ?? NO_OUTPUTS,
       serverSettings,
       settings: new EpiSettings(),
-      runs: options.runs
+      runs: options.runs,
+      user: options.user
     });
     return { nb, model, context };
   }
@@ -139,7 +143,8 @@ export function benchModel(
     rendermime: options.rendermime ?? NO_OUTPUTS,
     serverSettings,
     settings: new EpiSettings(),
-    runs: options.runs
+    runs: options.runs,
+    user: options.user
   });
   return { nb, model, context };
 }

@@ -9,7 +9,9 @@ import type { EpiModel, IEpiCell } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
 import { codeMimeType } from '../model/languages';
 import { outputsOf } from '../model/notebook';
+import { askedLine, guessWho } from '../model/person';
 import { cellWrittenBy, codeWriter, describeBy } from '../model/writtenby';
+import type { IPerson } from '../tokens';
 import {
   AITag,
   CellLabel,
@@ -69,6 +71,13 @@ export function CellDetails(props: {
   );
 }
 
+/** The link of Cell details to the cell in the view in front, by view. */
+const SHOW_HERE: Record<EpiModel['view'], string> = {
+  bench: 'Show on the bench',
+  map: 'Show on the map',
+  linear: 'Show in the Code view'
+};
+
 function DetailsOf(props: {
   model: EpiModel;
   cell: IEpiCell;
@@ -89,6 +98,10 @@ function DetailsOf(props: {
   // A markdown cell: its place, the code around it and its questions, in
   // place of what only code has.
   const text = cell.type === 'markdown';
+  // The map shows code and texts, and not the heading of a section.
+  const onMapToo = !text || model.isNote(cell);
+  const toBench = model.view !== 'bench';
+  const toMap = model.view !== 'map' && onMapToo;
   // A cell of an agent's run shows the type of its own step.
   const badge = cellType(meta);
   return (
@@ -102,29 +115,36 @@ function DetailsOf(props: {
         <span className="jp-Epi-details-title">{cell.title}</span>
         {badge && <TypeBadge type={badge} />}
       </div>
+      {/* The view in front, named, on a line of its own; the others under it. */}
       <div className="jp-Epi-details-links">
-        <button
-          className="jp-Epi-link"
-          onClick={() => model.showCell(cell.id)}
-          title="Bring the cell into sight in this view"
-        >
-          Show in the view
-        </button>
-        {model.view !== 'bench' && (
+        {(model.view !== 'map' || onMapToo) && (
           <button
             className="jp-Epi-link"
-            onClick={() => model.showIn('bench', cell.id)}
+            onClick={() => model.showCell(cell.id)}
+            title="Bring the cell into sight and outline it for a moment"
           >
-            Show on the bench
+            {SHOW_HERE[model.view]}
           </button>
         )}
-        {model.view !== 'map' && (!text || model.isNote(cell)) && (
-          <button
-            className="jp-Epi-link"
-            onClick={() => model.showIn('map', cell.id)}
-          >
-            Show on the map
-          </button>
+        {(toBench || toMap) && (
+          <span className="jp-Epi-details-elsewhere">
+            {toBench && (
+              <button
+                className="jp-Epi-link"
+                onClick={() => model.showIn('bench', cell.id)}
+              >
+                Show on the bench
+              </button>
+            )}
+            {toMap && (
+              <button
+                className="jp-Epi-link"
+                onClick={() => model.showIn('map', cell.id)}
+              >
+                Show on the map
+              </button>
+            )}
+          </span>
         )}
       </div>
 
@@ -159,20 +179,7 @@ function DetailsOf(props: {
               )}
             </p>
           )}
-          <p className="jp-Epi-caption">
-            {meta.asked_by === 'agent'
-              ? 'An AI model asked it.'
-              : meta.question
-                ? 'You asked it.'
-                : null}
-            {meta.guess && (
-              <>
-                {' '}
-                Your guess before the result:{' '}
-                <GuessChip guess={meta.guess.value} />
-              </>
-            )}
-          </p>
+          <AskedCaption meta={meta} user={model.person} />
         </DetailsSection>
       )}
 
@@ -312,6 +319,30 @@ function RunLink(props: {
       <button className="jp-Epi-link" onClick={() => void model.openRun(id)}>
         Show the agent's run
       </button>
+    </p>
+  );
+}
+
+/**
+ * Who asked the question of a cell, and whose guess of the result it keeps:
+ * "You" and "Your" for the user of the page, `user` (../model/person.ts).
+ */
+function AskedCaption(props: {
+  meta: IEpiCell['meta'];
+  user: IPerson | null;
+}): JSX.Element {
+  const { meta, user } = props;
+  const asked = askedLine(meta, user);
+  return (
+    <p className="jp-Epi-caption">
+      {asked}
+      {meta.guess && (
+        <>
+          {asked ? ' ' : ''}
+          {guessWho(meta, user)} before the result:{' '}
+          <GuessChip guess={meta.guess.value} />
+        </>
+      )}
     </p>
   );
 }

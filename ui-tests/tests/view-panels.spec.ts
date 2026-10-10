@@ -800,8 +800,13 @@ test('keeps the tabs of the right panel in sight while what they show scrolls un
   page,
   tmpPath
 }) => {
-  // A window lower than the content of the panel, so that it scrolls.
-  await page.setViewportSize({ width: 1280, height: 560 });
+  // A window lower than the content of the panel, so that it scrolls. It keeps
+  // the width of playwright.config.js: at 1280 px the toolbar moves Run all,
+  // which openAndRun clicks, into its "⋯" menu.
+  await page.setViewportSize({
+    width: page.viewportSize()?.width ?? 1600,
+    height: 560
+  });
   const file = `${tmpPath}/righttabs.ipynb`;
   await writeNotebook(page, file, [
     code(

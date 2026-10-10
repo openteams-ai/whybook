@@ -315,6 +315,16 @@ export interface IDismissedStep {
 export type Guess = 'higher' | 'lower' | 'none' | 'unsure';
 
 /**
+ * A person who asked a question or made a guess, as the notebook records
+ * them: the username of JupyterLab's user, which tells two people apart, and
+ * the display name, which Cell details shows.
+ */
+export interface IPerson {
+  username: string;
+  name: string;
+}
+
+/**
  * A value that the analyst typed or picked for a decision of a cell, such as
  * 21 for MIN_DAYS: in the code that the view writes with it, the value is the
  * analyst's choice, not the AI's. `name` and `param` are the decision's, and
@@ -365,9 +375,20 @@ export interface IEpiCellMeta {
    * the question's type. The Exploration panel counts the question.
    */
   step_type?: QuestionType;
-  /** The analyst's guess before the result, for the question this cell answers. */
-  guess?: { question: string; value: Guess; at: string };
+  /**
+   * The analyst's guess before the result, for the question this cell
+   * answers, and the person who guessed, as `asked_by_person` records the
+   * person who asked. An answer that edits a cell in place keeps the cell's
+   * question, so the guess can be another person's.
+   */
+  guess?: { question: string; value: Guess; at: string; person?: IPerson };
   asked_by?: 'user' | 'agent';
+  /**
+   * The person who asked the question, from JupyterLab's user, when the
+   * server gave a real one, such as JupyterHub's (src/model/person.ts). An
+   * anonymous user, the demos and older notebooks record none.
+   */
+  asked_by_person?: IPerson;
   written_by?: 'user' | 'agent';
   /**
    * The view wrote the code from a template, with no model call: a drop's

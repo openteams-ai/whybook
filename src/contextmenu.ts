@@ -2,6 +2,8 @@ import type { JupyterFrontEnd } from '@jupyterlab/application';
 import { Clipboard, Notification } from '@jupyterlab/apputils';
 import type { NotebookPanel } from '@jupyterlab/notebook';
 
+import type { ICellItem } from './cellmenu';
+import { CELL, addCellItem, cellUnderMenu, makeCellMenu } from './cellmenu';
 import type { EpiModel, EpiSettings } from './model/epimodel';
 import { EXPLORED_ORDERS, exploredOrder } from './model/exploredorder';
 import type { IAnchor, IItem } from './tokens';
@@ -23,7 +25,10 @@ namespace CommandIDs {
   export const showOnMap = 'whybook:show-cell-on-map';
 }
 
-/** The description of a command that takes no arguments: these read the hit test. */
+/**
+ * The description of a command that takes no arguments: these act on the
+ * element under the right click, or on the card of the "⋯" button.
+ */
 const NO_ARGS = { args: { type: 'object', properties: {} } };
 
 /** How long the notice of a deleted cell, with its Undo, stays. */
@@ -48,6 +53,10 @@ export function addContextMenus(
   const { commands, contextMenu } = app;
   const hit = (attribute: string) =>
     app.contextMenuHitTest(node => node.dataset[attribute] !== undefined);
+  // The cell of a right click, or of the "⋯" button of its card.
+  const cellNode = () => cellUnderMenu(app);
+  const cellOf = () => cellNode()?.dataset.cellId ?? null;
+  makeCellMenu(app);
   const anchorOf = (node: HTMLElement | undefined): IAnchor | null => {
     if (!node) {
       return null;
@@ -95,7 +104,7 @@ export function addContextMenus(
     caption: 'Open the classic notebook view at this cell',
     describedBy: NO_ARGS,
     execute: async () => {
-      const cellId = hit('cellId')?.dataset.cellId;
+      const cellId = cellOf();
       const current = model();
       if (!cellId || !current) {
         return;
@@ -128,7 +137,7 @@ export function addContextMenus(
       },
       describedBy: NO_ARGS,
       execute: () => {
-        const cellId = hit('cellId')?.dataset.cellId;
+        const cellId = cellOf();
         const current = model();
         if (cellId && current?.cell(cellId)) {
           current.showIn(view, cellId);
@@ -140,7 +149,7 @@ export function addContextMenus(
     label: 'Run',
     describedBy: NO_ARGS,
     execute: () => {
-      const cellId = hit('cellId')?.dataset.cellId;
+      const cellId = cellOf();
       if (cellId) {
         void model()?.runCell(cellId);
       }
@@ -150,7 +159,7 @@ export function addContextMenus(
     label: () => 'Show or hide the code',
     describedBy: NO_ARGS,
     execute: () => {
-      const cellId = hit('cellId')?.dataset.cellId;
+      const cellId = cellOf();
       const current = model();
       if (cellId && current) {
         current.setView('bench');
@@ -162,7 +171,7 @@ export function addContextMenus(
     label: 'Ask about this cell',
     describedBy: NO_ARGS,
     execute: () => {
-      const node = hit('cellId');
+      const node = cellNode();
       const cellId = node?.dataset.cellId;
       if (cellId) {
         void model()?.askCells([cellId], anchorOf(node));
@@ -170,7 +179,6 @@ export function addContextMenus(
     }
   });
 
-  const cellOf = () => hit('cellId')?.dataset.cellId ?? null;
   commands.addCommand(CommandIDs.moveUp, {
     label: 'Move up',
     isEnabled: () => {
@@ -285,26 +293,30 @@ export function addContextMenus(
     [CommandIDs.askVariable, '.jp-Epi [data-variable]'],
     [CommandIDs.showVariable, '.jp-Epi [data-variable]'],
     [CommandIDs.copyName, '.jp-Epi [data-variable]'],
-    [CommandIDs.askCell, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.runCell, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.toggleCode, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.showOnBench, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.showOnMap, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.showInNotebook, '.jp-Epi [data-cell-id]'],
-    ['separator', '.jp-Epi [data-cell-id]'],
-    [CommandIDs.moveUp, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.moveDown, '.jp-Epi [data-cell-id]'],
-    [CommandIDs.deleteCell, '.jp-Epi [data-cell-id]'],
-    ['separator', '.jp-Epi [data-cell-id]'],
+    [CommandIDs.askCell, CELL],
+    [CommandIDs.runCell, CELL],
+    [CommandIDs.toggleCode, CELL],
+    [CommandIDs.showOnBench, CELL],
+    [CommandIDs.showOnMap, CELL],
+    [CommandIDs.showInNotebook, CELL],
+    ['separator', CELL],
+    [CommandIDs.moveUp, CELL],
+    [CommandIDs.moveDown, CELL],
+    [CommandIDs.deleteCell, CELL],
+    ['separator', CELL],
     [CommandIDs.loadTable, '.jp-Epi [data-table]']
   ];
-  items.forEach(([command, selector], rank) =>
-    contextMenu.addItem(
-      command === 'separator'
-        ? { type: 'separator', selector, rank: rank / 100 }
-        : { command, selector, rank: rank / 100 }
-    )
-  );
+  items.forEach(([command, selector], index) => {
+    const rank = index / 100;
+    const item: ICellItem =
+      command === 'separator' ? { type: 'separator', rank } : { command, rank };
+    // The items of a cell show in the menu of its card's "⋯" button too.
+    if (selector === CELL) {
+      addCellItem(app, item);
+    } else {
+      contextMenu.addItem({ ...item, selector });
+    }
+  });
   EXPLORED_ORDERS.forEach((order, rank) =>
     contextMenu.addItem({
       command: CommandIDs.exploredOrder,

@@ -6,7 +6,9 @@
  *   notebook, so that the model does not ask again what a run settled;
  * - a question that the model wrote and the analyst asked since does not
  *   come back when the same drop shows the model's questions again;
- * - a value that a template wrote is chosen by the template, and not by AI.
+ * - a value that a template wrote is chosen by the template, and not by AI;
+ * - a cell in a request for questions names the model that wrote its code,
+ *   and no writer where the notebook records none (critique 5, the app, A11).
  */
 // The fake first: it quiets the warnings of JupyterLab's modules in jest.
 import { fakeModel, settle, until } from './fakes/model-fake';
@@ -315,5 +317,27 @@ describe('a value that a template wrote', () => {
     expect(html).not.toContain('jp-Epi-ai"');
     // A file that a template reads is still shown by its name.
     expect(readsFile({ ...read, provenance: 'template' })).toBe(true);
+  });
+});
+
+describe('a cell in a request for questions', () => {
+  it('names the model that wrote its code, and no writer where the notebook records none', () => {
+    // The server's question about a value of the code names the writer as
+    // Cell details does. The demo's model cell records only written_by.
+    const { model } = fakeModel([
+      { id: 'demo', meta: { written_by: 'agent' } },
+      {
+        id: 'written',
+        meta: {
+          written_by: 'agent',
+          generated_by: { agent: 'openrouter', model: 'fake/model' }
+        }
+      },
+      { id: 'template', meta: { written_by: 'agent', template: true } },
+      { id: 'yours' }
+    ]);
+    expect(
+      model.codeCells().map((cell: any) => model.cellJSON(cell).writer)
+    ).toEqual([null, 'the remote AI model, fake/model', null, null]);
   });
 });

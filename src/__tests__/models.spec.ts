@@ -227,8 +227,12 @@ describe('choicesFor', () => {
     expect(ranking[2].note).toMatch(/45% of them, against 57% with the rules/);
     // The remote model's prompt predicts the next question, as measured.
     expect(ranking[1].note).toMatch(/61% of them, against 57% with the rules/);
-    expect(ranking[0].note).toMatch(
-      /52.4% of them, against 33.9% with the rules alone and 26.5% in a random order/
+    // The rules' note says what they do; the measurement is in the help.
+    expect(ranking[0].note).toBe(
+      'Rules, then a learned order of the types of question.'
+    );
+    expect(ranking[0].measured).toMatch(
+      /^Measured on 4,790 cells .* 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order\.$/
     );
     // Jev orders questions through Cloudflare too, as the ranker did before TypeSafe.
     const cloudflare = { ...STATUS, jev_configured: true };

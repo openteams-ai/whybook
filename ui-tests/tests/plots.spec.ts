@@ -223,7 +223,7 @@ test('asks about the rows in a box dragged on a matplotlib scatter plot', async 
   await box(img);
   await expect(rows).toHaveText(/^10 rows/, { timeout: 30000 });
   await expect(popover(page).locator('.jp-Epi-ask-head')).toContainText(
-    /^week -0\.\d+–9\.\d+, pain -0\.\d+–4\.\d+/
+    /^week -0\.\d+ to 9\.\d+, pain -0\.\d+ to 4\.\d+/
   );
   await expect(card.locator('.jp-Epi-imagebox')).toBeVisible();
   await popover(page).locator('.jp-Epi-close').click();

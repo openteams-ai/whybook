@@ -1000,8 +1000,8 @@ test('puts a deleted cell back between its old neighbours after another delete',
     .toEqual(['b', 'c', 'd']);
 });
 
-// Item 35: "Show in the view" did nothing for a cell in a collapsed section
-// of the bench.
+// Item 35: "Show on the bench" in Cell details, for a cell in a collapsed
+// section of the bench.
 test('opens a collapsed section to show one of its cells, from Cell details and from the menu of a card on the map', async ({
   page,
   tmpPath
@@ -1046,10 +1046,10 @@ test('opens a collapsed section to show one of its cells, from Cell details and 
   await expect(card).toHaveCount(0);
   await toTop();
 
-  // "Show in the view" opens the section and brings the card into sight.
+  // "Show on the bench" opens the section and brings the card into sight.
   await page
-    .locator('#epi-exploration .jp-Epi-details-links button', {
-      hasText: 'Show in the view'
+    .locator('#epi-exploration .jp-Epi-details-links > button', {
+      hasText: 'Show on the bench'
     })
     .click();
   await expect(head).toHaveAttribute('aria-expanded', 'true');

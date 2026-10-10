@@ -633,18 +633,43 @@ export function OptionRows<T extends Pick<IOption, 'id' | 'code'>>(props: {
 /**
  * One line above questions that need AI, when no AI model answers them:
  * what is missing, and how to set a model up. The server's status gives both,
- * read without a call to the model.
+ * read without a call to the model. "the AI models panel" in either is a
+ * link that opens the panel, as AI in the toolbar does.
  */
 export function AIOffNote(props: { model: EpiModel }): JSX.Element | null {
-  const off = props.model.aiOff();
+  const { model } = props;
+  const off = model.aiOff();
   if (!off) {
     return null;
   }
   return (
     <div className="jp-Epi-aioff" role="note">
-      Questions marked needs AI and your own questions are off: {off.reason}.
-      {off.setup ? ` ${off.setup}` : ''}
+      Questions marked needs AI and your own questions are off:{' '}
+      {withPanelLink(model, off.reason)}.
+      {off.setup && <> {withPanelLink(model, off.setup)}</>}
     </div>
+  );
+}
+
+/**
+ * A text with each "the AI models panel" in it as a link that opens the
+ * panel of the notebook's toolbar.
+ */
+function withPanelLink(model: EpiModel, text: string): React.ReactNode {
+  // The words are kept between the other parts, at the odd indexes.
+  return text.split(/(the AI models panel)/i).map((part, index) =>
+    index % 2 ? (
+      <button
+        key={index}
+        type="button"
+        className="jp-Epi-link"
+        onClick={() => model.requestModelsPanel()}
+      >
+        {part}
+      </button>
+    ) : (
+      part
+    )
   );
 }
 
@@ -876,7 +901,9 @@ export function useQuestionFocus(
 /**
  * Where the focus goes back to when the element that opened the questions is
  * gone, as a target of Click mode is once picked: the cell the questions are
- * about, in the view, or the item in the Variables panel.
+ * about, on the bench, the map or the Code view of the notebook that asked,
+ * or the item in its Variables panel. Another notebook open in the page has
+ * cells and variables of its own, and the same ones in a copy.
  */
 function openerOf(
   model: EpiModel,
@@ -890,9 +917,8 @@ function openerOf(
         : 'cellId' in ask
           ? ask.cellId
           : null;
-  const view = document.querySelector('.jp-Epi-main');
-  const cell = cellId ? cellElement(view, cellId) : null;
-  if (cell instanceof HTMLElement) {
+  const cell = cellId ? cellInView(model, cellId) : null;
+  if (cell) {
     if (!cell.hasAttribute('tabindex')) {
       cell.setAttribute('tabindex', '-1');
     }
@@ -901,7 +927,8 @@ function openerOf(
   const item =
     ask.kind === 'drop' ? (ask.target.item ?? ask.source) : model.armed;
   if (item?.kind === 'variable') {
-    return document.querySelector<HTMLElement>(
+    return inNotebook(
+      model,
       `.jp-Epi-variable[data-variable="${CSS.escape(item.name)}"]`
     );
   }
@@ -1806,6 +1833,58 @@ export function cellElement(
   cellId: string
 ): Element | null {
   return root?.querySelector(`[data-cell-id="${CSS.escape(cellId)}"]`) ?? null;
+}
+
+/** The key of each notebook that Whybook shows: see `notebookKey`. */
+const NOTEBOOK_KEYS = new WeakMap<EpiModel, string>();
+let lastNotebookKey = 0;
+
+/**
+ * A key of each notebook that Whybook shows, unique in the page. The root
+ * of the notebook's DocumentView and each side panel that follows the
+ * notebook carry it as `data-epi-notebook`. The page holds the bench, map
+ * or Code view of every open notebook, and a copy of a notebook has the same
+ * cell ids: a cell or a variable of a notebook is found under its key. Two
+ * views of one file have a model each, and so a key each.
+ */
+export function notebookKey(model: EpiModel): string {
+  let key = NOTEBOOK_KEYS.get(model);
+  if (key === undefined) {
+    key = String(++lastNotebookKey);
+    NOTEBOOK_KEYS.set(model, key);
+  }
+  return key;
+}
+
+/**
+ * The first element that matches `selector`, a selector with no comma, in
+ * the DocumentView of this notebook or in a side panel that follows it, and
+ * nowhere else in the page.
+ */
+export function inNotebook(
+  model: EpiModel,
+  selector: string
+): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `[data-epi-notebook="${notebookKey(model)}"] ${selector}`
+  );
+}
+
+/** The root of this notebook's DocumentView, in the page. */
+export function viewOf(model: EpiModel): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `.jp-Epi-document[data-epi-notebook="${notebookKey(model)}"]`
+  );
+}
+
+/** The element of a cell on the bench, the map or the Code view of its notebook. */
+export function cellInView(
+  model: EpiModel,
+  cellId: string
+): HTMLElement | null {
+  const main = viewOf(model)?.querySelector('.jp-Epi-main') ?? null;
+  const element = cellElement(main, cellId);
+  return element instanceof HTMLElement ? element : null;
 }
 
 /** Outlines an element for a moment, to show where it is. */

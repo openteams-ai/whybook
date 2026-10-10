@@ -344,6 +344,11 @@ export interface IModelChoice {
    * and the task waits for a model.
    */
   waiting?: boolean;
+  /**
+   * How the choice did when it was measured, in sentences: the last
+   * paragraph of the task's help in the settings editor while it is chosen.
+   */
+  measured?: string;
 }
 
 /** What a task that waits for a connected model says under its select. */
@@ -600,7 +605,9 @@ function rankingChoices(
     {
       id: 'rules',
       label: 'Rules, built in',
-      note: "the rules score each question from its type, the data and the questions asked so far, and a learned ranker orders their types; on 4,790 cells of public notebooks, asked again by dragging the variables they use, the first question then had the type of the analyst's next question for 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order",
+      note: 'Rules, then a learned order of the types of question.',
+      measured:
+        "Measured on 4,790 cells of public notebooks, asked again by dragging the variables they use: the first question had the type of the analyst's next question for 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order.",
       available: true,
       reason: null,
       download: null,

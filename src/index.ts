@@ -234,7 +234,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       translator: translator ?? undefined,
       openFile: (notebook, path, line) => void openFile(notebook, path, line),
       openSettings,
-      runs: runs ?? undefined
+      runs: runs ?? undefined,
+      // The identity of /api/me, in JupyterLab and on a page of Notebook 7.
+      user: app.serviceManager.user
     });
     app.docRegistry.addWidgetFactory(factory);
     // The Running panel's item of an agent's run opens the Whybook view of

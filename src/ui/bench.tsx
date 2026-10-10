@@ -12,6 +12,7 @@ import {
 } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
+import { openCellMenu } from '../cellmenu';
 import type { IAgentRun } from '../model/agent';
 import { cellType } from '../model/agent';
 import type { EpiModel, IEpiCell, ISection, IStrip } from '../model/epimodel';
@@ -306,8 +307,10 @@ export function Attachment(props: {
 }
 
 /**
- * Opens the cell's menu, the one a right-click opens, under the button:
- * moving, deleting and the rest, where the mouse and the keyboard find it.
+ * Opens the cell's menu under the button, with the items of the menu that a
+ * right click opens: moving, deleting and the rest, where the mouse and the
+ * keyboard find them (../contextmenu.ts). Enter or Space opens it with its
+ * first item active.
  */
 function CellMenuButton(): JSX.Element {
   return (
@@ -318,18 +321,7 @@ function CellMenuButton(): JSX.Element {
       title="More actions for this cell: move it, delete it and the rest"
       aria-label="More actions for this cell"
       aria-haspopup="menu"
-      onClick={event => {
-        const box = event.currentTarget.getBoundingClientRect();
-        event.currentTarget.dispatchEvent(
-          new MouseEvent('contextmenu', {
-            bubbles: true,
-            cancelable: true,
-            clientX: box.left,
-            clientY: box.bottom,
-            button: 2
-          })
-        );
-      }}
+      onClick={event => openCellMenu(event.currentTarget, event.detail === 0)}
     >
       <ellipsesIcon.react tag="span" elementPosition="center" />
     </Button>
@@ -1555,6 +1547,9 @@ export function NoteCard(props: {
   const text = React.useRef<HTMLDivElement>(null);
   const strip = model.strips.get(cell.id);
   const asked = model.ask?.kind === 'note' && model.ask.cellId === cell.id;
+  // Every question about a text needs AI: with no model, the button says so,
+  // as the greyed questions do, and opens the AI models panel.
+  const aiOff = model.aiOff();
   const onMouseUp = (event: React.MouseEvent) => {
     if (event.detail > 1) {
       // The word a double-click selects: the double-click edits instead.
@@ -1605,8 +1600,16 @@ export function NoteCard(props: {
               minimal
               small
               className="jp-Epi-button"
-              title="Questions about this text. Select words in it to ask about those alone."
+              title={
+                aiOff
+                  ? `Every question about a text needs an AI model: ${aiOff.reason}. A click opens the AI models panel.`
+                  : 'Questions about this text. Select words in it to ask about those alone.'
+              }
               onClick={event => {
+                if (aiOff) {
+                  model.requestModelsPanel();
+                  return;
+                }
                 // From the keyboard, the questions open beside the button.
                 const box = event.currentTarget.getBoundingClientRect();
                 void model.askNote(
@@ -1618,6 +1621,7 @@ export function NoteCard(props: {
               }}
             >
               Question this text
+              {aiOff && <span className="jp-Epi-needs"> · needs AI</span>}
             </Button>
           )}
           {!linear && <CellMenuButton />}

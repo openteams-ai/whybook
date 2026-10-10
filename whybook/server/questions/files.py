@@ -238,7 +238,7 @@ def file_options(drop: FileDrop, root: str | None) -> dict[str, Any]:
         load = "\n".join(["import pandas as pd", "", *loaded, f"{name}.head()"])
         options.append(_option(f"Load {drop.label} as {name}", "descriptive", 0.7, home, load, f"A data frame from the file, and its first rows{with_dates}", drop.path))
         profile = "\n".join(["import whybook", "import pandas as pd", "", f"whybook.profile({read})"])
-        options.append(_option(f"Profile {drop.label} before loading it", "quality", 0.6, preview, profile, "Types, missing values and duplicates · kept only if you pin it", drop.path))
+        options.append(_option(f"Profile {drop.label} before loading it", "quality", 0.6, preview, profile, f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop.path))
         columns = header(root, drop.path, suffix)
         # A diary with pain_1 to pain_7 loads as one row per day too (design iteration 1.85).
         long = reshape.plan(columns, context.unit) if columns else None

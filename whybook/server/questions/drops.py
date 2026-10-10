@@ -380,7 +380,7 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tup
             if plan.name != base:
                 lines.append(f"del {plan.name}")
             code = "\n".join(lines)
-        options.append(_option(text, "descriptive", 0.5, after, code, "Output pinned under the new cell", column.name, cell.id, uses=uses))
+        options.append(_option(text, "descriptive", 0.5, after, code, "Output shown under the new cell", column.name, cell.id, uses=uses))
     if split:
         # The bars of the levels pooled every time of day: the split shows the same means over time.
         return split + [option for option in options if not option.text.startswith("Plot ")], split_note or note
@@ -853,7 +853,7 @@ def _self_options(request: DropRequest, item: Variable, home: Placement) -> list
     preview = Placement("preview", None, "a preview in the sidebar", "Nothing is written to the notebook unless you keep it")
     options = []
     if item.kind in FRAME_KINDS:
-        options.append(_option(f"Profile {item.name}: types, missingness, duplicates", "quality", 0.7, preview, f"import whybook\n\nwhybook.profile({item.name})", "Quick look · kept only if you pin it", item.name))
+        options.append(_option(f"Profile {item.name}: types, missingness, duplicates", "quality", 0.7, preview, f"import whybook\n\nwhybook.profile({item.name})", f"Quick look · {starts.UNLESS_KEPT}", item.name))
         columns = context.frames.get(item.name, {})
         long = reshape.plan(columns, context.unit, columns) if item.library != "polars" else None
         if long:
@@ -876,7 +876,7 @@ def _self_options(request: DropRequest, item: Variable, home: Placement) -> list
             plot = {"numeric": "hist", "datetime": "hist", "categorical": "bars", "binary": "bars"}.get(item.kind)
             text = f"Summarise {item.label}: distribution and missingness"
             code = "\n".join(["import whybook", "", *([f"whybook.{plot}({item.parent}, {column})"] if plot else []), f"whybook.summary({item.parent}, {column})"])
-        options.append(_option(text, "descriptive", 0.7, preview, code, "Quick look · no cell unless you keep it", item.name))
+        options.append(_option(text, "descriptive", 0.7, preview, code, f"Quick look · {starts.UNLESS_KEPT}", item.name))
         # No "Transform: log, standardise or bin": the catalogue asks once
         # whether a number needs a transform, and never of an id or a time.
         site = site_column(context, item.parent)

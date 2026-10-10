@@ -1,0 +1,41 @@
+/*
+ * The layout's menu button of Whybook's toolbar, which shows in place of the
+ * three icons of the layouts when the toolbar is short of room
+ * (src/ui/layoutitem.tsx): the icon of the current layout and a caret, as
+ * tall as the AI button beside it. The toolbar counts its width, and the
+ * three icons' width, as the item measures them.
+ */
+.jp-Epi-layoutbutton {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  height: 24px;
+  margin: 0 4px;
+  padding: 0 2px 0 6px;
+  border: 0;
+  border-radius: var(--jp-border-radius);
+  background: none;
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
+}
+
+.jp-Epi-layoutbutton:hover,
+.jp-Epi-layoutbutton[aria-expanded='true'] {
+  background: var(--jp-layout-color2);
+}
+
+.jp-Epi-layoutbutton:focus-visible {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 0;
+}
+
+/* The caret's box is as tall as its icon, so that the button centres it. */
+.jp-Epi-layoutbutton-caret {
+  display: flex;
+}
+
+/* The check mark of the current layout, at the end of its row of the menu. */
+.jp-Epi-layoutmenu .lm-Menu-itemShortcut {
+  display: flex;
+  align-items: center;
+}

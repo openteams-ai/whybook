@@ -24,6 +24,7 @@ import {
   KEPT_SEARCHES,
   cellElement,
   flash,
+  notebookKey,
   questionKeys,
   scrollBehavior,
   useDismiss,
@@ -88,9 +89,9 @@ const MODES: { id: Mode; label: string; title: string }[] = [
   }
 ];
 
-type Layout = 'sidebars' | 'variables-here' | 'all-here';
+export type Layout = 'sidebars' | 'variables-here' | 'all-here';
 
-function layoutOf(model: EpiModel): Layout {
+export function layoutOf(model: EpiModel): Layout {
   const settings = model.settings;
   return settings.variablesPlacement === 'document' &&
     settings.explorationPlacement === 'document'
@@ -143,33 +144,35 @@ export function ModeSwitch(props: { model: EpiModel }): JSX.Element {
   );
 }
 
-const LAYOUTS: { value: Layout; title: string }[] = [
+export const LAYOUTS: { value: Layout; title: string }[] = [
   { value: 'sidebars', title: 'Panels in the sidebars' },
   { value: 'variables-here', title: 'Variables beside the notebook' },
   { value: 'all-here', title: 'All panels beside the notebook' }
 ];
 
+/** Put the panels where a layout puts them. */
+export function setLayout(model: EpiModel, value: Layout): void {
+  const settings = model.settings;
+  settings.set(
+    'variablesPlacement',
+    value === 'sidebars' ? 'sidebar' : 'document'
+  );
+  settings.set(
+    'explorationPlacement',
+    value === 'all-here' ? 'document' : 'sidebar'
+  );
+}
+
 export function LayoutSelect(props: { model: EpiModel }): JSX.Element {
   const { model } = props;
   useModel(model);
-  const settings = model.settings;
-  const setLayout = (value: Layout) => {
-    settings.set(
-      'variablesPlacement',
-      value === 'sidebars' ? 'sidebar' : 'document'
-    );
-    settings.set(
-      'explorationPlacement',
-      value === 'all-here' ? 'document' : 'sidebar'
-    );
-  };
   return (
     <Segmented
       toolbar
       className="jp-Epi-layout"
       label="Layout: where the panels go"
       value={layoutOf(model)}
-      onChange={setLayout}
+      onChange={value => setLayout(model, value)}
       options={LAYOUTS.map(layout => ({
         ...layout,
         icon: LAYOUT_ICONS[layout.value]
@@ -884,6 +887,8 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
     <div
       ref={root}
       className={`jp-Epi-document jp-mod-${model.interaction}`}
+      // The notebook's key: its cells and variables are found under it.
+      data-epi-notebook={notebookKey(model)}
       onKeyDown={onKeyDown}
     >
       <div className="jp-Epi-body">

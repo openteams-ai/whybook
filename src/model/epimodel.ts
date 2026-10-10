@@ -6,7 +6,7 @@ import type { DocumentRegistry } from '@jupyterlab/docregistry';
 import type * as nbformat from '@jupyterlab/nbformat';
 import type { INotebookModel } from '@jupyterlab/notebook';
 import type { IRenderMimeRegistry } from '@jupyterlab/rendermime';
-import type { Contents } from '@jupyterlab/services';
+import type { Contents, User } from '@jupyterlab/services';
 import { ContentsManager, ServerConnection } from '@jupyterlab/services';
 import type { PartialJSONObject } from '@lumino/coreutils';
 import { UUID } from '@lumino/coreutils';
@@ -33,6 +33,7 @@ import type {
   IItem,
   Interaction,
   IOption,
+  IPerson,
   IPlacement,
   IPlotAxis,
   IPlotPayload,
@@ -206,8 +207,9 @@ import {
 } from './refresh';
 import type { ITableAsk } from './tableask';
 import { TableNotes } from './tablenotes';
-import { writtenBy } from './writtenby';
+import { codeModel, writtenBy } from './writtenby';
 import { countAsked } from './asked';
+import { personOf } from './person';
 import {
   attributed,
   callsOf,
@@ -906,6 +908,9 @@ export class EpiModel implements IDisposable {
     });
     this._guardDialog = options.askGuard ?? null;
     this._serverSettings = options.serverSettings;
+    this._user = options.user ?? null;
+    // Cell details says "You" once the server names the page's user.
+    this._user?.userChanged.connect(this._emit, this);
     // A finished sign-in changes what the tasks can run.
     this.signIns = new SignIns(this.api, () => this.refreshStatus());
     this.bridge = new KernelBridge(this.context.sessionContext);
@@ -1510,7 +1515,7 @@ export class EpiModel implements IDisposable {
       return {
         reason: 'AI is off for cells and answers in the settings',
         setup:
-          'Choose the remote model for Cells and answers in the AI menu of the toolbar.'
+          'Choose the remote model for Cells and answers in the AI models panel.'
       };
     }
     if (!this.status) {
@@ -1550,6 +1555,14 @@ export class EpiModel implements IDisposable {
       this._litType = type;
       this._litTypeChanged.emit(type);
     }
+  }
+
+  /**
+   * The user of this page, as a question records them: null for an
+   * anonymous user, and while the page's user is not known (./person.ts).
+   */
+  get person(): IPerson | null {
+    return personOf(this._user?.identity);
   }
 
   /**
@@ -2456,7 +2469,10 @@ export class EpiModel implements IDisposable {
       columns: cell.analysis?.columns ?? {},
       decisions: cell.decisions,
       outputs: [...kinds],
-      branch_of: cell.branchOf
+      branch_of: cell.branchOf,
+      // The model that wrote the code, which the questions about its values
+      // name; null where the notebook records none (./writtenby.ts).
+      writer: codeModel(cell.meta)
     };
   }
 
@@ -2529,16 +2545,27 @@ export class EpiModel implements IDisposable {
    * now.
    */
   private async _listedAfterRefresh(names: string[]): Promise<boolean> {
+    return (
+      (await this._afterRefresh()) && names.every(name => this._inKernel(name))
+    );
+  }
+
+  /**
+   * Wait for the refresh of the kernel's variables that is on its way, at
+   * most 10 s. A refresh that is due goes out now. False when none is.
+   */
+  private async _afterRefresh(): Promise<boolean> {
     const pending =
       this._pendingRefresh ?? (this._refreshPolicy.due ? this.refresh() : null);
     if (!pending) {
       return false;
     }
+    let timer = 0;
     await Promise.race([
       pending,
-      new Promise(resolve => window.setTimeout(resolve, 10000))
-    ]);
-    return names.every(name => this._inKernel(name));
+      new Promise(resolve => (timer = window.setTimeout(resolve, 10000)))
+    ]).finally(() => window.clearTimeout(timer));
+    return true;
   }
 
   // UI state.
@@ -2970,13 +2997,41 @@ export class EpiModel implements IDisposable {
   }
 
   /**
+   * Whether Run all runs: from its start until the kernel's variables are
+   * listed after its last cell, at most 10 s later. Meanwhile the notes of
+   * Variables and Contents about the names of the last run offer no run.
+   */
+  get runningAll(): boolean {
+    return this._runningAll > 0;
+  }
+
+  /**
    * Run every code cell in order; branches run in their subshells, together.
    * A cell that names something a running branch defines waits for that
    * branch: a question asked about a branch's rows is a cell after the
    * branch. The source decides, as the kernel's analysis lists only the
-   * names the kernel has, and a fresh kernel has none.
+   * names the kernel has, and a fresh kernel has none. Every Run all of the
+   * view comes here, and so does Run All Cells of JupyterLab's Run menu
+   * (../kernelmenu.ts).
    */
   async runAll(): Promise<void> {
+    this._runningAll++;
+    this._emit();
+    try {
+      await this._runAllCells();
+    } finally {
+      // The names that the run made are listed a moment after its last cell
+      // ends (./refresh.ts): until then the kernel seems to lack them.
+      void this._afterRefresh()
+        .catch(() => false)
+        .then(() => {
+          this._runningAll--;
+          this._emit();
+        });
+    }
+  }
+
+  private async _runAllCells(): Promise<void> {
     if (!this.sessionContext.session?.kernel) {
       await this.sessionContext.startKernel();
     }
@@ -4888,6 +4943,7 @@ export class EpiModel implements IDisposable {
         title: option.text,
         question: strip.question,
         asked_by: 'user',
+        ...this._askingPerson(),
         written_by: 'agent',
         // No model wrote the code: a template's cell.
         ...(extra.generated_by ? {} : { template: true }),
@@ -5315,6 +5371,7 @@ export class EpiModel implements IDisposable {
           ...this._provenance(option)
         },
         asked_by: 'user',
+        ...this._askingPerson(),
         written_by: 'agent',
         ...(option.code ? { template: true } : {}),
         branch: { of: parent.id, letter },
@@ -7193,6 +7250,7 @@ export class EpiModel implements IDisposable {
     setCellMeta(cell, {
       question,
       asked_by: 'user',
+      ...this._askingPerson(),
       written_by: 'agent',
       agent: { run: run.id ?? '', step: run.steps.length },
       generated_by: this._writtenMark()
@@ -7276,6 +7334,7 @@ export class EpiModel implements IDisposable {
         type: 'model'
       },
       asked_by: 'user',
+      ...this._askingPerson(),
       written_by: 'agent',
       agent: { run: run.id ?? '', step: run.steps.length },
       generated_by: this._writtenMark()
@@ -7450,6 +7509,7 @@ export class EpiModel implements IDisposable {
       // the answer show the question's type once the run ends (_answerType).
       step_type: stepType(title, step.why, code),
       asked_by: 'user',
+      ...this._askingPerson(),
       written_by: 'agent',
       placement: parent
         ? {
@@ -8436,14 +8496,28 @@ export class EpiModel implements IDisposable {
         : null);
     const cell = answerId ? this.cell(answerId) : null;
     if (cell && strip.guess && strip.question) {
+      // The guess keeps who made it: an edit keeps the cell's question,
+      // which another person may have asked.
+      const person = this.person;
       setCellMeta(cell.model, {
         guess: {
           question: strip.question.id,
           value: strip.guess,
-          at: new Date().toISOString()
+          at: new Date().toISOString(),
+          ...(person ? { person } : {})
         }
       });
     }
+  }
+
+  /**
+   * Who asks a question now, for the metadata of the cells that answer it:
+   * the page's user, when the server gave a real one (./person.ts). An
+   * anonymous user records no one.
+   */
+  private _askingPerson(): Pick<IEpiCellMeta, 'asked_by_person'> {
+    const person = this.person;
+    return person ? { asked_by_person: person } : {};
   }
 
   /**
@@ -8577,8 +8651,10 @@ export class EpiModel implements IDisposable {
 
   /**
    * A question about each value that the analyst typed or picked in code the
-   * view wrote, as the server asks about a value an AI chose ("The agent
-   * chose it; nobody checked it"): the question says who chose it.
+   * view wrote, as the server asks about the other values of that code: the
+   * server's question names the model that the cell records ("Chosen by the
+   * remote AI model, claude-opus-5-5; nobody checked it"), or no one
+   * ("Nobody checked it"), and this question names the analyst.
    */
   private _yourValueQuestions(cell: IEpiCell): IOption[] {
     if (cell.meta.written_by !== 'agent' || !cell.meta.user_values?.length) {
@@ -9396,6 +9472,7 @@ export class EpiModel implements IDisposable {
     placed: IPlacedCell[];
   };
   private _serverSettings: ServerConnection.ISettings;
+  private _user: User.IManager | null = null;
   private _variables: IVariable[] = [];
   private _variablesKey = '';
   private _runNames: {
@@ -9437,6 +9514,8 @@ export class EpiModel implements IDisposable {
   private _pendingRefresh: Promise<void> | null = null;
   // The refresh that reads the kernel now, if any.
   private _inFlight: Promise<void> | null = null;
+  // The Run alls that go on (runningAll).
+  private _runningAll = 0;
   private _refreshPolicy = new RefreshPolicy({
     refresh: () => this.refresh(),
     inUse: () => this.inUse
@@ -9512,6 +9591,12 @@ export namespace EpiModel {
     askGuard?: (
       event: IGuardEvent
     ) => Promise<{ answer: GuardAnswer; note: string }>;
+    /**
+     * JupyterLab's user, `app.serviceManager.user`, whose identity comes from
+     * the server's /api/me: a question records who asked it (./person.ts).
+     * Without it, a question records no one.
+     */
+    user?: User.IManager;
   }
 }
 

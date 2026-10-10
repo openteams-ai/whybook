@@ -158,6 +158,10 @@ class CellInfo:
     type: str = "code"
     # The source is words the user selected in the cell, not all of its text.
     excerpt: bool = False
+    # The AI model that wrote the code, in the words of Cell details, such as
+    # "the remote AI model, claude-opus-5-5" (codeModel in
+    # src/model/writtenby.ts). None where the notebook records no model.
+    writer: str | None = None
 
     @classmethod
     def from_json(cls, data: Any) -> CellInfo:
@@ -186,6 +190,7 @@ class CellInfo:
             branch_of=data.get("branch_of"),
             type="markdown" if data.get("type") == "markdown" else "code",
             excerpt=bool(data.get("excerpt")),
+            writer=data["writer"] if isinstance(data.get("writer"), str) and data["writer"] else None,
         )
 
     def involves(self, name: str, label: str | None = None) -> bool:
@@ -724,6 +729,10 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
                 )
             )
         elif decision.provenance == "agent":
+            # A value of code that Whybook wrote. The question names who chose
+            # it as Cell details names who wrote the code: the model that the
+            # cell records, else no one, since a cell that records neither a
+            # model nor a template may be the work of either.
             questions.append(
                 _question(
                     f"Is {decision.name} = {decision.value} the right choice in {cell.label}?",
@@ -731,7 +740,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
                     0.35,
                     Placement("new", cell.id, f"new cell after {cell.label}"),
                     None,
-                    "The agent chose it; nobody checked it",
+                    f"Chosen by {cell.writer}; nobody checked it" if cell.writer else "Nobody checked it",
                     cell.id,
                 )
             )
