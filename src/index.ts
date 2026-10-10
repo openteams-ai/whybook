@@ -2,7 +2,7 @@ import type {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ILayoutRestorer } from '@jupyterlab/application';
+import { ILayoutRestorer, IRouter } from '@jupyterlab/application';
 import {
   createToolbarFactory,
   ICommandPalette,
@@ -33,6 +33,15 @@ import { checkupPlugin } from './checkup';
 import { addContextMenus } from './contextmenu';
 import { addKernelMenu } from './kernelmenu';
 import { launcherPlugin } from './launcher';
+import {
+  EditorSwitch,
+  followMain,
+  notebookPage,
+  openInPlace,
+  openSettings as openSettingsPage,
+  openSettingsFromAddress,
+  redirectEditPage
+} from './notebook7';
 import { closeReloadCopy } from './reload';
 import { reproducePlugin } from './reproduce';
 import { DatabasesPanel } from './databases';
@@ -83,6 +92,9 @@ const NO_ARGS = { args: { type: 'object', properties: {} } };
 
 // JupyterLab keys the settings by the npm package's name and the schema file.
 const PLUGIN_ID = 'whybook:plugin';
+/** What a side panel says in Jupyter Notebook 7 while the notebook editor shows. */
+const NOTEBOOK7_EMPTY =
+  'Open the notebook in Whybook, with Whybook at the right of the menu bar, to use this panel.';
 /** The items of the view's toolbar (schema/toolbar.json), as the notebook keeps them in `...:panel`. */
 const TOOLBAR_SETTINGS = 'whybook:toolbar';
 /** JupyterLab's notebook settings, which hold the cells' editor options. */
@@ -111,7 +123,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     IMovableSectionRegistry,
     IAgentRuns,
     IMainMenu,
-    IToolbarWidgetRegistry
+    IToolbarWidgetRegistry,
+    IRouter
   ],
   activate: (
     app: JupyterFrontEnd,
@@ -129,8 +142,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
     movable: IMovableSectionRegistry | null,
     runs: AgentRuns | null,
     mainMenu: IMainMenu | null,
-    toolbarRegistry: IToolbarWidgetRegistry | null
+    toolbarRegistry: IToolbarWidgetRegistry | null,
+    router: IRouter | null
   ) => {
+    // Jupyter Notebook 7 runs Whybook on pages of one document each: '' in
+    // JupyterLab. A notebook's page shows Whybook in place of the notebook
+    // editor and back, over one document (./notebook7.ts).
+    const page = notebookPage();
+    const inPlace = page === 'notebooks';
+    if (page === 'edit' && router) {
+      redirectEditPage(router, app.commands, FACTORY, {
+        base: app.serviceManager.serverSettings.baseUrl
+      });
+    }
+    // Notebook 7's files page opens Whybook's settings when a notebook's
+    // page asked for them in a new tab (./notebook7.ts).
+    if (page === 'tree') {
+      void openSettingsFromAddress(app);
+    }
     const settings = new EpiSettings();
     const current = new CurrentModel();
     rendermime.addFactory(plotRendererFactory, 40);
@@ -156,9 +185,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     };
 
-    const openSettings = () => {
-      void app.commands.execute('settingeditor:open', { query: 'Whybook' });
-    };
+    const openSettings = () =>
+      openSettingsPage(app.commands, app.serviceManager.serverSettings.baseUrl);
 
     // The toolbar's items come from the settings of `whybook:toolbar`, as
     // the notebook's come from `@jupyterlab/notebook-extension:panel`: an
@@ -290,8 +318,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         model => React.createElement(QuestionsSection, { model })
       ]
     ];
+    // Notebook 7 has no launcher, and no Open With on a notebook's page.
+    const empty = page ? NOTEBOOK7_EMPTY : undefined;
     for (const [id, label, render] of sections) {
-      const section = new FollowingWidget(current, render);
+      const section = new FollowingWidget(current, render, empty);
       section.id = id;
       section.title.label = label;
       left.addSection(section);
@@ -311,14 +341,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return () => current.changed.disconnect(handler);
       }
     );
-    app.shell.add(databases, 'left', { rank: 101 });
+    // In Notebook 7, Whybook's panels are on a notebook's page alone: no
+    // other page shows Whybook.
+    const sidePanels = !page || inPlace;
+    if (sidePanels) {
+      app.shell.add(databases, 'left', { rank: 101 });
+    }
     restorer?.add(databases, databases.id);
 
-    addContextMenus(app, () => current.model, settings);
+    addContextMenus(
+      app,
+      () => current.model,
+      settings,
+      inPlace ? path => openInPlace(app, path, 'Notebook') : undefined
+    );
 
     // The right panel: Exploration and Cell details.
-    const right = new FollowingWidget(current, model =>
-      React.createElement(RightPanel, { model, width: 270, editorServices })
+    const right = new FollowingWidget(
+      current,
+      model =>
+        React.createElement(RightPanel, { model, width: 270, editorServices }),
+      empty
     );
     right.id = 'epi-exploration';
     right.title.icon = explorationIcon;
@@ -326,6 +369,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     // A panel that comes back from the view opens, so the user sees where it went.
     const place = (reveal: boolean) => {
+      if (!sidePanels) {
+        return;
+      }
       if (settings.variablesPlacement === 'sidebar') {
         if (!left.isAttached) {
           app.shell.add(left, 'left', { rank: 150 });
@@ -347,7 +393,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         right.parent = null;
       }
     };
-    settings.changed.connect(() => place(true));
+    // In Notebook 7 a panel opens only while Whybook shows: the settings
+    // also change when they load.
+    const whybookShows = (widget: Widget | null) =>
+      !!widget && tracker.has(widget);
+    settings.changed.connect(() =>
+      place(!inPlace || whybookShows(app.shell.currentWidget))
+    );
     // The empty view points at where an analysis starts from.
     settings.panel.connect((_, which) => {
       app.shell.activateById(
@@ -366,12 +418,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
         app.shell.activateById(right.id);
       }
     });
-    void app.restored.then(() => place(false));
+    void app.restored.then(() => {
+      place(false);
+      // In Notebook 7 the panels open and close with Whybook, which can be
+      // the first widget of the page.
+      if (inPlace) {
+        followMain(app.shell, whybookShows, [left, right])();
+      }
+    });
 
     // Open the panels the first time a Whybook view opens.
     let revealed = false;
     factory.widgetCreated.connect((_, widget) => {
-      if (revealed) {
+      if (revealed || page) {
         return;
       }
       revealed = true;
@@ -524,12 +583,28 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // The command that creates a notebook in the view, with its cards in the
     // launcher, File › New and the palette, is in ./launcher.ts.
 
+    // In Notebook 7 the two commands show Whybook in place of the notebook
+    // editor, and the editor in place of Whybook, on the notebook's page.
+    const shownPath = (isOf: (widget: Widget) => boolean) => {
+      const widget = app.shell.currentWidget;
+      return widget && isOf(widget)
+        ? (widget as IDocumentWidget).context.path
+        : null;
+    };
+    const notebookShown = () => shownPath(widget => !!notebooks?.has(widget));
+    const whybookShown = () => shownPath(widget => tracker.has(widget));
     app.commands.addCommand(CommandIDs.openWhybook, {
       label: 'Open Notebook in Whybook',
       icon: epiIcon,
-      isEnabled: () => !!notebooks?.currentWidget,
+      isEnabled: inPlace
+        ? () => notebookShown() !== null
+        : () => !!notebooks?.currentWidget,
       describedBy: NO_ARGS,
       execute: () => {
+        if (inPlace) {
+          const path = notebookShown();
+          return path ? openInPlace(app, path, FACTORY) : undefined;
+        }
         const notebook = notebooks?.currentWidget;
         if (notebook) {
           return app.commands.execute('docmanager:open', {
@@ -541,9 +616,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
     app.commands.addCommand(CommandIDs.openNotebook, {
       label: 'Open Whybook as Notebook',
-      isEnabled: () => !!tracker.currentWidget,
+      isEnabled: inPlace
+        ? () => whybookShown() !== null
+        : () => !!tracker.currentWidget,
       describedBy: NO_ARGS,
       execute: () => {
+        if (inPlace) {
+          const path = whybookShown();
+          return path ? openInPlace(app, path, 'Notebook') : undefined;
+        }
         const widget = tracker.currentWidget;
         if (widget) {
           return app.commands.execute('docmanager:open', {
@@ -553,6 +634,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       }
     });
+    // On a notebook's page of Notebook 7, a switch in the menu bar goes from
+    // the notebook editor to Whybook, and back: after Notebook's status of
+    // the kernel, rank 10,010, and before its Trusted indicator, 11,000.
+    if (inPlace) {
+      app.shell.add(
+        new EditorSwitch({
+          shell: app.shell,
+          commands: app.commands,
+          isWhybook: whybookShows,
+          toWhybook: CommandIDs.openWhybook,
+          toNotebook: CommandIDs.openNotebook
+        }),
+        'menu',
+        { rank: 10500 }
+      );
+    }
     app.commands.addCommand(CommandIDs.toggleInteraction, {
       label: () =>
         `Ask by ${settings.interaction === 'drag' ? 'clicking' : 'dragging'} (Whybook)`,

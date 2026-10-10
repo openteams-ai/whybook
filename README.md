@@ -44,6 +44,8 @@ jupyter lab
 
 To open a notebook in Whybook, right-click it in the file browser and choose Open With, then Whybook. On JupyterLab 4.6 and later, the sections of the Whybook panel can also move to the file browser.
 
+Whybook also runs in Jupyter Notebook 7: on a notebook's page, the switch Notebook | Whybook in the menu bar shows Whybook in place of the notebook editor. Whybook has some limitations in Notebook 7 that it does not have in JupyterLab. They are bugs and improvements, tracked in issues of their own, often in upstream projects.
+
 ## Try the demo
 
 Clone this repository and open `pain_diary_demo.ipynb` from its root in Whybook, then press Run all: the notebook imports its helpers and data from `examples/pain_diary/`. `pain_diary_demo_6h.ipynb` is the same analysis after six more hours of work.

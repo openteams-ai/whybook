@@ -11,3 +11,4 @@ import './explored.css';
 import './leaveout.css';
 import './dogfood2.css';
 import './chips.css';
+import './notebook7.css';

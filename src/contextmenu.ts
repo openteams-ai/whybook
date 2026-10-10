@@ -34,12 +34,16 @@ const EXPLORED_HEAD = '.jp-Epi .jp-Epi-explored-head';
 
 /**
  * Context menus for variables, cells and tables in the Whybook view and
- * its panels.
+ * its panels. `openNotebook` opens the notebook of a path in the notebook
+ * editor, for "Show in the notebook": by default in a view of its own, and
+ * in Jupyter Notebook 7 in place of Whybook (./notebook7.ts).
  */
 export function addContextMenus(
   app: JupyterFrontEnd,
   model: () => EpiModel | null,
-  settings: EpiSettings
+  settings: EpiSettings,
+  openNotebook: (path: string) => Promise<unknown> = path =>
+    app.commands.execute('docmanager:open', { path, factory: 'Notebook' })
 ): void {
   const { commands, contextMenu } = app;
   const hit = (attribute: string) =>
@@ -96,10 +100,8 @@ export function addContextMenus(
       if (!cellId || !current) {
         return;
       }
-      const panel = (await commands.execute('docmanager:open', {
-        path: current.context.path,
-        factory: 'Notebook'
-      })) as NotebookPanel | undefined;
+      const panel = (await openNotebook(current.context.path)) as
+        NotebookPanel | null | undefined;
       if (!panel?.content) {
         return;
       }

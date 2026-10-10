@@ -1,0 +1,22 @@
+/*
+ * The switch between the notebook editor and Whybook in the menu bar of a
+ * notebook's page of Jupyter Notebook 7 (src/notebook7.ts): the size of the
+ * segmented controls of Whybook's toolbar, centred in the bar, and apart
+ * from Notebook's Trusted indicator beside it.
+ */
+.jp-Epi-editorswitch {
+  display: flex;
+  align-items: center;
+  margin: 0 6px;
+}
+
+.jp-Epi-editorswitch .jp-Epi-segmented {
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.jp-Epi-editorswitch .jp-Epi-segment {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 3px;
+}

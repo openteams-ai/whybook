@@ -126,7 +126,10 @@ export default defineConfig([
           // Check-up's rows for each kernel once the kernels are listed; its
           // module loads with the view model, which imports it. The Kernel
           // menu's items for the view (./kernelmenu) register with the main
-          // menu at start, as the notebook's do. The rule checks every other
+          // menu at start, as the notebook's do. On an edit page of Jupyter
+          // Notebook 7 the plugin registers the rule that sends the page to
+          // the notebook's page (./notebook7) before the router runs, which
+          // an await import() could miss. The rule checks every other
           // import.
           ignoreImports: [
             './contextmenu',
@@ -138,6 +141,7 @@ export default defineConfig([
             './model/epimodel',
             './model/libraries',
             './model/settings',
+            './notebook7',
             './ui/checkup',
             './ui/datapolicy',
             './ui/exploration',

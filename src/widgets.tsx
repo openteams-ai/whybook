@@ -341,14 +341,15 @@ function useCurrent(current: CurrentModel): EpiModel | null {
 function Following(props: {
   current: CurrentModel;
   render: (model: EpiModel) => JSX.Element;
+  empty?: string;
 }): JSX.Element {
   const model = useCurrent(props.current);
   useModel(model);
   if (!model) {
     return (
       <div className="jp-Epi-empty jp-Epi-sidebar-empty">
-        Open a notebook with Open With › Whybook, or create one from Whybook in
-        the launcher, to use this panel.
+        {props.empty ??
+          'Open a notebook with Open With › Whybook, or create one from Whybook in the launcher, to use this panel.'}
       </div>
     );
   }
@@ -356,12 +357,14 @@ function Following(props: {
 }
 
 /**
- * A sidebar section that shows a part of the current Whybook view.
+ * A sidebar section that shows a part of the current Whybook view, and the
+ * text `_empty` while there is none.
  */
 export class FollowingWidget extends ReactWidget {
   constructor(
     private _current: CurrentModel,
-    private _render: (model: EpiModel) => JSX.Element
+    private _render: (model: EpiModel) => JSX.Element,
+    private _empty?: string
   ) {
     super();
     this.addClass('jp-Epi');
@@ -373,7 +376,13 @@ export class FollowingWidget extends ReactWidget {
   }
 
   render(): JSX.Element {
-    return <Following current={this._current} render={this._render} />;
+    return (
+      <Following
+        current={this._current}
+        render={this._render}
+        empty={this._empty}
+      />
+    );
   }
 
   dispose(): void {
