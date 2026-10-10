@@ -1305,7 +1305,8 @@ function CellCard(props: ICardProps): JSX.Element {
         {cell.meta.guess && <GuessChip guess={cell.meta.guess.value} />}
         {cell.branchOf && (
           <span className="jp-Epi-subshell" title={PARALLEL_HELP}>
-            {job?.slot !== null && job?.slot !== undefined
+            {/* A job keeps its slot for the minute that it stays listed after it ends. */}
+            {job?.status === 'running' && job.slot !== null
               ? `parallel run ${job.slot + 1}`
               : 'branch'}
           </span>

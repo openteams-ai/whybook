@@ -11,7 +11,9 @@ import * as React from 'react';
 export const DRAG_SCROLL = [
   // Long lists of Variables and Contents.
   '.jp-Epi-list.jp-mod-virtual',
-  // The sections of the side panels, and the panels inside the view.
+  // The sections of the side panels, and the panels inside the view; the
+  // right panel scrolls under its tabs.
+  '.jp-Epi-right-scroll',
   '.jp-Epi-sidebar',
   '.jp-Epi-docpanel',
   // The bench and the Code view.

@@ -3313,31 +3313,40 @@ button.jp-Epi-textoutput:hover,
   margin-left: auto;
 }
 
-/* Right panel. */
+/*
+ * Right panel. It is as high as the side panel, or the column beside the
+ * notebook, that holds it: the tabs stay at its top, and what they show
+ * scrolls in the box under them.
+ */
 
 .jp-Epi-right {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
   background: var(--jp-layout-color1);
 }
 
 .jp-Epi-right-main {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   flex-direction: column;
-}
-
-/* An answer in the sidebar takes the lower half; each half scrolls. */
-.jp-Epi-right.jp-mod-split {
-  height: 100%;
   min-height: 0;
 }
 
+.jp-Epi-right-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* An answer in the sidebar takes the lower half; each half scrolls. */
 .jp-Epi-right.jp-mod-split > .jp-Epi-right-main,
 .jp-Epi-right.jp-mod-split > .jp-Epi-right-answer {
   flex: 1 1 50%;
   min-height: 0;
+}
+
+.jp-Epi-right.jp-mod-split > .jp-Epi-right-answer {
   overflow: auto;
 }
 
@@ -3364,6 +3373,7 @@ button.jp-Epi-textoutput:hover,
 
 .jp-Epi-tabs {
   display: flex;
+  flex-shrink: 0;
   border-bottom: var(--jp-border-width) solid var(--jp-border-color2);
 }
 

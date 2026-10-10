@@ -2,7 +2,8 @@ import {
   Button,
   InputGroup,
   caretDownIcon,
-  caretRightIcon
+  caretRightIcon,
+  deleteIcon
 } from '@jupyterlab/ui-components';
 import * as React from 'react';
 
@@ -65,6 +66,11 @@ import { Segmented } from './segmented';
 import { TableAskContent } from './tablequestions';
 
 const ROW_HEIGHT = 28;
+
+/** A count with its noun: "1 match", "3 matches". */
+function counted(count: number, one: string, many: string): string {
+  return `${count.toLocaleString()} ${count === 1 ? one : many}`;
+}
 
 function shortType(variable: IVariable): string {
   if (variable.selection) {
@@ -177,6 +183,8 @@ function VariableRow(props: {
   onFocus: () => void;
   /** A name of an agent's run, under the head of the run. */
   inRun?: boolean;
+  /** The tooltip, in place of the variable's type. */
+  title?: string;
 }): JSX.Element {
   const { model, variable } = props;
   const item: IItem = {
@@ -204,9 +212,10 @@ function VariableRow(props: {
       {...itemHandlers(model, item)}
       aria-pressed={armed}
       title={
-        variable.stale
+        props.title ??
+        (variable.stale
           ? `${variable.type ?? variable.kind}, from the last run: not in the kernel`
-          : variable.type
+          : variable.type)
       }
       data-variable={variable.name}
       tabIndex={props.tabIndex}
@@ -255,8 +264,16 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
       }
       return next;
     });
+  // The names that only undone answers made go apart, after the main list,
+  // each with Remove (design iteration 1.119). A search shows those it finds.
+  const undone = model.undoneNames();
+  const ofUndone = new Set(undone.map(variable => variable.name));
+  const undoneShown = undone.filter(matches);
   const shown = variables.filter(
-    variable => !ofRuns.has(variable.name) && matches(variable)
+    variable =>
+      !ofRuns.has(variable.name) &&
+      !ofUndone.has(variable.name) &&
+      matches(variable)
   );
   const kernel = model.sessionContext.session?.kernel;
   // A kernel that the view saw start held nothing, and is not read before
@@ -269,10 +286,12 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
   const stale = variables.length - live;
   // The list is one Tab stop, and the arrow keys move inside it: the row the
   // focus was on last, else the picked or selected one, else the first. The
-  // head of a run's names is a row too.
+  // head of a run's names is a row too, and the arrow keys also reach the
+  // Remove buttons of the names of undone answers.
   const [current, setCurrent] = React.useState<string | null>(null);
   const stops = [
     ...shown.map(variable => variable.name),
+    ...undoneShown.map(variable => variable.name),
     ...groups.flatMap(group => [
       runRowId(group.run),
       ...(isOpen(group.run)
@@ -308,7 +327,7 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
         <div className="jp-Epi-stale-note">
           {kernel
             ? `${stale} from the last run, not in the kernel.`
-            : `No kernel is running: the ${stale} below are from the last run.`}{' '}
+            : `No kernel is running: the ${stale} below ${stale === 1 ? 'is' : 'are'} from the last run.`}{' '}
           <button className="jp-Epi-link" onClick={() => void model.runAll()}>
             Run all
           </button>
@@ -318,7 +337,9 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
         className="jp-Epi-list"
         role="list"
         aria-busy={model.reading}
-        onKeyDown={arrowKeys('.jp-Epi-variable, .jp-Epi-rungroup-head')}
+        onKeyDown={arrowKeys(
+          '.jp-Epi-variable, .jp-Epi-rungroup-head, .jp-Epi-undone-remove'
+        )}
       >
         {!kernel && variables.length === 0 && (
           <div className="jp-Epi-empty">
@@ -345,6 +366,12 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
             onFocus={() => setCurrent(variable.name)}
           />
         ))}
+        <UndoneNames
+          model={model}
+          variables={undoneShown}
+          stop={stop}
+          onFocus={setCurrent}
+        />
         {groups.length > 0 && (
           <div className="jp-Epi-rungroups-label">
             Made by agents&apos; runs for their own steps
@@ -394,6 +421,137 @@ export function VariablesSection(props: { model: EpiModel }): JSX.Element {
 /** The id of the head of a run's names among the rows of Variables. */
 function runRowId(run: string): string {
   return `run:${run}`;
+}
+
+/** The head of the names that only undone answers made. */
+const UNDONE_TITLE = 'From undone answers';
+
+/**
+ * The names that only answers the analyst undid made (design iteration
+ * 1.119): Undo removed their cells, and the kernel still holds them. Each
+ * row has Remove, which deletes the name from the kernel, and with two names
+ * or more the head has Remove all. Nothing shows without a name.
+ */
+function UndoneNames(props: {
+  model: EpiModel;
+  variables: IVariable[];
+  /** The row of the list where Tab stops. */
+  stop: string | undefined;
+  onFocus: (name: string) => void;
+}): JSX.Element | null {
+  const { model, variables } = props;
+  if (!variables.length) {
+    return null;
+  }
+  const remove = (event: React.MouseEvent<HTMLElement>, names: string[]) => {
+    focusAfterRemove(event.currentTarget, names);
+    void model.removeUndone(names);
+  };
+  const code = (names: string[]) =>
+    model.bridge.language?.remove?.(names) ?? '';
+  const all = variables
+    .map(variable => variable.name)
+    .filter(name => !model.isRemoving(name));
+  return (
+    <>
+      <div
+        className="jp-Epi-undone-head"
+        title="Undo removed the cells of these answers. The kernel still holds the names that the cells made, and no cell of the notebook makes them."
+      >
+        <span className="jp-Epi-undone-title">{UNDONE_TITLE}</span>
+        {variables.length > 1 && (
+          <button
+            className="jp-Epi-link jp-Epi-undone-remove"
+            tabIndex={-1}
+            disabled={!all.length}
+            title={`Remove ${all.length === 1 ? all[0] : `these ${all.length} names`} from the kernel: ${code(all)}`}
+            onClick={event => remove(event, all)}
+          >
+            Remove all
+          </button>
+        )}
+      </div>
+      {variables.map(variable => {
+        const name = variable.name;
+        const removing = model.isRemoving(name);
+        const question = model.undoneQuestion(name);
+        const type = variable.type ?? variable.kind;
+        return (
+          <div
+            key={name}
+            className={`jp-Epi-undone-row${removing ? ' jp-mod-removing' : ''}`}
+          >
+            <VariableRow
+              model={model}
+              variable={variable}
+              tabIndex={name === props.stop ? 0 : -1}
+              onFocus={() => props.onFocus(name)}
+              title={
+                question
+                  ? `${type}, from the answer to "${question}". You undid that answer.`
+                  : `${type}, from an answer that you undid.`
+              }
+            />
+            <Button
+              minimal
+              small
+              className="jp-Epi-undone-remove jp-Epi-undone-one"
+              tabIndex={-1}
+              disabled={removing}
+              aria-label={`Remove ${name} from the kernel`}
+              title={
+                removing
+                  ? `Removing ${name} from the kernel`
+                  : `Remove ${name} from the kernel: ${code([name])}`
+              }
+              onClick={event => remove(event, [name])}
+            >
+              <deleteIcon.react tag="span" elementPosition="center" />
+            </Button>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * The focus on a Remove button goes to a row that stays: the next row of
+ * the list, else the one before it, else the search box. The button goes
+ * with its rows once the kernel lists its variables again.
+ */
+function focusAfterRemove(button: HTMLElement, names: string[]): void {
+  if (document.activeElement !== button) {
+    return;
+  }
+  const rows = Array.from(
+    button
+      .closest('.jp-Epi-list')
+      ?.querySelectorAll<HTMLElement>(
+        '.jp-Epi-variable, .jp-Epi-rungroup-head'
+      ) ?? []
+  ).filter(
+    row =>
+      !names.includes(row.dataset.variable ?? '') &&
+      !row.closest('.jp-mod-removing')
+  );
+  const after = rows.find(
+    row =>
+      button.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING
+  );
+  const before = rows
+    .filter(
+      row =>
+        button.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_PRECEDING
+    )
+    .pop();
+  const next =
+    after ??
+    before ??
+    button
+      .closest('.jp-Epi-variables')
+      ?.querySelector<HTMLElement>('.jp-Epi-search input');
+  next?.focus();
 }
 
 function ColumnRow(props: {
@@ -526,15 +684,15 @@ function FrameContents(props: {
     : variable.selection
       ? 'from a plot selection'
       : 'metadata';
-  let caption = `${total.toLocaleString()} columns`;
+  let caption = counted(total, 'column', 'columns');
   if (variable.stale && columns.length < total) {
     caption = `${columns.length.toLocaleString()} of ${total.toLocaleString()} columns, as the notebook kept them`;
   } else if (query) {
-    caption = `${listed.length.toLocaleString()} match · searching all ${total.toLocaleString()}`;
+    caption = `${counted(listed.length, 'match', 'matches')} · searching all ${total.toLocaleString()}`;
   } else if (wide && !group) {
     caption = `${total.toLocaleString()} columns, used ones first · scroll or search`;
   } else if (group) {
-    caption = `${listed.length.toLocaleString()} ${group} columns`;
+    caption = counted(listed.length, `${group} column`, `${group} columns`);
   }
   const visible =
     !query && wide && !group
@@ -554,7 +712,7 @@ function FrameContents(props: {
         type="text"
         rightIcon="ui-components:search"
         aria-label="Search columns"
-        placeholder={`Search ${total.toLocaleString()} columns`}
+        placeholder={`Search ${counted(total, 'column', 'columns')}`}
         value={query}
         onChange={event => setQuery(event.target.value)}
       />
@@ -1723,6 +1881,21 @@ export function askMode(ask: IDropAsk): { label: string; strong: boolean } {
 }
 
 /**
+ * When the questions of a request run: a pick runs one at once, and in the
+ * checklist of a parallel exploration a pick checks it, and the checked
+ * ones run on the Start button. A request that loads has no result yet:
+ * its parallel modifier makes it a checklist.
+ */
+export function runsOn(ask: Ask): string {
+  const parallel =
+    ask.kind === 'drop' &&
+    (ask.result ? ask.result.mode === 'parallel' : ask.modifiers.parallel);
+  return parallel
+    ? 'Nothing runs until Start.'
+    : 'Runs on pick, no confirmation.';
+}
+
+/**
  * Whether the questions of a request show in a popover: a request asked
  * with the pointer shows them beside where it was asked, in Drag and in
  * Click alike (design iteration 1.77). A request with no place, as one
@@ -1873,7 +2046,7 @@ export function QuestionsSection(props: { model: EpiModel }): JSX.Element {
           </div>
           {model.ask.kind === 'decision' && <DecisionReason ask={model.ask} />}
           <AskContent model={model} />
-          <div className="jp-Epi-caption">Runs on pick, no confirmation.</div>
+          <div className="jp-Epi-caption">{runsOn(model.ask)}</div>
         </div>
       )}
     </div>

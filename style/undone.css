@@ -1,0 +1,59 @@
+/*
+ * The names that only undone answers made, after the main list of Variables
+ * (design iteration 1.119): a head with Remove all, then a row for each name
+ * with its Remove button at the end.
+ */
+.jp-Epi-undone-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 8px;
+  padding: 4px 8px 2px;
+  border-top: var(--jp-border-width) solid var(--jp-border-color2);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-undone-head .jp-Epi-undone-remove {
+  margin-left: auto;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-undone-row {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/*
+ * The row of the name gives room to its Remove button. The name keeps up to
+ * three quarters of the row, and the type gives way first: the tooltip holds
+ * it.
+ */
+.jp-Epi-undone-row > .jp-Epi-variable {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.jp-Epi-undone-row .jp-Epi-item-name {
+  max-width: 75%;
+}
+
+.jp-Epi-undone-row .jp-Epi-item-type {
+  flex-shrink: 10;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jp-Epi-undone-one.jp-Button {
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* Removed, until the kernel lists its variables again. */
+.jp-Epi-undone-row.jp-mod-removing > .jp-Epi-variable {
+  opacity: 0.5;
+}

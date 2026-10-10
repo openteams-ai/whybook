@@ -19,6 +19,9 @@
  * - The numbers of a quick look wrap in the right panel (pain 20).
  * - The strip of an agent's run says which of its cells the analyst
  *   changed since, and the values of the analyst's code are theirs (pain 6).
+ * - The tabs of the right panel stay in sight while what they show scrolls
+ *   under them, in the side panel and in the column inside the notebook
+ *   (critique 5, the app, A7).
  *
  * No model runs: the page answers the model's routes itself.
  */
@@ -758,4 +761,90 @@ test('says under an agent’s answer which of its cells the analyst changed sinc
   await expect(page.locator('.jp-Epi-agentrun-edited')).toHaveText(
     'You changed the code of [2] since this answer: what it says of that cell may no longer hold.'
   );
+});
+
+/**
+ * Scroll what the tabs of the right panel in `panel` show to its end, with
+ * the wheel: the tabs stay where they were, in sight, and the box that
+ * holds the panel does not scroll.
+ */
+async function scrollsUnderTabs(
+  page: IJupyterLabPageFixture,
+  panel: Locator
+): Promise<void> {
+  const tabs = panel.locator('.jp-Epi-tabs');
+  const box = panel.locator('.jp-Epi-right-scroll');
+  await expect(tabs).toBeInViewport();
+  // What the tab shows is taller than the room under the tabs.
+  expect(
+    await box.evaluate(node => node.scrollHeight > node.clientHeight + 20)
+  ).toBe(true);
+  const before = await settledBox(tabs);
+  // In the padding at the top left of the box: over no table or list that
+  // scrolls on its own.
+  await box.hover({ position: { x: 4, y: 4 } });
+  await page.mouse.wheel(0, 3000);
+  await expect
+    .poll(() =>
+      box.evaluate(
+        node => node.scrollTop + node.clientHeight >= node.scrollHeight - 1
+      )
+    )
+    .toBe(true);
+  expect(await tabs.boundingBox()).toEqual(before);
+  await expect(tabs).toBeInViewport();
+  expect(await panel.evaluate(node => node.scrollTop)).toBe(0);
+}
+
+test('keeps the tabs of the right panel in sight while what they show scrolls under them', async ({
+  page,
+  tmpPath
+}) => {
+  // A window lower than the content of the panel, so that it scrolls.
+  await page.setViewportSize({ width: 1280, height: 560 });
+  const file = `${tmpPath}/righttabs.ipynb`;
+  await writeNotebook(page, file, [
+    code(
+      'load',
+      'import pandas as pd\npatients = pd.DataFrame({"patient_id": [f"P{i}" for i in range(40)], "arm": ["A", "B"] * 20, "age": list(range(30, 70))})\nvisits = pd.DataFrame({"patient_id": [f"P{i % 40}" for i in range(400)], "week": [i // 40 for i in range(400)], "pain": [(i * 7) % 11 for i in range(400)]})'
+    ),
+    code(
+      'weekly',
+      'weekly = visits.merge(patients, on="patient_id").groupby(["arm", "week"], as_index=False)["pain"].mean()\nweekly'
+    ),
+    code('ages', 'ages = patients.groupby("arm")["age"].describe()\nages')
+  ]);
+  await openAndRun(page, file, 3);
+  await page.sidebar.openTab('epi-exploration');
+  const side = page.locator('#epi-exploration');
+  await expect(side.locator('.jp-Epi-exploration')).toBeVisible();
+  await scrollsUnderTabs(page, side);
+
+  // Cell details of [2], with its table and its code open, from the tab in
+  // sight: it shows from its top.
+  await card(page, 'weekly').locator('.jp-Epi-title').click();
+  await side.getByRole('tab', { name: 'Cell details' }).click();
+  await expect(side.locator('.jp-Epi-details-head')).toContainText('[2]');
+  expect(
+    await side.locator('.jp-Epi-right-scroll').evaluate(node => node.scrollTop)
+  ).toBe(0);
+  for (const part of ['Outputs', 'Code']) {
+    await side.locator('.jp-Epi-details-toggle', { hasText: part }).click();
+  }
+  await expect(side.locator('.jp-Epi-details table')).toBeVisible();
+  await scrollsUnderTabs(page, side);
+
+  // The column inside the notebook: Settings > Whybook > "Exploration and
+  // Cell details" at "In Whybook".
+  await page.evaluate(async () => {
+    const registry = await (window as any).galata.getPlugin(
+      '@jupyterlab/apputils-extension:settings'
+    );
+    await registry.set('whybook:plugin', 'explorationPlacement', 'document');
+  });
+  const column = page.locator('.jp-Epi-docpanel.jp-mod-right');
+  await expect(column.locator('.jp-Epi-tabs')).toBeVisible();
+  await column.getByRole('tab', { name: 'Exploration' }).click();
+  await expect(column.locator('.jp-Epi-exploration')).toBeVisible();
+  await scrollsUnderTabs(page, column);
 });

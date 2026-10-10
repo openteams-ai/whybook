@@ -504,6 +504,90 @@ test('asks before Undo of an answer removes what the analyst typed in its cell',
   await expect(target).toBeFocused();
 });
 
+// A8 of research/critique-5/app.md: Undo of an answer removed its cell, and
+// the names that the cell made stayed in the kernel, listed with the names
+// that cells make (design iteration 1.119).
+test('lists the names that only an undone answer made apart in Variables, and Remove deletes them from the kernel', async ({
+  page,
+  tmpPath
+}) => {
+  const file = `${tmpPath}/undone.ipynb`;
+  await newNotebook(page, file, MODEL_CELLS, { whybook: { outcome: 'y' } });
+  await openInWhybook(page, file);
+  await kernelIdle(page);
+  await page.locator('.jp-Epi-runall').click();
+  const target = page.locator('.jp-Epi-cell[data-cell-id="cell-2"]');
+  await expect(target.locator('.jp-Epi-label')).toHaveText('[3]', {
+    timeout: 60000
+  });
+  await idle(page);
+
+  // A question that a template answers in a new cell, which makes z_vs_y.
+  await page.locator('.jp-Epi-variable[data-variable="df"]').click();
+  await drag(
+    page,
+    page.locator('.jp-Epi-column', { hasText: 'z' }).first(),
+    target
+  );
+  await popover(page)
+    .locator('.jp-Epi-option', { hasText: 'Is z associated with y here?' })
+    .click();
+  const strip = target.locator('.jp-Epi-strip');
+  await expect(strip.locator('.jp-Epi-strip-action')).toHaveText(
+    /^Added \[\d+\] after \[3\]$/,
+    { timeout: 60000 }
+  );
+  await idle(page);
+  const variables = page.locator('.jp-Epi-variables');
+  const inMain = variables.locator(
+    '.jp-Epi-list > .jp-Epi-variable[data-variable="z_vs_y"]'
+  );
+  await expect(inMain).toBeVisible();
+  await expect(variables.locator('.jp-Epi-undone-head')).toHaveCount(0);
+
+  // Undo removes the cell, and the kernel keeps z_vs_y: it goes apart.
+  await strip.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(strip).toHaveCount(0);
+  await expect(variables.locator('.jp-Epi-undone-title')).toHaveText(
+    'From undone answers'
+  );
+  const apart = variables.locator('.jp-Epi-undone-row');
+  await expect(apart.locator('.jp-Epi-variable')).toHaveAttribute(
+    'data-variable',
+    'z_vs_y'
+  );
+  await expect(inMain).toHaveCount(0);
+  // Remove is on the row's line, inside the panel.
+  const remove = apart.getByRole('button', {
+    name: 'Remove z_vs_y from the kernel'
+  });
+  await expect(remove).toBeVisible();
+  const row = (await apart.locator('.jp-Epi-variable').boundingBox())!;
+  const button = (await remove.boundingBox())!;
+  const list = (await variables.locator('.jp-Epi-list').boundingBox())!;
+  expect(button.x).toBeGreaterThanOrEqual(row.x + row.width - 1);
+  expect(button.x + button.width).toBeLessThanOrEqual(list.x + list.width + 1);
+  expect(
+    Math.abs(button.y + button.height / 2 - (row.y + row.height / 2))
+  ).toBeLessThan(4);
+
+  // Remove deletes it from the kernel, and the rows go.
+  await remove.click();
+  await expect(variables.locator('.jp-Epi-undone-head')).toHaveCount(0);
+  await expect(
+    variables.locator('.jp-Epi-variable[data-variable="z_vs_y"]')
+  ).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).jupyterapp.shell.currentWidget.content.model.variable(
+          'z_vs_y'
+        )
+      )
+    )
+    .toBeNull();
+});
+
 // Item 22: a plot had no keyboard path: Tab passed over it, and only a
 // pointer could ask about a bar.
 test('reaches a plot with Tab, marks a bar with the arrow keys, and asks about it with Enter as a click does', async ({

@@ -46,7 +46,8 @@ import {
   VariablesSection,
   askMode,
   askTitle,
-  inPopover
+  inPopover,
+  runsOn
 } from './variables';
 
 // From the most detail to the least: Code shows every cell as it is, Bench
@@ -387,9 +388,12 @@ function Popover(props: {
             />{' '}
             Explore in parallel
           </label>
+          {/* In Click mode nothing is dropped: its switches for a branch and for parallel runs are in the Questions section. */}
           <span className="jp-Epi-caption">
-            Runs on pick, no confirmation. Shift+drop always branches · Alt+drop
-            explores in parallel.
+            {runsOn(ask)}{' '}
+            {model.interaction === 'click'
+              ? 'Always branch and Explore in parallel are in the Questions section.'
+              : 'Shift+drop always branches · Alt+drop explores in parallel.'}
           </span>
         </div>
       )}

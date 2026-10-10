@@ -692,10 +692,13 @@ describe("The quick look's preview", () => {
     const main = right.querySelector('.jp-Epi-right-main')!;
     const found = {
       split: right.classList.contains('jp-mod-split'),
-      // The tabs, then the preview, then what the tab shows.
-      order: Array.from(main.children)
-        .slice(0, 2)
-        .map(child => child.className),
+      // The tabs, then the preview, then what the tab shows: the preview
+      // and the tab's content scroll under the tabs.
+      order: Array.from(
+        main.querySelectorAll(
+          '.jp-Epi-tabs, .jp-Epi-right-preview, .jp-Epi-exploration'
+        )
+      ).map(child => `${child.parentElement!.className} > ${child.className}`),
       plot: view.host
         .querySelector('.jp-Epi-preview svg.jp-Epi-plot')
         ?.getAttribute('width')
@@ -704,7 +707,11 @@ describe("The quick look's preview", () => {
     model.dispose();
     expect(found).toEqual({
       split: false,
-      order: ['jp-Epi-tabs', 'jp-Epi-right-preview'],
+      order: [
+        'jp-Epi-right-main > jp-Epi-tabs',
+        'jp-Epi-right-scroll > jp-Epi-right-preview',
+        'jp-Epi-right-scroll > jp-Epi-exploration'
+      ],
       plot: '214'
     });
   });

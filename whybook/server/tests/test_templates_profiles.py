@@ -431,6 +431,33 @@ def test_numbered_columns_are_not_suggested_as_measures_of_each_other_and_the_re
     assert not [text for text in texts if text.startswith("Reshape") or "pain_" in text or "sleep_" in text], texts
 
 
+def test_a_long_frame_that_a_cell_made_from_the_wide_one_is_the_reshape():
+    """The demo's [3], diary = to_long(diary_raw): the measures go under other names (critique 5, the app, A3)."""
+    load = CellInfo(id="c1", label="[1]", source="diary_raw = load_diary_raw()", defs=("diary_raw",), uses=("load_diary_raw",))
+    to_long = CellInfo(id="c2", label="[2]", source="diary = to_long(diary_raw)", defs=("diary",), uses=("diary_raw", "to_long"))
+    raw = {"rows": 5880, "columns": DIARY_COLUMNS}
+    diary = {"rows": 36941, "columns": {"patient_id": "id", "diary_day": "int", "week": "int", "pain_score": "num", "sleep_hours": "num", "mood": "num"}}
+
+    def texts(cells, **frames):
+        context = Context.from_json({"frames": {"diary_raw": raw, **frames}, "outcome": "pain_score", "unit": "patient_id"})
+        return [step.text for step in next_steps(cells, context, {}, set())]
+
+    found = texts([load, to_long], diary=diary)
+    assert not [text for text in found if text.startswith("Reshape") or "pain_1" in text or "mood_1" in text], found
+    offered = "Reshape diary_raw to one row per day: pain, sleep and mood"
+    # No cell has reshaped diary_raw yet.
+    assert offered in texts([load])
+    # A frame with more rows that no cell made from diary_raw.
+    visits = CellInfo(id="c2", label="[2]", source="visits = load_visits()", defs=("visits",), uses=("load_visits",))
+    assert offered in texts([load, visits], visits={"rows": 9000, "columns": {"patient_id": "id", "week": "int", "crp": "num"}})
+    # A frame made from diary_raw with one row per patient.
+    means = CellInfo(id="c2", label="[2]", source="means = diary_raw.groupby('patient_id').mean()", defs=("means",), uses=("diary_raw",))
+    assert offered in texts([load, means], means={"rows": 318, "columns": {"week": "num", "pain_1": "num"}})
+    # A frame made from diary_raw with more rows that keeps the columns of the days.
+    joined = CellInfo(id="c2", label="[2]", source="joined = diary_raw.merge(visits)", defs=("joined",), uses=("diary_raw", "visits"))
+    assert offered in texts([load, joined], joined={"rows": 9000, "columns": {**DIARY_COLUMNS, "crp": "num"}})
+
+
 # 9. The quick look showed the bad readings, "lowest 0 x5" and "highest 999.9
 # x4", but only a model could leave them out (energy step 7). The quick look
 # gives the view its ends as code, beside the table.

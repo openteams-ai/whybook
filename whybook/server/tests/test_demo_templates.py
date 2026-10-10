@@ -100,6 +100,24 @@ def test_next_steps_cover_open_assumptions_and_run(demo):
             demo.run(step.code)
 
 
+def test_next_steps_leave_out_the_reshape_that_a_cell_made(demo):
+    """[3] makes diary from diary_raw with to_long, and Worth asking next offered the reshape first (critique 5, the app, A3).
+
+    diary holds the measures as pain_score, sleep_hours and mood, so no
+    frame held pain, sleep and mood under the names of diary_raw's columns.
+    """
+    context = Context.from_json(demo.context())
+    assert (context.frame_rows["diary_raw"], context.frame_rows["diary"]) == (5880, 36941)
+    cells = [CellInfo.from_json(c) for c in demo.cells_json()]
+    texts = [step.text for step in next_steps(cells, context, {}, set())]
+    # Nor does a question pair a day's column of diary_raw with diary's pain_score.
+    assert not [text for text in texts if text.startswith("Reshape") or "pain_1" in text or "sleep_1" in text], texts
+    # Without [3], the reshape is offered.
+    unshaped = [cell for cell in cells if cell.id != "reshape"]
+    texts = [step.text for step in next_steps(unshaped, context, {}, set())]
+    assert "Reshape diary_raw to one row per day: pain, sleep and mood" in texts
+
+
 def test_polars_drop_option_code_runs(demo):
     """Headers of a polars table ask what its columns dropped ask: the code is polars code, and runs.
 

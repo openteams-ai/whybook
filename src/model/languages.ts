@@ -64,6 +64,13 @@ export interface ILanguage {
    * without a title takes it from its first line.
    */
   commentText(line: string): string | null;
+  /**
+   * Code that deletes these names from the kernel: `del a, b` in Python.
+   * Remove runs it for the names that only undone answers made (design
+   * iteration 1.119). A language whose variables the view does not list
+   * has none.
+   */
+  remove?(names: string[]): string;
 }
 
 /** A comment line of Python or R: `# Load the visits`. */
@@ -88,7 +95,8 @@ export const PYTHON: ILanguage = {
   },
   column: (frame, label) => `${frame}[${pythonString(label)}]`,
   subshells: true,
-  commentText: hashComment
+  commentText: hashComment,
+  remove: names => `del ${names.join(', ')}`
 };
 
 /**
@@ -125,7 +133,9 @@ export const R: ILanguage = {
     `${frame}[["${label.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]]`,
   // No R kernel lists subshells yet; one that does implements them itself.
   subshells: true,
-  commentText: hashComment
+  commentText: hashComment,
+  remove: names =>
+    `rm(list = c(${names.map(name => JSON.stringify(name)).join(', ')}), envir = globalenv())`
 };
 
 // A comment line of SAS: a block comment, /* Load the visits */, the

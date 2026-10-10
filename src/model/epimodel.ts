@@ -2092,18 +2092,152 @@ export class EpiModel implements IDisposable {
   }
 
   /**
-   * The variables, less the names of agents' runs (`runNames`): the main
-   * list of the Variables panel, the frames that the map draws, and the
-   * Derived row of Variables explored, whose source frames come from
-   * `variables()` with a filter of their own (../ui/exploration.tsx).
+   * The variables, less the names of agents' runs (`runNames`) and those
+   * that only undone answers made (`undoneNames`): the main list of the
+   * Variables panel, the frames that the map draws, and the Derived row of
+   * Variables explored, whose source frames come from `variables()` with a
+   * filter of their own (../ui/exploration.tsx).
    */
   mainVariables(): IVariable[] {
-    const groups = this.runNames();
-    if (!groups.length) {
+    const apart = new Set([
+      ...this.runNames().flatMap(group => group.names),
+      ...this.undoneNames().map(variable => variable.name)
+    ]);
+    if (!apart.size) {
       return this.variables();
     }
-    const ofRuns = new Set(groups.flatMap(group => group.names));
-    return this.variables().filter(variable => !ofRuns.has(variable.name));
+    return this.variables().filter(variable => !apart.has(variable.name));
+  }
+
+  /**
+   * The variables that only the cells of undone answers made (design
+   * iteration 1.119). Undo deletes the cell that an answer added and leaves
+   * the kernel as it is, so the names that the cell made stay in the kernel,
+   * and no cell makes them. Variables lists them apart, each with Remove,
+   * and Variables explored leaves them out. A name that a cell of the
+   * notebook makes is not one of them, then or later.
+   */
+  undoneNames(): IVariable[] {
+    const undone = this._undone;
+    if (!undone?.size) {
+      return [];
+    }
+    const made = this._madeByCells();
+    for (const name of [...undone.keys()]) {
+      if (made.has(name)) {
+        undone.delete(name);
+      }
+    }
+    return this.variables().filter(
+      variable => !variable.stale && undone.has(variable.name)
+    );
+  }
+
+  /** The question of the undone answer that made this name. */
+  undoneQuestion(name: string): string | null {
+    return this._undone?.get(name) ?? null;
+  }
+
+  /** Whether Remove deletes this name from the kernel now. */
+  isRemoving(name: string): boolean {
+    return !!this._removing?.has(name);
+  }
+
+  /**
+   * Delete these names of `undoneNames` from the kernel, with `del a, b` in
+   * Python, and list the kernel's variables again. Only a click on Remove
+   * calls it.
+   */
+  async removeUndone(names: string[]): Promise<void> {
+    const listed = new Set(this.undoneNames().map(variable => variable.name));
+    const removing = (this._removing ??= new Set());
+    const gone = names.filter(name => listed.has(name) && !removing.has(name));
+    const code = gone.length ? this.bridge.language?.remove?.(gone) : null;
+    if (!code) {
+      return;
+    }
+    gone.forEach(name => removing.add(name));
+    this._emit();
+    try {
+      const { error } = await this.bridge.execute(code);
+      if (error) {
+        console.warn(`Could not remove ${gone.join(', ')}: ${error}`);
+      }
+      await this.refresh();
+    } catch (error) {
+      console.warn('Could not remove names from the kernel', error);
+    } finally {
+      for (const name of gone) {
+        removing.delete(name);
+        if (this._inKernel(name)) {
+          continue;
+        }
+        this._undone?.delete(name);
+        // Contents and a pick do not keep a name that is gone.
+        if (this.selected === name) {
+          this.selected = null;
+        }
+        const armed = this.armed;
+        if (
+          armed &&
+          (armed.kind === 'variable' ? armed.name : armed.parent) === name
+        ) {
+          this.armed = null;
+        }
+      }
+      this._emit();
+    }
+  }
+
+  /**
+   * Keep the names that the cell of an undone answer made, before Undo
+   * deletes the cell: those of its analysis, and those that the notebook
+   * kept with the cell at the last listing. A cell that the kernel has not
+   * analysed yet, as when Undo comes right after the run, is analysed now.
+   */
+  private _keepUndone(cellId: string, question: string): void {
+    const cell = this.cell(cellId);
+    if (cell?.type !== 'code') {
+      return;
+    }
+    const undone = (this._undone ??= new Map());
+    const keep = (names: readonly string[]) =>
+      names.forEach(name => undone.set(name, question));
+    keep(cell.analysis?.defs ?? []);
+    keep(
+      this._storedVariables()
+        .filter(variable => variable.cell === cellId)
+        .map(variable => variable.name)
+    );
+    if (cell.analysis || !this.sessionContext.session?.kernel) {
+      return;
+    }
+    const source = cell.model.sharedModel.getSource();
+    void this.bridge
+      .refreshAnalysis([{ id: cellId, source }])
+      .then(() => {
+        keep(this.bridge.freshAnalysis(cellId, source)?.defs ?? []);
+        this._emit();
+      })
+      .catch(error => console.warn('Could not analyse the undone cell', error));
+  }
+
+  /**
+   * The names that the code cells of the notebook make: by their analysis,
+   * and by the analysis that each kept from its last run, which stands for
+   * a cell changed since, until the kernel analyses it again.
+   */
+  private _madeByCells(): Set<string> {
+    const names = new Set<string>();
+    for (const cell of this.codeCells()) {
+      for (const name of cell.analysis?.defs ?? []) {
+        names.add(name);
+      }
+      for (const name of cell.meta.analysis?.defs ?? []) {
+        names.add(name);
+      }
+    }
+    return names;
   }
 
   /**
@@ -5252,7 +5386,9 @@ export class EpiModel implements IDisposable {
   /**
    * Undo an answer: delete the cell it added, or put back the code of the
    * cell it edited. When the analyst changed that cell since, the strip asks
-   * first, and Undo removes the changes only when `anyway`.
+   * first, and Undo removes the changes only when `anyway`. The names that
+   * the added cell made stay in the kernel: Variables lists them apart
+   * (`undoneNames`).
    */
   undo(cellId: string, anyway = false): void {
     const strip = this.strips.get(cellId);
@@ -5268,6 +5404,7 @@ export class EpiModel implements IDisposable {
       }
     }
     if (strip.insertedId) {
+      this._keepUndone(strip.insertedId, strip.text);
       deleteCell(this.notebook, strip.insertedId);
     } else if (strip.placement.kind === 'edit' && strip.before !== null) {
       const cell = findCell(this.notebook, strip.cellId);
@@ -8856,8 +8993,10 @@ export class EpiModel implements IDisposable {
    * runs in it; one that ran before the view connected is read once.
    */
   private _onKernel(): void {
-    // What the view ran was in the kernel before.
+    // What the view ran, and the names of undone answers, were in the
+    // kernel before.
     this._viewRuns?.clear();
+    this._undone?.clear();
     if (!this.sessionContext.session?.kernel || this.bridge.watchedStart) {
       this._refreshPolicy.cancel();
     } else {
@@ -9062,6 +9201,7 @@ export class EpiModel implements IDisposable {
     ) {
       this._refreshPolicy.cancel();
       this._viewRuns?.clear();
+      this._undone?.clear();
     }
     this._emit();
   }
@@ -9263,6 +9403,10 @@ export class EpiModel implements IDisposable {
     variables: IVariable[];
     groups: IRunGroup[];
   } | null = null;
+  // The names that the cells of undone answers made, with the question of
+  // each answer (undoneNames), and those that Remove deletes now.
+  private _undone?: Map<string, string>;
+  private _removing?: Set<string>;
   private _version = 0;
   private _revision = 0;
   // A model's type and place for each text typed, null while it is asked.

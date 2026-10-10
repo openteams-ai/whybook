@@ -64,7 +64,8 @@ export interface ICoverage {
  * (../model/exploredorder.ts). The frames of an agent's run stay out
  * (../model/runnames.ts), except a table that the run read from a file: it
  * is data that the analysis starts from. In a notebook that a run made,
- * such as its notebook in R, every name is the run's.
+ * such as its notebook in R, every name is the run's. The frames that only
+ * undone answers made stay out (`undoneNames` of the view model).
  */
 export function coverage(
   model: EpiModel,
@@ -92,6 +93,7 @@ export function coverage(
     }
   }
   const ofRuns = new Set(model.runNames().flatMap(group => group.names));
+  const ofUndone = new Set(model.undoneNames().map(v => v.name));
   const frames = model
     .variables()
     .filter(
@@ -99,6 +101,7 @@ export function coverage(
         v.kind === 'dataframe' &&
         !v.selection &&
         v.columns &&
+        !ofUndone.has(v.name) &&
         (!ofRuns.has(v.name) || loaded.has(v.name))
     );
   const sources = frames.filter(frame => {
@@ -566,6 +569,14 @@ function RightTabs(props: {
   preview: JSX.Element | null;
 }): JSX.Element {
   const { model, width } = props;
+  // The tabs stay at the top of the panel, and what they show scrolls in a
+  // box under them. Another tab shows its content from the top.
+  const box = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (box.current) {
+      box.current.scrollTop = 0;
+    }
+  }, [model.rightTab]);
   return (
     <>
       <div className="jp-Epi-tabs" role="tablist">
@@ -586,16 +597,18 @@ function RightTabs(props: {
           Cell details
         </button>
       </div>
-      {props.preview}
-      {model.rightTab === 'explore' ? (
-        <ExplorationPanel model={model} />
-      ) : (
-        <CellDetails
-          model={model}
-          width={width}
-          editorServices={props.editorServices}
-        />
-      )}
+      <div className="jp-Epi-right-scroll" ref={box}>
+        {props.preview}
+        {model.rightTab === 'explore' ? (
+          <ExplorationPanel model={model} />
+        ) : (
+          <CellDetails
+            model={model}
+            width={width}
+            editorServices={props.editorServices}
+          />
+        )}
+      </div>
     </>
   );
 }

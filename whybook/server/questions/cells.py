@@ -1045,6 +1045,29 @@ def _without_labels(text: str) -> str:
     return _LABEL.sub("[]", text)
 
 
+def reshaped_frames(cells: list[CellInfo], context: Context, numbered: dict[str, dict[str, list[str]]]) -> set[str]:
+    """The frames with numbered columns that a cell already made a long frame from.
+
+    A long frame is one that a cell makes from the wide frame, with more
+    rows than it and none of its numbered columns, whatever the names of its
+    other columns. The demo's ``diary = to_long(diary_raw)`` makes 36,941
+    rows from 5,880, with pain_score, sleep_hours and mood for pain_1 to
+    mood_7.
+    """
+    found = set()
+    for cell in cells:
+        for wide in cell.uses:
+            rows = context.frame_rows.get(wide)
+            if not numbered.get(wide) or rows is None:
+                continue
+            numbered_columns = {column for columns in numbered[wide].values() for column in columns}
+            for frame in cell.defs:
+                columns = context.frames.get(frame)
+                if frame != wide and columns is not None and context.frame_rows.get(frame, 0) > rows and not numbered_columns & set(columns):
+                    found.add(wide)
+    return found
+
+
 def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[dict]], dismissed: set[str]) -> list[Candidate]:
     """Questions tied to gaps: open assumptions, unexplored columns and thin column groups.
 
@@ -1096,12 +1119,14 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
     source = outcome_frame(context)
     # A measure in numbered columns, such as pain_1 to pain_7, is one measure
     # on seven days: the reshape to one row per day comes first, unless a
-    # frame holds the measures as columns already, and no question pairs
+    # frame holds the measures as columns already or a cell made a long
+    # frame from the wide one (reshaped_frames), and no question pairs
     # pain_2 with pain_1, or pain_1 with pain (design iteration 1.85).
     numbered = {frame: reshape.stub_groups(columns) for frame, columns in context.frames.items() if len(columns) <= 400}
+    made_long = reshaped_frames(cells, context, numbered)
     for frame, stubs in numbered.items():
         wide = reshape.plan(context.frames[frame], context.unit, context.frames[frame]) if stubs else None
-        if wide is None or any(set(wide.stubs) <= set(columns) for columns in context.frames.values()):
+        if wide is None or frame in made_long or any(set(wide.stubs) <= set(columns) for columns in context.frames.values()):
             continue
         name = reshape.name_for(frame, context.frames)
         text = reshape.text(frame, wide)
@@ -1137,7 +1162,7 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
                 if column in (outcome, context.unit) or tag in ("id", "text", "other") or column in context.used:
                     continue
                 measure = reshape.stub_of(column, stubs)
-                long = measure is not None and any(measure in held for held in context.frames.values())
+                long = measure is not None and (frame in made_long or any(measure in held for held in context.frames.values()))
                 if column in measures or (measure and (measures or measure == outcome or long)):
                     continue
                 text = f"How does {column} relate to {outcome}?"
