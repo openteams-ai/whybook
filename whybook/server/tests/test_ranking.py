@@ -61,11 +61,34 @@ async def test_the_remote_model_gives_a_probability_for_each_question(monkeypatc
     assert found[-1]["model"] == "claude-opus-5-5"
     assert [question["id"] for question in seen["prompt"]["questions"]] == ["q1", "q2"]
     assert seen["prompt"]["state"]["selected"][0]["name"] == "age"
-    # The prompt that research/ranking-placement.md measured at 60.7% of 300 drops asks
-    # what the analyst will ask next; the mode stays in the state that the model reads.
+    # By default the prompt asks what the analyst will ask next, the prompt of the
+    # test of research/ranking-placement.md; the mode stays in the state that the model reads.
     assert seen["system"].startswith("You predict the question that an analyst asks next")
     assert "should ask" not in seen["system"]
     assert seen["prompt"]["state"]["mode"] == "do"
+
+
+async def test_the_setting_asks_the_remote_model_what_the_analyst_should_ask(monkeypatch):
+    seen = {}
+
+    async def structured_call(prompt, *, schema, system_prompt, config, effort, images=None):
+        seen["system"] = system_prompt
+        seen["state"] = json.loads(prompt)["state"]
+        yield {"type": "result", "output": {"scores": [{"id": "q2", "probability": 0.7}]}, "model": "claude-opus-5-5", "cost_usd": 0.002, "elapsed": 1.0}
+
+    monkeypatch.setattr(claude, "structured_call", structured_call)
+    found = await events(ranking.request_from_json(body(prompt="should")), Whybook())
+    assert found[-1]["scores"] == {"q2": 0.7}
+    # The prompt before the default: what the analyst should ask, weighing the mode.
+    assert seen["system"] == ranking.SHOULD_PROMPT
+    words = " ".join(seen["system"].split())
+    assert "should ask it next" in words
+    assert "Wonder favours what nobody asked yet" in words
+    assert seen["state"]["mode"] == "do"
+    # The prompt is one of the two.
+    with pytest.raises(InvalidRequest):
+        ranking.request_from_json(body(prompt="best"))
+    assert ranking.request_from_json(body())["prompt"] == "next"
 
 
 async def test_jev_asks_one_yes_or_no_question_per_question_through_typesafe():

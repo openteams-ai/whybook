@@ -256,6 +256,9 @@ export interface ICellEditors {
   markdown: Record<string, unknown>;
 }
 
+/** What a remote model is asked when it orders the offered questions: what the analyst asks next, or should ask. */
+export type RankingPrompt = 'next' | 'should';
+
 /**
  * Settings shared by every open notebook view.
  */
@@ -321,6 +324,12 @@ export class EpiSettings {
    * template fits, or never (./rulesfirst.ts).
    */
   modelQuestions: ModelQuestions = 'always';
+  /**
+   * What a remote model is asked when it orders the offered questions: the
+   * chance that each is the analyst's next question, or that the analyst
+   * should ask it next, weighing the mode (whybook/server/questions/ranking.py).
+   */
+  rankingPrompt: RankingPrompt = 'next';
   /**
    * The kernel reads the signatures of the library functions that the cells
    * call, and the model chosen for More questions picks the defaults that
@@ -419,6 +428,7 @@ export class EpiSettings {
       | 'agentView'
       | 'showCost'
       | 'modelQuestions'
+      | 'rankingPrompt'
       | 'findDefaults'
       | 'exploredOrder'
   >(key: K, value: EpiSettings[K]): void {
@@ -474,6 +484,7 @@ export class EpiSettings {
         | 'agentView'
         | 'showCost'
         | 'modelQuestions'
+        | 'rankingPrompt'
         | 'findDefaults'
         | 'exploredOrder'
         | 'cellEditors'
@@ -9358,7 +9369,10 @@ export class EpiModel implements IDisposable {
             type: option.type
           })),
           ...(selection ? { selection } : {}),
-          context: this.serverContext()
+          context: this.serverContext(),
+          ...(this.settings.rankingPrompt === 'should'
+            ? { prompt: 'should' }
+            : {})
         },
         event => {
           if (event.type === 'result') {

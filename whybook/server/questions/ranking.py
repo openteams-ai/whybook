@@ -30,17 +30,37 @@ MAX_QUESTIONS = 30
 MAX_TEXT = 300
 
 # The prediction prompt of research/ranking-placement.md, "Language models as
-# rankers". On 300 drops rebuilt from public notebooks, a remote model asked what
-# the analyst will ask next put the analyst's type first for 60.7% of them, the
-# learned ranker of the default order 57.0%, and the earlier prompt, which
-# asked what the analyst should ask and weighed the mode, 44.0%. The mode stays
-# in the state that the model reads.
+# rankers": what the analyst asks next, the default. On 300 drops rebuilt from
+# public notebooks, agents of Claude Opus 5.5 that read the requests 100 at a
+# time put the analyst's type first for 60.7% of them with this prompt, and for
+# 44.0% with SHOULD_PROMPT. One request at a time through OpenRouter, as this
+# route asks, Claude Opus 5.5 gives 48.2%, and GPT-6 Astra, Grok 4.7 and
+# MiMo-V2.6-Pro 45.3% to 47.3%, where the learned ranker of the default order
+# gives 57.0% ("Frontier models of other providers" there). The mode stays in
+# the state that the model reads.
 SYSTEM_PROMPT = """\
 You predict the question that an analyst asks next in a data analysis notebook.
 The view offers questions about the variables that the analyst selected. For
 each question, give the probability that the analyst's next question is this
 one, judging from the notebook so far and the questions already asked. Answer
 with one JSON object."""
+
+# What the analyst should ask, weighing the mode, as the setting rankingPrompt
+# "should" asks. The test of the order scores a ranker against the question
+# that a notebook's author asked next, and this prompt asks for what nobody
+# asked yet in Wonder mode, so it scores lower there by design: 29.3% of 99
+# drops for Claude Opus 5.5 one request at a time, against 55.6% with
+# SYSTEM_PROMPT on the same drops ("The prompt: what the analyst asks next, or
+# should ask" there).
+SHOULD_PROMPT = """\
+You order the questions that a data analysis view offers an analyst. For
+each question, give the probability that the analyst should ask it next:
+high when the analysis depends on the answer and nothing answers it yet,
+low when it is already answered, does not apply to the selected variables,
+or is minor. Use the mode: Do continues the current line of work, Report
+favours results that belong in a report, Wonder favours what nobody asked
+yet. Answer with one JSON object."""
+PROMPTS = {"next": SYSTEM_PROMPT, "should": SHOULD_PROMPT}
 
 SCHEMA = {
     "type": "object",
@@ -73,7 +93,10 @@ def request_from_json(body: Any) -> dict[str, Any]:
     if not questions:
         raise InvalidRequest("the body needs the questions")
     selection = Selection.from_json(body["selection"]) if body.get("selection") else None
-    return {"model": model, "questions": questions, "selection": selection, "context": Context.from_json(body.get("context"))}
+    prompt = body.get("prompt", "next")
+    if prompt not in PROMPTS:
+        raise InvalidRequest(f"the prompt is one of {', '.join(PROMPTS)}")
+    return {"model": model, "questions": questions, "selection": selection, "context": Context.from_json(body.get("context")), "prompt": prompt}
 
 
 def state_of(request: dict[str, Any]) -> dict[str, Any]:
@@ -181,7 +204,8 @@ async def rank_events(request: dict[str, Any], config: Whybook, fetch: Fetch | N
     # The connected model, or another model of its provider (tiers.py), which the request's config names.
     if tiers.is_remote(model):
         prompt = json.dumps({"state": state_of(request), "questions": request["questions"]}, indent=1)
-        async for event in connection.structured_call(prompt, schema=SCHEMA, system_prompt=SYSTEM_PROMPT, config=config, effort=config.question_effort):
+        system = PROMPTS[request.get("prompt", "next")]
+        async for event in connection.structured_call(prompt, schema=SCHEMA, system_prompt=system, config=config, effort=config.question_effort):
             if event["type"] == "result":
                 yield {**result(scores_from_output(event.get("output"), ids), event.get("model")), "cost_usd": event.get("cost_usd")}
             else:

@@ -593,7 +593,7 @@ function rankingChoices(
   const remote: IModelChoice = {
     id: 'remote',
     label: remoteLabel(status),
-    note: `asked which question you will ask next: on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 61% of them, against 57% with the rules, built in; ${remoteSends(status, info.sends)}`,
+    note: `asked which question you will ask next: on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 48% of them with Claude Opus 5.5, and 45% to 47% with GPT-6 Astra, Grok 4.7 and MiMo-V2.6-Pro, against 57% with the rules, built in; ${remoteSends(status, info.sends)}`,
     available: reason === null,
     reason,
     download: null,

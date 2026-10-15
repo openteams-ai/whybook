@@ -458,6 +458,22 @@
       ],
       "default": "always"
     },
+    "rankingPrompt": {
+      "title": "Question order: what the remote model is asked",
+      "description": "What a remote model that orders the questions is asked: what you will ask next, or what you should ask next in the mode. The first matches what analysts asked next more often.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "next",
+          "title": "What you will ask next"
+        },
+        {
+          "const": "should",
+          "title": "What you should ask next, by the mode"
+        }
+      ],
+      "default": "next"
+    },
     "aiWhenNoTemplate": {
       "title": "Questions from AI when no template fits (replaced)",
       "description": "Replaced by modelQuestions. false still reads as never.",

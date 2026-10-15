@@ -36,6 +36,7 @@ describe('readSettings', () => {
       agentView: 'strip',
       showCost: false,
       modelQuestions: 'always',
+      rankingPrompt: 'next',
       findDefaults: true,
       exploredOrder: 'auto',
       guard: DEFAULT_GUARD

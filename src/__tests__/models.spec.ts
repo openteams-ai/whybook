@@ -225,8 +225,10 @@ describe('choicesFor', () => {
       ['jev', false]
     ]);
     expect(ranking[2].note).toMatch(/45% of them, against 57% with the rules/);
-    // The remote model's prompt predicts the next question, as measured.
-    expect(ranking[1].note).toMatch(/61% of them, against 57% with the rules/);
+    // The remote model's prompt predicts the next question, as measured through OpenRouter.
+    expect(ranking[1].note).toMatch(
+      /48% of them with Claude Opus 5.5, .* against 57% with the rules/
+    );
     // The rules' note says what they do; the measurement is in the help.
     expect(ranking[0].note).toBe(
       'Rules, then a learned order of the types of question.'

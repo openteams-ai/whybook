@@ -40,6 +40,7 @@ interface IPluginSettings {
   agentView?: unknown;
   showCost?: unknown;
   modelQuestions?: unknown;
+  rankingPrompt?: unknown;
   /** Replaced by modelQuestions: a saved false reads as never. */
   aiWhenNoTemplate?: unknown;
   findDefaults?: unknown;
@@ -97,6 +98,8 @@ export function readSettings(
     showCost: all.showCost === true,
     // Always, unless the analyst chose otherwise, or turned off the switch it replaced.
     modelQuestions: readModelQuestions(all.modelQuestions, own),
+    // What the analyst asks next, unless the analyst chose what they should ask.
+    rankingPrompt: all.rankingPrompt === 'should' ? 'should' : 'next',
     // On, unless the analyst turns it off.
     findDefaults: all.findDefaults !== false,
     exploredOrder: exploredOrder(all.exploredOrder).id,
