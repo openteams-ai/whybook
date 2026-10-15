@@ -14,6 +14,7 @@ export const MODEL_ROUTES = [
   'questions/claude',
   'questions/review',
   'questions/sort',
+  'questions/split',
   'questions/rank',
   'decision/values',
   'defaults/ask',

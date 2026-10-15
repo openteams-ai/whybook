@@ -15,7 +15,7 @@ from tornado.web import HTTPError
 from . import agent, cell_titles, connection, databases, decision_models, dependencies, frame_notes, guard, library_defaults, local_models, model_client, privacy, providers, signin, sorting, speech, table_notes, tiers
 from .keystore import KeyStore
 from .config import Whybook
-from .questions import claude_questions, ranking, review, templates, values
+from .questions import claude_questions, ranking, review, split, templates, values
 from .questions.cells import CellInfo, Decision, cell_questions, decision_options, next_steps, suggested_values
 from .questions.drops import DropRequest, drop_options
 from .questions.files import FileDrop, file_options
@@ -600,6 +600,30 @@ class SortHandler(BaseHandler):
         self.finish(json.dumps(result))
 
 
+class SplitHandler(BaseHandler):
+    """The question of each branch of a user question that lists alternatives, from the model of More questions (design iteration 1.126)."""
+
+    @tornado.web.authenticated
+    async def post(self):
+        body = self.get_json_body()
+        try:
+            request = split.request_from_json(body)
+        except InvalidRequest as error:
+            raise HTTPError(400, str(error)) from error
+        try:
+            if local_model_of(body):
+                result = await split.split_local(request, self.future_config.local_threads, json_check_of(body))
+            elif tiers.is_remote(request["model"]):
+                result = await split.split(request, self.future_config)
+            else:
+                raise HTTPError(400, f"unknown model {request['model']!r}")
+        except HTTPError:
+            raise
+        except Exception as error:  # noqa: BLE001  the box keeps the question as one
+            raise HTTPError(502, f"{request['model']} could not split the question: {error}") from error
+        self.finish(json.dumps(result))
+
+
 class SolveHandler(BaseHandler):
     @tornado.web.authenticated
     async def post(self):
@@ -998,6 +1022,7 @@ def setup_route_handlers(web_app, config: Whybook):
         (("questions", "claude"), ClaudeQuestionsHandler),
         (("questions", "review"), ReviewQuestionsHandler),
         (("questions", "sort"), SortHandler),
+        (("questions", "split"), SplitHandler),
         (("questions", "rank"), RankQuestionsHandler),
         (("drop",), DropHandler),
         (("cell-questions",), CellQuestionsHandler),

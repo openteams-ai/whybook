@@ -1,4 +1,5 @@
 import {
+  listedNames,
   guessPlace,
   guessType,
   keywordType,
@@ -90,5 +91,35 @@ describe('wordPlace', () => {
       wordPlace('Add age as a covariate', [places[0], places[3]])
     ).toBeNull();
     expect(wordPlace('anything', [])).toBeNull();
+  });
+});
+
+describe('listedNames', () => {
+  const NAMES = ['sleep_hours', 'mood', 'analgesic_use', 'age', 'pain'];
+
+  it('finds two or more names of the notebook in a list', () => {
+    expect(
+      listedNames(
+        'What is the impact of adjusting for sleep_hours, mood or analgesic_use on the arm effect?',
+        NAMES
+      )
+    ).toEqual(['sleep_hours', 'mood', 'analgesic_use']);
+    expect(listedNames('Compare `sleep_hours` vs `mood`', NAMES)).toEqual([
+      'sleep_hours',
+      'mood'
+    ]);
+    expect(listedNames('Is pain related to age and mood?', NAMES)).toEqual([
+      'age',
+      'mood'
+    ]);
+  });
+
+  it('finds no list in one name, in names apart, or in words that are not names', () => {
+    expect(
+      listedNames('What is the impact of adjusting for sleep_hours', NAMES)
+    ).toEqual([]);
+    expect(listedNames('Does age change pain over time?', NAMES)).toEqual([]);
+    expect(listedNames('With and without outliers', NAMES)).toEqual([]);
+    expect(listedNames('sleep_hours, mood', ['sleep_hours'])).toEqual([]);
   });
 });

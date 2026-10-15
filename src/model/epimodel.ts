@@ -1288,6 +1288,103 @@ export class EpiModel implements IDisposable {
     this._emit();
   }
 
+  /** The names of the kernel's variables and of their columns, which a user question can list. */
+  notebookNames(): string[] {
+    const names = new Set<string>();
+    for (const variable of this.variables()) {
+      names.add(variable.name);
+      // A column by its own name, as a question writes it, and in full.
+      for (const column of variable.columns ?? []) {
+        names.add(column.label);
+        names.add(column.name);
+      }
+    }
+    return [...names];
+  }
+
+  /**
+   * Ask the model of More questions for the question of each branch of a
+   * user question that lists alternatives (design iteration 1.126), once per
+   * text. The question stays as the analyst typed it.
+   */
+  async splitOwn(text: string, places: IPlacement[]): Promise<void> {
+    const question = text.trim();
+    if (
+      !question ||
+      this._splits.has(question) ||
+      this._splitting.has(question) ||
+      !this.aiReady('questions')
+    ) {
+      return;
+    }
+    this._splitting.add(question);
+    this._emit();
+    const cellId = places.find(place => place.cell)?.cell ?? null;
+    const cell = cellId ? this.cell(cellId) : null;
+    try {
+      const split = await this.api.splitQuestion({
+        text: question,
+        model: this.settings.models.questions,
+        cell: cell ? cell.model.sharedModel.getSource() : null
+      });
+      this._splits.set(question, {
+        branches: split.branches,
+        model: split.model
+      });
+    } catch (error) {
+      console.warn('Could not split the user question', error);
+      this._splits.set(question, null);
+    } finally {
+      this._splitting.delete(question);
+    }
+    // The splits of the last texts typed are enough.
+    for (const old of Array.from(this._splits.keys()).slice(0, -50)) {
+      this._splits.delete(old);
+    }
+    this._emit();
+  }
+
+  /** The questions of the branches of a user question and the model that wrote them, whether the model writes them now, and whether it failed. */
+  ownSplit(text: string): {
+    branches: string[] | null;
+    by: string | null;
+    splitting: boolean;
+    failed: boolean;
+  } {
+    const question = text.trim();
+    const split = this._splits.get(question);
+    return {
+      branches: split?.branches ?? null,
+      by: split?.model ?? null,
+      splitting: this._splitting.has(question),
+      failed: this._splits.has(question) && split === null
+    };
+  }
+
+  /** The labels that the next `count` branches of a cell get, such as [5c] and [5d] when [5b] is there. */
+  branchLabels(cellId: string, count: number): string[] {
+    const cell = this.cell(cellId);
+    if (!cell) {
+      return [];
+    }
+    const parent = cell.branchOf ? (this.cell(cell.branchOf) ?? cell) : cell;
+    const used = new Set(
+      this.cells()
+        .filter(other => other.branchOf === parent.id)
+        .map(other => other.meta.branch?.letter)
+    );
+    const labels: string[] = [];
+    for (const letter of 'bcdefghijklmnopqrstuvwxyz') {
+      if (labels.length === count) {
+        break;
+      }
+      if (!used.has(letter)) {
+        labels.push(`${parent.label.replace(/\]$/, '')}${letter}]`);
+      }
+    }
+    return labels;
+  }
+
   /** The type of a typed question: the keywords', else the model's, else descriptive, with the model that chose it. */
   ownType(text: string): {
     type: QuestionType;
@@ -3441,6 +3538,11 @@ export class EpiModel implements IDisposable {
     anchor: IAnchor | null,
     options: { popover?: boolean; columns?: boolean } = {}
   ): Promise<void> {
+    // Parallel branches need a cell to branch from: a drop onto a variable
+    // or a column asks as one, whatever Alt or the switch say.
+    if (modifiers.parallel && !target.cellId) {
+      modifiers = { ...modifiers, parallel: false };
+    }
     const ask: IDropAsk = {
       kind: 'drop',
       id: ++counter,
@@ -4771,8 +4873,15 @@ export class EpiModel implements IDisposable {
       place.kind === 'new' &&
       (option.code || byAgent) &&
       place.cell !== (target?.id ?? null);
+    // An answer that another answer of the same cell is still writing or
+    // running keeps its own strip, at the end, as a new cell's does.
+    const busy = target ? this.strips.get(target.id) : undefined;
+    const held =
+      !!busy && ['writing', 'running', 'waiting'].includes(busy.status);
     const anchorId = !apart
-      ? (target?.id ?? `end:${++counter}`)
+      ? target && !held
+        ? target.id
+        : `end:${++counter}`
       : place.cell && !this.strips.has(place.cell)
         ? place.cell
         : `end:${++counter}`;
@@ -5180,6 +5289,8 @@ export class EpiModel implements IDisposable {
       place?: IPlacement | null;
       parallel?: boolean;
       type?: QuestionType;
+      /** The questions of its branches: they run side by side (design iteration 1.126). */
+      branches?: string[];
     } = {}
   ): Promise<void> {
     const question = text.trim();
@@ -5191,6 +5302,25 @@ export class EpiModel implements IDisposable {
       this.ask = null;
     }
     let ask = this.ask;
+    const branch =
+      how.branches && how.branches.length
+        ? this.ownPlaces(ask).find(place => place.kind === 'branch')
+        : undefined;
+    const parent = branch?.cell ? this.cell(branch.cell) : null;
+    if (how.branches && parent) {
+      const options = how.branches.map(text =>
+        ownOption(text, branch!, this.ownType(text).type)
+      );
+      // In the checklist of an Alt+drop, the branches join its rows.
+      if (this._joinChecklist(ask, options)) {
+        return;
+      }
+      this.ask = null;
+      await this._startBranches(parent, options, ask, () =>
+        this.askOwn(question, from, how)
+      );
+      return;
+    }
     // Alt+Enter: the question joins a checklist of branches, as Alt+drop makes.
     if (
       how.parallel &&
@@ -5221,17 +5351,28 @@ export class EpiModel implements IDisposable {
       placement,
       how.type ?? this.ownType(question).type
     );
-    if (ask?.kind === 'drop' && ask.result?.mode === 'parallel') {
-      if (!ask.result.options.some(known => known.id === option.id)) {
-        ask.result.options = [...ask.result.options, option];
+    if (this._joinChecklist(ask, [option])) {
+      return;
+    }
+    await this.apply(option, placement);
+  }
+
+  /** Whether the request is the checklist of an Alt+drop, to which the options were added, checked. */
+  private _joinChecklist(ask: Ask | null, options: IOption[]): boolean {
+    if (ask?.kind !== 'drop' || ask.result?.mode !== 'parallel') {
+      return false;
+    }
+    const result = ask.result;
+    for (const option of options) {
+      if (!result.options.some(known => known.id === option.id)) {
+        result.options = [...result.options, option];
       }
       if (!ask.checked.includes(option.id)) {
         ask.checked = [...ask.checked, option.id];
       }
-      this._emit();
-      return;
     }
-    await this.apply(option, placement);
+    this._emit();
+    return true;
   }
 
   /**
@@ -5343,13 +5484,30 @@ export class EpiModel implements IDisposable {
     if (!target) {
       return;
     }
-    const parent = target.branchOf
-      ? (this.cell(target.branchOf) ?? target)
-      : target;
     const options = ask.result.options.filter(option =>
       ask.checked.includes(option.id)
     );
     this.ask = null;
+    await this._startBranches(target, options, ask, () =>
+      this.startParallel(ask)
+    );
+  }
+
+  /**
+   * A branch of the cell for each option, written and run side by side in
+   * subshells, under "Parallel exploration of [N]": the checked options of a
+   * drop, or the questions of the branches of a user question. `again` asks
+   * once more after the analyst goes on past the notebook's cost cap.
+   */
+  private async _startBranches(
+    target: IEpiCell,
+    options: IOption[],
+    ask: Ask | null,
+    again: () => Promise<void>
+  ): Promise<void> {
+    const parent = target.branchOf
+      ? (this.cell(target.branchOf) ?? target)
+      : target;
     if (options.some(option => !option.code) && this._heldAtCap()) {
       const count =
         options.length === 1 ? '1 branch' : `${options.length} branches`;
@@ -5360,7 +5518,7 @@ export class EpiModel implements IDisposable {
           label: `branch of ${parent.label} · runs in parallel`
         },
         { text: `Parallel exploration of ${parent.label}: ${count}` },
-        () => this.startParallel(ask)
+        again
       );
       return;
     }
@@ -9502,6 +9660,14 @@ export class EpiModel implements IDisposable {
   private _revision = 0;
   // A model's type and place for each text typed, null while it is asked.
   private _sorted = new Map<string, ISortedQuestion | null>();
+  // The questions of the branches of a user question that lists alternatives,
+  // by its text, from the model of More questions, with the model's name;
+  // null when the call failed.
+  private _splits = new Map<
+    string,
+    { branches: string[]; model: string } | null
+  >();
+  private _splitting = new Set<string>();
   private _cells: IEpiCell[] | null = null;
   private _cellsVersion = -1;
   private _cellsRuns = -1;

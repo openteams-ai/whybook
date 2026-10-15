@@ -105,7 +105,14 @@ describe('Api, with the data kept on this machine', () => {
       'titleCells',
       api => api.titleCells({ model: 'remote', cells: [] }, () => {})
     ],
-    ['sortQuestion', api => api.sortQuestion({ text: 'q', model: 'jev' })]
+    [
+      'sortQuestion',
+      api => api.sortQuestion({ text: 'q', model: 'decision:jev' })
+    ],
+    [
+      'splitQuestion',
+      api => api.splitQuestion({ text: 'q', model: 'remote:fast' })
+    ]
   ];
 
   /**
@@ -184,7 +191,8 @@ describe('Api, with the data kept on this machine', () => {
       'tables/describe': true,
       'frames/describe': true,
       'cells/title': true,
-      'questions/sort': true
+      'questions/sort': true,
+      'questions/split': true
     });
   });
 

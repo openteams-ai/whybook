@@ -113,6 +113,7 @@ describe('the sums of what calls cost', () => {
       'decision/values': 'questions',
       'defaults/ask': 'questions',
       'questions/review': 'questions',
+      'questions/split': 'questions',
       'questions/sort': 'other',
       'dependencies/claude': 'other'
     });

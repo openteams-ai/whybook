@@ -136,6 +136,60 @@ export function wordPlace(
   return (kind && places.find(place => place.kind === kind)) || null;
 }
 
+// The separators of a list of alternatives: commas, "and", "or", "vs".
+const LIST_SEPARATOR = /(\s*,\s*|\s+(?:and|or|vs\.?|versus)\s+)/i;
+
+/** A word of a question without the quotes and the marks around it. */
+function bare(word: string | undefined): string {
+  return (word ?? '').replace(/^[`'"([]+|[`'")\]?.!,;:]+$/g, '');
+}
+
+/**
+ * The most branches that one user question makes, as the server's guard on
+ * the branches of one call (MAX_BRANCHES in whybook/server/agent.py).
+ */
+export const MAX_BRANCHES = 20;
+
+/**
+ * The names of the notebook that a user question lists as alternatives: two
+ * or more of them, joined by commas, "and", "or", "vs" or "versus", such as
+ * "sleep_hours, mood or analgesic_use". The box then offers to explore in
+ * parallel, and a model writes the question of each branch (design
+ * iteration 1.126): no rule splits the words.
+ */
+export function listedNames(text: string, names: string[]): string[] {
+  const known = new Set(names.filter(name => name.length > 1));
+  if (known.size < 2) {
+    return [];
+  }
+  // The text between separators, and each separator: words, sep, words, ...
+  const parts = text.split(LIST_SEPARATOR).filter((_, i) => i % 2 === 0);
+  const words = parts.map(part => part.trim().split(/\s+/).map(bare));
+  let best: string[] = [];
+  for (let start = 0; start < words.length - 1; start++) {
+    const first = words[start][words[start].length - 1];
+    if (!known.has(first)) {
+      continue;
+    }
+    const run = [first];
+    for (let next = start + 1; next < words.length; next++) {
+      const name = words[next][0];
+      if (!known.has(name) || run.includes(name)) {
+        break;
+      }
+      run.push(name);
+      // A list goes on past a part that holds one name alone.
+      if (words[next].length > 1) {
+        break;
+      }
+    }
+    if (run.length > best.length) {
+      best = run;
+    }
+  }
+  return best.length >= 2 ? best : [];
+}
+
 /** A user question as an option: an AI model writes its cell. */
 export function ownOption(
   text: string,

@@ -1167,7 +1167,7 @@ export function AskContent(props: {
         model={model}
         onAsk={(text, how) => void model.askOwn(text, 'request', how)}
         places={model.ownPlaces(ask)}
-        parallel={ask.kind === 'drop' && !ask.loading}
+        parallel={ask.kind === 'drop' && !ask.loading && !!ask.target.cellId}
         placeholder={
           parallel ? 'Your own question, as one more branch' : undefined
         }
@@ -1557,6 +1557,23 @@ function NoteAskContent(props: {
   );
 }
 
+/**
+ * The rows of a drop's list: the offered questions, then every checked
+ * question past them, which counts in Start of a checklist all the same.
+ */
+export function checklistRows(
+  first: IOption[],
+  all: IOption[],
+  checked: string[]
+): IOption[] {
+  return [
+    ...first,
+    ...all.filter(
+      option => checked.includes(option.id) && !first.includes(option)
+    )
+  ];
+}
+
 function DropAskContent(props: {
   model: EpiModel;
   ask: IDropAsk;
@@ -1564,6 +1581,11 @@ function DropAskContent(props: {
   const { model, ask } = props;
   const result = ask.result!;
   const parallel = result.mode === 'parallel';
+  const rows = checklistRows(
+    offered(model, result.options),
+    result.options,
+    parallel ? ask.checked : []
+  );
   return (
     <div className="jp-Epi-ask" {...pointerOn(model, ask)}>
       {ask.columns && <ColumnFilter model={model} ask={ask} />}
@@ -1578,7 +1600,7 @@ function DropAskContent(props: {
         </div>
       )}
       <InferredChips model={model} options={offered(model, result.options)} />
-      <OptionRows model={model} options={offered(model, result.options)}>
+      <OptionRows model={model} options={rows}>
         {option => (
           <OptionRow
             option={option}

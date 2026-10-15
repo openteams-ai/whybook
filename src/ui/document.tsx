@@ -381,16 +381,19 @@ function Popover(props: {
       <AskContent model={model} />
       {ask.kind === 'drop' && (
         <div className="jp-Epi-ask-foot">
-          <label className="jp-Epi-parallel-switch">
-            <input
-              type="checkbox"
-              className="jp-mod-styled"
-              checked={ask.modifiers.parallel}
-              disabled={ask.loading}
-              onChange={() => model.toggleParallel()}
-            />{' '}
-            Explore in parallel
-          </label>
+          {/* Parallel branches need a cell to branch from. */}
+          {ask.target.cellId && (
+            <label className="jp-Epi-parallel-switch">
+              <input
+                type="checkbox"
+                className="jp-mod-styled"
+                checked={ask.modifiers.parallel}
+                disabled={ask.loading}
+                onChange={() => model.toggleParallel()}
+              />{' '}
+              Explore in parallel
+            </label>
+          )}
           {/* In Click mode nothing is dropped: its switches for a branch and for parallel runs are in the Questions section. */}
           <span className="jp-Epi-caption">
             {runsOn(ask)}{' '}

@@ -256,6 +256,15 @@ export interface ISortedQuestion {
   cost_usd?: number | null;
 }
 
+/** The questions of the branches of a user question, with the model that wrote them. */
+export interface ISplitQuestion {
+  branches: string[];
+  model: string;
+  elapsed?: number;
+  /** What the call cost: $0 for a local model, else what the provider reports, or null. */
+  cost_usd?: number | null;
+}
+
 /** A value to try for a constant, as Python code, and what it means. */
 export interface ISuggestedValue {
   value: string;
@@ -428,6 +437,26 @@ export class Api {
       failed: false
     });
     return sorted;
+  }
+
+  /**
+   * The question of each branch of a user question that lists alternatives,
+   * from the model of More questions (design iteration 1.126).
+   */
+  async splitQuestion(body: unknown): Promise<ISplitQuestion> {
+    const split = await this._post<ISplitQuestion>(
+      'questions/split',
+      this._local(body)
+    );
+    this._options.onCall?.({
+      route: 'questions/split',
+      usd: typeof split.cost_usd === 'number' ? split.cost_usd : null,
+      seconds: typeof split.elapsed === 'number' ? split.elapsed : null,
+      model: split.model ?? null,
+      body,
+      failed: false
+    });
+    return split;
   }
 
   claudeQuestions(

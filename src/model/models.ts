@@ -279,9 +279,9 @@ export const TASKS: {
   {
     id: 'questions',
     label: 'More questions',
-    help: 'Writes more questions about what you dropped or clicked when you press "More questions from AI", and, with "Questions from a model" at always, the default, next to the templates each time you drag or click. Suggests other values of a constant whose kind no rule knows, from its chip. With "Find more defaults with AI" on, picks the library defaults that can change a cell\'s result, from the signatures of the functions it calls, for its chips. In the Check-up, answers "What would a reviewer ask?" when you press Ask. The questions that templates offer, and the values of a count of days or a threshold, need no model.',
+    help: 'Writes more questions about what you dropped or clicked when you press "More questions from AI", and, with "Questions from a model" at always, the default, next to the templates each time you drag or click. Suggests other values of a constant whose kind no rule knows, from its chip. With "Find more defaults with AI" on, picks the library defaults that can change a cell\'s result, from the signatures of the functions it calls, for its chips. In the Check-up, answers "What would a reviewer ask?" when you press Ask. With "Explore in parallel" ticked under a "Your own question" box, writes the question of each branch. The questions that templates offer, and the values of a count of days or a threshold, need no model.',
     sends:
-      'what the questions are about, with summaries of the variables, the name and code of a constant, and the signatures of library functions',
+      'what the questions are about, with summaries of the variables, the name and code of a constant, the signatures of library functions, and a question that you type with the code of its cell',
     local: true,
     notes: {
       'gemma-4-e2b':

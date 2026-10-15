@@ -50,6 +50,8 @@ export const ROUTE_KINDS: Record<string, CostKind> = {
   'defaults/ask': 'questions',
   // What a reviewer would ask, from the same model: the check-up's question.
   'questions/review': 'questions',
+  // The questions of the branches of a user question, from the same model.
+  'questions/split': 'questions',
   'questions/sort': 'other',
   'dependencies/claude': 'other'
 };
