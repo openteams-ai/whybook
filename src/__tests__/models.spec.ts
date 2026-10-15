@@ -371,6 +371,89 @@ describe('local decision models', () => {
   });
 });
 
+describe('H2O-Lightning-4B, a local decision model for user questions', () => {
+  // As the server lists it while its llama-cpp-python is 0.3.36 or older.
+  const h2o = {
+    id: 'h2o-lightning-4b',
+    label: 'H2O-Lightning-4B v1.1',
+    kind: 'local' as const,
+    tier: 'decision' as const,
+    size_mb: 2709,
+    note: "a decision model of H2O.ai, read with the prompt of its maker's shim; Apache-2.0",
+    repo: 'h2oai/h2o-lightning-4b-gguf',
+    available: false,
+    reason:
+      'needs a newer llama-cpp-python than 0.3.36, whose llama.cpp loads this file; the server has 0.3.35',
+    downloadable: false,
+    tasks: ['typed'],
+    decision: true
+  };
+  const tooOld: IServerStatus = {
+    ...STATUS,
+    local_models: [...STATUS.local_models!, h2o]
+  };
+  const onlyTyped = (typed: string): ModelChoices => ({
+    cells: 'off',
+    questions: 'off',
+    labels: 'off',
+    typed
+  });
+  const choiceOf = (status: IServerStatus) =>
+    choicesFor(status, 'typed').find(
+      choice => choice.id === 'h2o-lightning-4b'
+    )!;
+
+  it('is offered for user questions alone, with what it measured', () => {
+    for (const task of ['labels', 'cells', 'questions', 'ranking'] as const) {
+      expect(
+        choicesFor(tooOld, task).some(
+          choice => choice.id === 'h2o-lightning-4b'
+        )
+      ).toBe(false);
+    }
+    const choice = choiceOf(tooOld);
+    expect([choice.label, choice.group]).toEqual([
+      'H2O-Lightning-4B v1.1, local',
+      LOCAL_GROUPS.decision
+    ]);
+    expect(choice.note).toBe(
+      "2.7 GB; the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads"
+    );
+    expect(isDecisionModel(tooOld, 'h2o-lightning-4b')).toBe(true);
+  });
+
+  it("cannot be chosen or run while the server's llama-cpp-python is too old, and says why", () => {
+    const choice = choiceOf(tooOld);
+    // With nothing to download, ModelOptions disables the choice in the select.
+    expect([choice.available, choice.download]).toEqual([false, null]);
+    expect(choiceLabel(choice, 'rules')).toBe(
+      'H2O-Lightning-4B v1.1, local (cannot run)'
+    );
+    // A choice saved before shows the server's reason under the select.
+    expect(cannotRun(choice)).toBe(
+      'Cannot run: needs a newer llama-cpp-python than 0.3.36, whose llama.cpp loads this file; the server has 0.3.35.'
+    );
+    expect(modelAvailable(tooOld, 'h2o-lightning-4b', 'typed')).toBe(false);
+    expect(aiSummary(tooOld, onlyTyped('h2o-lightning-4b'))).toBe(
+      'AI: local · 1 cannot run'
+    );
+  });
+
+  it('runs once the server reports it available, for user questions alone', () => {
+    const ready: IServerStatus = {
+      ...STATUS,
+      local_models: [
+        ...STATUS.local_models!,
+        { ...h2o, available: true, reason: null }
+      ]
+    };
+    expect(choiceOf(ready).available).toBe(true);
+    expect(modelAvailable(ready, 'h2o-lightning-4b', 'typed')).toBe(true);
+    expect(modelAvailable(ready, 'h2o-lightning-4b', 'ranking')).toBe(false);
+    expect(aiSummary(ready, onlyTyped('h2o-lightning-4b'))).toBe('AI: local');
+  });
+});
+
 describe('aiSummary', () => {
   it('says where the data goes, and how many chosen models cannot run', () => {
     expect(aiSummary(STATUS, DEFAULT_MODELS)).toBe('AI: remote');

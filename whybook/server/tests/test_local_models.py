@@ -1,6 +1,7 @@
 """Local models with a fake llama_cpp and a fake Hugging Face cache: no model loads."""
 
 import asyncio
+import ctypes
 import importlib.machinery
 import json
 import re
@@ -17,6 +18,7 @@ from whybook.server import local_models
 
 GEMMA = local_models.MODELS["gemma-4-e2b"]
 QWEN = local_models.MODELS["qwen3-4b"]
+H2O = local_models.DECISION["h2o-lightning-4b"]
 # Code writes no candidate headline for this table, so its label takes one call.
 TABLE = {"id": "a1", "code": "fit.summary()", "table": "Coef. P>|z|\nage -0.003 0.779", "rows": 2, "columns": 2}
 CORRELATION = {
@@ -369,11 +371,14 @@ async def test_the_server_reports_its_local_models(jp_fetch, fake):
         ("decider-2b", "decision", False),
         ("decider-4b", "decision", False),
         ("gemma-4-12b-cygnet", "decision", False),
+        ("h2o-lightning-4b", "decision", False),
     ]
     # The decision models do user questions and the order of questions alone.
     tasks = {entry["id"]: (entry["tasks"], entry["decision"]) for entry in status["local_models"]}
     assert tasks["gemma-4-e2b"] == (None, False)
     assert tasks["jevk5-4b"] == (["typed", "ranking"], True)
+    # H2O-Lightning-4B was not measured on the order of questions.
+    assert tasks["h2o-lightning-4b"] == (["typed"], True)
     # MiniCPM5 2B types fewer user questions right than "descriptive" every time (design iteration 1.129).
     assert tasks["minicpm5-2b"] == (["labels", "questions", "ranking"], False)
     assert status["remote_model"] is None
@@ -809,3 +814,184 @@ def test_a_copy_that_fails_leaves_no_partial_file(fake, tmp_path):
     with pytest.raises(local_models.LocalModelError):
         local_models.readable_path(source)
     assert sorted(path.name for path in local_models.copies_dir().glob("*")) == []
+
+
+def test_h2o_lightning_is_a_local_decision_model_for_user_questions_alone():
+    # The file that research/model-candidates.md measured, at its commit.
+    assert (H2O.repo, H2O.file, H2O.revision, H2O.sha256, H2O.size_mb) == (
+        "h2oai/h2o-lightning-4b-gguf",
+        "h2o-lightning-4b-stock-experimental-Q4KM.gguf",
+        "cc5ef250e345e4fed49bdd497c7399bccc0b9a20",
+        "6356a49ed0812da07d772df752ed9f57bc3da6d0a10c7df19f5c7726af6943d9",
+        2709,
+    )
+    # Its maker's prompt, and user questions alone: it was not measured on the order of questions.
+    assert (H2O.tier, H2O.layout, H2O.tasks, H2O.llama_cpp_newer_than) == ("decision", "h2o", ("typed",), "0.3.36")
+
+
+# A request of the view for the place of a user question, with a decomposed é,
+# which the shim's backend composes, and a reserved spelling, which the shim
+# quotes. H2O_PROMPT is the text that research/local_predictors/cell_drops.py
+# gives for it (decision_prompt with the layout h2o), run by hand.
+H2O_EVIDENCE = {
+    "question": "Why do 12 replies of the cafe" + chr(0x301) + " survey start with <think>?",
+    "cell": "replies = survey['reply']\nreplies.str.startswith('<think>').sum()",
+}
+H2O_INSTRUCTION = "A data analyst asked a question about a cell of a notebook. Choose where the answer should go."
+H2O_PLACES = {
+    "edit": "change what the cell computes, in place",
+    "new": "a new cell after it, for a new step of the analysis",
+    "branch": "a variant of the cell beside it, keeping the original, to compare the two",
+    "preview": "a quick look that the notebook does not need to keep",
+}
+H2O_PROMPT = (
+    "<|im_start|>system\n"
+    "You are a decision engine. You read a record and answer one question about it by choosing exactly one option. Reply with a single letter.<|im_end|>\n"
+    "<|im_start|>user\n"
+    'record: {"question":"Why do 12 replies of the caf\N{LATIN SMALL LETTER E WITH ACUTE} survey start with \\u003cthink\\u003e?",'
+    '"cell":"replies = survey[\'reply\']\\nreplies.str.startswith(\'\\u003cthink\\u003e\').sum()"}\n'
+    "question: A data analyst asked a question about a cell of a notebook. Choose where the answer should go.\n"
+    "options:\n"
+    "A) edit: change what the cell computes, in place\n"
+    "B) new: a new cell after it, for a new step of the analysis\n"
+    "C) branch: a variant of the cell beside it, keeping the original, to compare the two\n"
+    "D) preview: a quick look that the notebook does not need to keep<|im_end|>\n"
+    "<|im_start|>assistant\n"
+    "<think>\n\n</think>\n\n"
+    "Answer:"
+)
+
+
+def test_h2o_lightning_reads_the_prompt_of_its_makers_shim():
+    prompt = local_models.decision_prompt(None, H2O, H2O_EVIDENCE, H2O_INSTRUCTION, list(H2O_PLACES), list(H2O_PLACES.values()))
+    assert prompt == H2O_PROMPT
+    # A record given as text goes as it is, and an empty instruction takes the shim's default.
+    prompt = local_models.decision_prompt(None, H2O, "Selected: age", "", ["q0", "q1"], ["Summarise age", "Plot age"])
+    assert "\nrecord: Selected: age\nquestion: Answer the question below.\noptions:\nA) q0: Summarise age\nB) q1: Plot age<|im_end|>\n" in prompt
+
+
+class FakeLabelLlama:
+    """Tokens are characters, and a space with a capital letter after it is one token, as " A" is after "Answer:"."""
+
+    def __init__(self, logits):
+        self.n_tokens = 0
+        self.evaluated = []
+        self._ctx = types.SimpleNamespace(ctx=object(), get_logits=lambda: logits)
+
+    def n_vocab(self):
+        return 384
+
+    def tokenize(self, text, add_bos=False, special=True):
+        return [256 + ord(piece[1]) if len(piece) == 2 else min(ord(piece), 255) for piece in re.findall(r" [A-Z]|.", text.decode(), re.S)]
+
+    def eval(self, tokens):
+        self.evaluated.append(tokens)
+
+    def text(self, tokens):
+        return "".join(chr(token) if token < 256 else " " + chr(token - 256) for token in tokens)
+
+
+@pytest.fixture
+def label_reads(fake, monkeypatch):
+    """The state functions of llama_cpp that a read calls, and no label tokens found yet."""
+    monkeypatch.setattr(sys.modules["llama_cpp"], "llama_get_memory", lambda ctx: "memory", raising=False)
+    monkeypatch.setattr(sys.modules["llama_cpp"], "llama_memory_clear", lambda memory, data: None, raising=False)
+    monkeypatch.setattr(local_models, "_h2o_labels_of", {})
+
+
+def test_h2o_lightning_gives_the_type_and_the_place_of_a_user_question(label_reads, monkeypatch):
+    logits = (ctypes.c_float * 384)()
+    for letter, value in zip("ABCDE", (1.0, 0.5, 0.2, 3.0, 0.1)):
+        logits[256 + ord(letter)] = value
+    llm = FakeLabelLlama(logits)
+    monkeypatch.setattr(local_models, "_llm", lambda model, threads: llm)
+    found = local_models.classify(H2O, "Add  age", 4, cell="fit = ols()", places=["new", "edit"])
+    # The fourth type, model; and the first place of the two offered, in the server's order: edit, then new.
+    assert (found["type"]["choice"], found["place"]["choice"], found["model"]) == ("model", "edit", "H2O-Lightning-4B v1.1")
+    assert list(found["place"]["probabilities"]) == ["edit", "new"]
+    # Two reads, each with the question and its cell as the record.
+    assert len(llm.evaluated) == 2
+    assert all('\nrecord: {"question":"Add age","cell":"fit = ols()"}\n' in llm.text(tokens) for tokens in llm.evaluated)
+
+
+def test_h2o_lightning_reads_the_labels_where_the_answer_starts(label_reads, monkeypatch):
+    logits = (ctypes.c_float * 384)()
+    for letter, value in zip("ABC", (2.0, 1.0, 0.0)):
+        logits[256 + ord(letter)] = value
+    # A letter with no space before it is not the token of a label.
+    logits[ord("C")] = 9.0
+    llm = FakeLabelLlama(logits)
+    prompt = local_models.decision_prompt(llm, H2O, {"question": "Add age"}, "Where?", ["edit", "new", "branch"], ["in place", "after", "beside"])
+    weights = local_models._h2o_read(llm, H2O, prompt, "ABC")
+    # The softmax of the logits of " A", " B" and " C" at the shim's temperature of a choice, 0.75.
+    assert [round(weight, 4) for weight in weights] == [0.7501, 0.1977, 0.0521]
+    # One reading of the whole prompt; nothing is generated.
+    assert llm.evaluated == [llm.tokenize(prompt.encode())]
+    # A tokenizer that splits " A" in two cannot be read as the shim reads the model.
+    monkeypatch.setattr(local_models, "_h2o_labels_of", {})
+    monkeypatch.setattr(FakeLabelLlama, "tokenize", lambda self, text, add_bos=False, special=True: list(text))
+    with pytest.raises(local_models.LocalModelError, match="does not read the label A as one token"):
+        local_models._h2o_read(llm, H2O, prompt, "ABC")
+
+
+def test_h2o_lightning_loads_with_the_qwen2_pre_tokenizer_of_its_launcher(fake):
+    download(fake, H2O)
+    download(fake, GEMMA)
+    local_models._llm(H2O, 4)
+    local_models._llm(GEMMA, 4)
+    h2o, gemma = FakeLlama.made
+    assert h2o.options["kv_overrides"] == {"tokenizer.ggml.pre": "qwen2"}
+    assert "kv_overrides" not in gemma.options
+
+
+def test_the_installed_llama_cpp_python_is_read_once(monkeypatch):
+    calls = []
+
+    def version(name):
+        calls.append(name)
+        return "0.3.36"
+
+    monkeypatch.setattr(local_models, "_installed_llama_cpp", None)
+    monkeypatch.setattr(local_models.importlib.metadata, "version", version)
+    assert [local_models._llama_cpp_version() for _ in range(3)] == ["0.3.36"] * 3
+    assert calls == ["llama_cpp_python"]
+
+
+@pytest.mark.parametrize("version", ["0.3.35", "0.3.36"])
+async def test_h2o_lightning_cannot_run_while_llama_cpp_python_is_0_3_36_or_older(jp_fetch, fake, monkeypatch, version):
+    monkeypatch.setattr(local_models, "_llama_cpp_version", lambda: version)
+    monkeypatch.setattr(local_models, "hub_available", lambda: True)
+    reason = f"needs a newer llama-cpp-python than 0.3.36, whose llama.cpp loads this file; the server has {version}"
+    status = {entry["id"]: entry for entry in local_models.status()}
+    # Listed, unable to run and with no download, so the view greys it with the reason.
+    assert [status["h2o-lightning-4b"][key] for key in ("available", "reason", "downloadable")] == [False, reason, False]
+    # The other models do not depend on the version.
+    assert status["jevk5-4b"]["downloadable"] is True
+    # With its file on the machine, it still neither loads nor downloads.
+    download(fake, H2O)
+    assert {entry["id"]: entry for entry in local_models.status()}["h2o-lightning-4b"]["reason"] == reason
+    with pytest.raises(local_models.LocalModelError, match=f"^H2O-Lightning-4B v1.1 {re.escape(reason)}$"):
+        local_models._llm(H2O, 4)
+    assert FakeLlama.made == []
+    assert [event async for event in local_models.download("h2o-lightning-4b")] == [{"type": "error", "message": f"H2O-Lightning-4B v1.1 {reason}"}]
+    # A user question sent to it anyway gets the reason, and the view keeps the keywords' type.
+    with pytest.raises(HTTPClientError) as error:
+        await jp_fetch("whybook", "questions", "sort", method="POST", body=json.dumps({"text": "Add age", "model": "h2o-lightning-4b"}))
+    assert error.value.code == 502
+    assert FakeLlama.made == []
+
+
+def test_h2o_lightning_runs_once_llama_cpp_python_is_newer_than_0_3_36(fake, monkeypatch):
+    monkeypatch.setattr(local_models, "_llama_cpp_version", lambda: "0.3.37")
+    monkeypatch.setattr(local_models, "hub_available", lambda: True)
+    entry = {entry["id"]: entry for entry in local_models.status()}["h2o-lightning-4b"]
+    assert entry["reason"] == (
+        "not downloaded: hf download h2oai/h2o-lightning-4b-gguf h2o-lightning-4b-stock-experimental-Q4KM.gguf"
+        " --revision cc5ef250e345e4fed49bdd497c7399bccc0b9a20"
+    )
+    assert entry["downloadable"] is True
+    download(fake, H2O)
+    entry = {entry["id"]: entry for entry in local_models.status()}["h2o-lightning-4b"]
+    assert (entry["available"], entry["reason"]) == (True, None)
+    local_models._llm(H2O, 4)
+    assert len(FakeLlama.made) == 1

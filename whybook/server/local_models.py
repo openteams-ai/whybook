@@ -46,6 +46,12 @@ its card's prompt and 45% with Whybook's (research/choice-classifiers.md). So a
 decision model gets its maker's prompt (``decision_prompt``), as the research
 measured it, and a model of the settings whose file names JevK5 or decider
 does too.
+
+The entry of a model whose file an older llama-cpp-python cannot load names
+the newest release that cannot (``llama_cpp_newer_than``). While that release
+or an older one is installed, the status lists the model as unable to run,
+with the reason, and the server neither downloads nor loads it
+(``llama_cpp_reason``).
 """
 
 from __future__ import annotations
@@ -67,6 +73,7 @@ import shutil
 import struct
 import threading
 import time
+import unicodedata
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -176,6 +183,10 @@ class LocalModel:
     layout: str = "chat"
     # The tasks that the model can do, or None for every task of a local model.
     tasks: tuple[str, ...] | None = None
+    # The newest llama-cpp-python whose llama.cpp cannot load the file, for a
+    # model that needs a later one; None for a file that the minimum of
+    # pyproject.toml loads (llama_cpp_reason).
+    llama_cpp_newer_than: str | None = None
 
 
 # The notes give the labels measured with the method of label(), over the 20
@@ -317,6 +328,35 @@ DECISION = {
             sha256="93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b",
             layout="cygnet",
             tasks=DECISION_TASKS,
+        ),
+        # The file that research/model-candidates.md ("The run of 15 October")
+        # measured, for user questions alone: it was not measured on the order
+        # of questions. Its name says "experimental" from before its maker
+        # measured it; the maker's manifest gives it the accuracy of BF16.
+        LocalModel(
+            "h2o-lightning-4b",
+            "H2O-Lightning-4B v1.1",
+            "h2oai/h2o-lightning-4b-gguf",
+            "h2o-lightning-4b-stock-experimental-Q4KM.gguf",
+            2709,
+            "a decision model of H2O.ai, read with the prompt of its maker's shim; Apache-2.0",
+            tier="decision",
+            revision="cc5ef250e345e4fed49bdd497c7399bccc0b9a20",
+            sha256="6356a49ed0812da07d772df752ed9f57bc3da6d0a10c7df19f5c7726af6943d9",
+            layout="h2o",
+            tasks=("typed",),
+            # The file declares a 33rd block, for multi-token prediction, whose
+            # tensors it does not hold, and llama.cpp stops at "tensor
+            # 'blk.32.attn_norm.weight' not found". 0.3.35 failed so, and 0.3.36,
+            # the newest release, vendors llama.cpp 0c1e570 of 1 October 2026,
+            # older than the changes expected to load the file:
+            # https://github.com/ggml-org/llama.cpp/pull/30017 (f0c41e0168, 6
+            # October) and https://github.com/ggml-org/llama.cpp/pull/30097
+            # (448147d42a, 7 October). The first release after 0.3.36 is
+            # expected to vendor a llama.cpp of 7 October or later. Confirm the
+            # check against that release, by loading this file in it, before
+            # Whybook relies on it.
+            llama_cpp_newer_than="0.3.36",
         ),
     ]
 }
@@ -474,6 +514,46 @@ def hub_available() -> bool:
     return importlib.util.find_spec("huggingface_hub") is not None
 
 
+# The installed llama-cpp-python's version, read once; not kept while the package is missing.
+_installed_llama_cpp: str | None = None
+
+
+def _llama_cpp_version() -> str:
+    global _installed_llama_cpp
+    if _installed_llama_cpp is None:
+        try:
+            _installed_llama_cpp = importlib.metadata.version("llama_cpp_python")
+        except importlib.metadata.PackageNotFoundError:
+            return "unknown"
+    return _installed_llama_cpp
+
+
+def _release(version: str) -> tuple[int, ...] | None:
+    """The numbers of a release, without trailing zeros: (0, 3, 36) for "0.3.36", "0.3.36.0" or "0.3.36+cu124"; None for "unknown"."""
+    found = re.match(r"\d+(\.\d+)*", version)
+    if found is None:
+        return None
+    numbers = [int(part) for part in found.group(0).split(".")]
+    while len(numbers) > 1 and numbers[-1] == 0:
+        numbers.pop()
+    return tuple(numbers)
+
+
+def llama_cpp_reason(model: LocalModel) -> str | None:
+    """Why the installed llama-cpp-python cannot load the model's file, or None.
+
+    None also when llama-cpp-python is not installed, which the status reports
+    first, and when its version cannot be read.
+    """
+    if model.llama_cpp_newer_than is None:
+        return None
+    installed = _llama_cpp_version()
+    numbers = _release(installed)
+    if numbers is None or numbers > _release(model.llama_cpp_newer_than):
+        return None
+    return f"needs a newer llama-cpp-python than {model.llama_cpp_newer_than}, whose llama.cpp loads this file; the server has {installed}"
+
+
 def fetch_command(model: LocalModel) -> str:
     """The command that fetches a model's file."""
     return f"hf download {model.repo} {model.file}" + (f" --revision {model.revision}" if model.revision else "")
@@ -491,8 +571,12 @@ def status(models: list[LocalModel] | None = None) -> list[dict[str, Any]]:
         running = job is not None and not job.done()
         missing = running or model_path(model) is None
         reason = None
+        # A file that the installed llama-cpp-python cannot load is neither run nor downloaded.
+        too_old = llama_cpp_reason(model)
         if not runtime_available():
             reason = "llama-cpp-python is not installed: pip install 'whybook[local]'"
+        elif too_old:
+            reason = too_old
         elif running:
             reason = job.reason
         elif missing and job is not None and job.error:
@@ -511,7 +595,7 @@ def status(models: list[LocalModel] | None = None) -> list[dict[str, Any]]:
                 "path": model.path,
                 "available": reason is None,
                 "reason": reason,
-                "downloadable": missing and not running and not model.path and hub_available(),
+                "downloadable": missing and not running and not model.path and not too_old and hub_available(),
                 # The tasks of a model that does only some: a decision model does
                 # user questions, and most also the order of questions.
                 "tasks": list(model.tasks) if model.tasks else None,
@@ -648,6 +732,9 @@ def _llm(model: LocalModel, threads: int) -> Any:
     global _loaded
     if _loaded is not None and _loaded[0] == model.id:
         return _loaded[1]
+    too_old = llama_cpp_reason(model)
+    if too_old:
+        raise LocalModelError(f"{model.label} {too_old}")
     path = model_path(model)
     job = DOWNLOADS.get(model.id)
     if job is not None and not job.done():
@@ -658,7 +745,11 @@ def _llm(model: LocalModel, threads: int) -> Any:
     from llama_cpp import Llama
 
     _unload()
-    llm = Llama(model_path=str(readable_path(path)), n_ctx=4096, n_threads=threads, n_threads_batch=threads, n_batch=512, verbose=False)
+    overrides = LAYOUT_OVERRIDES.get(model.layout)
+    llm = Llama(
+        model_path=str(readable_path(path)), n_ctx=4096, n_threads=threads, n_threads_batch=threads, n_batch=512, verbose=False,
+        **({"kv_overrides": overrides} if overrides else {}),
+    )
     if model.thinking_off:
         _thinking_off(llm)
     _install_fast_check(llm)
@@ -765,13 +856,6 @@ class _CheckFirst:
         if getattr(self, "grammar", None):
             self._free(self.grammar)
             self.grammar = None
-
-
-def _llama_cpp_version() -> str:
-    try:
-        return importlib.metadata.version("llama_cpp_python")
-    except importlib.metadata.PackageNotFoundError:
-        return "unknown"
 
 
 def _fast_failed(problem: str) -> None:
@@ -1031,6 +1115,58 @@ CYGNET_SYSTEM = (
     "LETTER and nothing else \u2014 a single character, no words, no punctuation, no explanation."
 )
 
+# H2O-Lightning-4B v1.1 as the shim of its release reads it: package/
+# h2o_lightning_shim.py, h2o_lightning_llamacpp.py, serve_config.json and
+# reserved_control_escape.py at commit cc5ef25 of h2oai/h2o-lightning-4b-gguf,
+# rebuilt in research/local_predictors/cell_drops.py (h2o_prompt, h2o_quote and
+# h2o_probabilities), which research/model-candidates.md measured.
+H2O_SYSTEM = "You are a decision engine. You read a record and answer one question about it by choosing exactly one option. Reply with a single letter."
+H2O_PREFILL = "Answer:"
+H2O_DEFAULT_INSTRUCTIONS = "Answer the question below."
+# The shim's temperature for a choice. Its 0.8 for a yes or no and 0.65 for a
+# score apply to questions that Whybook does not ask.
+H2O_TEMPERATURE = 0.75
+# Qwen3.5's chat template for a system and a user message, with the generation
+# prompt, thinking off and the prefill, as the shim writes it.
+H2O_CHATML = (
+    "<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n"
+    "<|im_start|>assistant\n<think>\n\n</think>\n\n{prefill}"
+)
+# The reserved spellings that the shim quotes in the user message, so that a
+# question or a cell cannot become a special token (CONTROL_SPELLINGS).
+H2O_CONTROLS = (
+    "</think>", "</tool_call>", "</tool_response>", "<think>", "<tool_call>", "<tool_response>", "<tts_pad>", "<tts_text_bos>",
+    "<tts_text_bos_single>", "<tts_text_eod>", "<|audio_end|>", "<|audio_pad|>", "<|audio_start|>", "<|box_end|>",
+    "<|box_start|>", "<|endoftext|>", "<|file_sep|>", "<|fim_middle|>", "<|fim_pad|>", "<|fim_prefix|>", "<|fim_suffix|>",
+    "<|im_end|>", "<|im_start|>", "<|image_pad|>", "<|object_ref_end|>", "<|object_ref_start|>", "<|quad_end|>",
+    "<|quad_start|>", "<|repo_name|>", "<|video_pad|>", "<|vision_end|>", "<|vision_pad|>", "<|vision_start|>",
+)
+_H2O_CONTROL = re.compile("|".join(re.escape(spelling) for spelling in sorted(H2O_CONTROLS, key=len, reverse=True)))
+# The metadata that a layout's model loads with: the shim's launcher starts
+# llama.cpp with the Qwen2 pre-tokenizer in place of the file's qwen35
+# (--override-kv tokenizer.ggml.pre=str:qwen2), as the model was trained.
+LAYOUT_OVERRIDES: dict[str, dict[str, str]] = {"h2o": {"tokenizer.ggml.pre": "qwen2"}}
+
+
+def h2o_quote(text: str) -> str:
+    """The shim's quote_controls: each reserved spelling with its angle brackets as JSON escapes, "<think>" as "\\u003cthink\\u003e"."""
+    return _H2O_CONTROL.sub(lambda match: match.group(0).replace("<", "\\u003c").replace(">", "\\u003e"), text)
+
+
+def h2o_prompt(evidence: Any, texts: list[str], instruction: str, keys: list[str], labels: str) -> str:
+    """H2O-Lightning-4B's prompt for one choice, as the shim's question_prompt builds it, ending where the label starts.
+
+    The record is a string as it is, anything else compact JSON; one line per
+    option, "A) name: description"; the "plain" layout; the chat template with
+    thinking off; the "Answer:" prefill. The shim's llama.cpp backend
+    normalises the text to NFC before it tokenizes it, and so does this.
+    """
+    record = evidence if isinstance(evidence, str) else json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
+    question = instruction.lstrip() or H2O_DEFAULT_INSTRUCTIONS
+    options = "\n".join(f"{label}) {key}: {text}" for label, key, text in zip(labels, keys, texts))
+    user = h2o_quote(f"record: {record}\nquestion: {question}\noptions:\n{options}")
+    return unicodedata.normalize("NFC", H2O_CHATML.format(system=H2O_SYSTEM.strip(), user=user.strip(), prefill=H2O_PREFILL))
+
 
 def decision_prompt(llm: Any, model: LocalModel, evidence: Any, instruction: str, keys: list[str], texts: list[str]) -> str:
     """A decision model's prompt, ending where the answer's letter starts.
@@ -1042,6 +1178,8 @@ def decision_prompt(llm: Any, model: LocalModel, evidence: Any, instruction: str
     its shim (``h2o_prompt``).
     """
     letters = DECISION_LETTERS[: len(texts)]
+    if model.layout == "h2o":
+        return h2o_prompt(evidence, texts, instruction, keys, letters)
     if model.layout == "decider":
         shown = evidence if isinstance(evidence, str) else json.dumps(evidence, ensure_ascii=False)
         options = "".join(f"\n({letter}) {text}" for letter, text in zip(letters, texts))
@@ -1088,6 +1226,55 @@ def _letter_mass(llm: Any, model: LocalModel, prompt: str, letters: str) -> list
     return [weight / total for weight in mass] if total else [1 / len(letters)] * len(letters)
 
 
+# The token of each label after "Answer:", by model: " A", " B" and so on.
+_h2o_labels_of: dict[str, dict[str, int]] = {}
+
+
+def _h2o_label_ids(llm: Any, model: LocalModel) -> dict[str, int]:
+    """The token of each label where the answer starts, as the shim's check_backend finds it.
+
+    After a probe prompt, " A" must add exactly one token, and the labels'
+    tokens must differ from each other.
+    """
+    if model.id not in _h2o_labels_of:
+        letters = DECISION_LETTERS
+        probe = h2o_prompt({"x": 1}, [f"d{index}" for index in range(len(letters))], "Which?", [f"o{index}" for index in range(len(letters))], letters)
+        base = _tokens(llm, probe)
+        found = {}
+        for letter in letters:
+            full = _tokens(llm, f"{probe} {letter}")
+            if len(full) != len(base) + 1 or full[: len(base)] != base:
+                raise LocalModelError(f"{model.label} does not read the label {letter} as one token after {H2O_PREFILL!r}")
+            found[letter] = full[-1]
+        if len(set(found.values())) != len(found):
+            raise LocalModelError(f"{model.label} reads two labels as one token after {H2O_PREFILL!r}")
+        _h2o_labels_of[model.id] = found
+    return _h2o_labels_of[model.id]
+
+
+def _h2o_read(llm: Any, model: LocalModel, prompt: str, letters: str) -> list[float]:
+    """The shim's read of a choice: the softmax of the labels' logits at the temperature of a choice. Call it with the lock held.
+
+    The shim's llama.cpp backend reads the probabilities of the labels' tokens
+    alone, and the shim takes softmax(log p / T) over them: that is the softmax
+    of the labels' logits divided by T. Nothing is generated.
+    """
+    import llama_cpp
+    import numpy as np
+
+    ids = [_h2o_label_ids(llm, model)[letter] for letter in letters]
+    memory = llama_cpp.llama_get_memory(llm._ctx.ctx)
+    llama_cpp.llama_memory_clear(memory, True)
+    llm.n_tokens = 0
+    llm.eval(_tokens(llm, prompt))
+    logits = np.ctypeslib.as_array(llm._ctx.get_logits(), shape=(llm.n_vocab(),)).astype(np.float64)
+    llama_cpp.llama_memory_clear(memory, True)
+    llm.n_tokens = 0
+    scaled = logits[ids] / H2O_TEMPERATURE
+    weights = np.exp(scaled - scaled.max())
+    return [float(weight) for weight in weights / weights.sum()]
+
+
 def decision_read(model: LocalModel, evidence: Any, instruction: str, keys: list[str], texts: list[str], threads: int) -> list[float]:
     """The probability of each option, read at its letter with the maker's prompt."""
     letters = DECISION_LETTERS[: len(texts)]
@@ -1096,6 +1283,8 @@ def decision_read(model: LocalModel, evidence: Any, instruction: str, keys: list
         prompt = decision_prompt(llm, model, evidence, instruction, keys, texts)
         if model.layout == "cygnet":
             return _letter_mass(llm, model, prompt, letters)
+        if model.layout == "h2o":
+            return _h2o_read(llm, model, prompt, letters)
         return _softmax(_letter_scores(llm, model, prompt, prompt, letters, {}))
 
 
@@ -1338,6 +1527,10 @@ async def download(model_id: str) -> AsyncIterator[dict[str, Any]]:
         return
     if model.path:
         yield {"type": "error", "message": f"{model.label} is a file on this machine, and the server downloads only from Hugging Face"}
+        return
+    too_old = llama_cpp_reason(model)
+    if too_old:
+        yield {"type": "error", "message": f"{model.label} {too_old}"}
         return
     loop = asyncio.get_running_loop()
     job = DOWNLOADS.get(model.id)

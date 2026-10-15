@@ -34,7 +34,7 @@ export interface ILocalModel {
   /** The file on the server's machine, for a model of the settings. */
   path?: string | null;
   available: boolean;
-  /** Why it cannot run: no runtime, or no file. */
+  /** Why it cannot run: no runtime, a runtime too old for its file, or no file. */
   reason: string | null;
   /** The file is missing and the server can fetch it. */
   downloadable?: boolean;
