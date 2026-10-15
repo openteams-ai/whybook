@@ -14,6 +14,7 @@ import { decisionChips, decisionKey } from '../model/decisions';
 import { namedBy, splitLabels } from '../model/labels';
 import type { IOrdered } from '../model/questionorder';
 import { needsAI } from '../model/questionorder';
+import { MAX_BRANCHES, listedNames } from '../model/own';
 import type {
   Guess,
   IAnchor,
@@ -1050,14 +1051,80 @@ export function OwnQuestion(props: {
     return () => window.clearTimeout(timer);
   }, [model, question, kinds]);
   const typed = model.ownType(question);
+  // The model for user questions reads the text: a bar under the Ask button.
+  const reading = !!question && model.ownSorting(question);
   const suggested = model.ownPlace(question, places);
   // A place picked in the menu stays while the request offers it.
   const pickedPlace = chosen
     ? places.find(place => place.label === chosen.label)
     : undefined;
   const place = pickedPlace ?? suggested.place;
-  const placeBy = pickedPlace ? null : suggested.by;
+  const suggestion = suggested.suggestion;
+  // A branch that a model suggests: a box to tick, which stays while ticked.
+  // The line above it then leaves out the place, which the box states.
+  const modelHint =
+    suggestion?.by && suggestion.place.kind === 'branch' ? suggestion : null;
+  const modelTicked =
+    !!modelHint && pickedPlace?.label === modelHint.place.label;
+  // A preview, from the first words or a model, and an edit from a model: a
+  // link, until the analyst picks a place. One kind of place, one control.
+  const hint = !pickedPlace && suggestion && !modelHint ? suggestion : null;
   const branch = places.find(place => place.kind === 'branch') ?? null;
+  // Names of the notebook in a list in the question: a branch for each, side
+  // by side, whose questions the model of More questions writes (design
+  // iteration 1.126). The question stays as typed.
+  const listed =
+    branch && model.aiReady('questions')
+      ? listedNames(question, model.notebookNames())
+      : [];
+  const [parallelOn, setParallelOn] = React.useState(false);
+  const exploring = parallelOn && listed.length >= 2;
+  React.useEffect(() => {
+    if (!exploring || !question) {
+      return;
+    }
+    const timer = window.setTimeout(
+      () => void model.splitOwn(question, places),
+      500
+    );
+    return () => window.clearTimeout(timer);
+  }, [model, question, exploring, kinds]);
+  const branching = model.ownSplit(question);
+  // A split that failed, or that found one question, asks the question as one.
+  const asOne =
+    exploring &&
+    (branching.failed ||
+      (!!branching.branches && branching.branches.length < 2));
+  const inParallel = exploring && !asOne;
+  // The branches stay on view, grey, while the model writes them again.
+  const [shown, setShown] = React.useState<{
+    branches: string[];
+    by: string | null;
+  } | null>(null);
+  // The same questions keep the state as it is, so that a list rebuilt on
+  // each call does not render the box again.
+  const branchesKey = branching.branches?.join('\n') ?? null;
+  React.useEffect(() => {
+    if (inParallel && branching.branches) {
+      const next = { branches: branching.branches, by: branching.by };
+      setShown(last =>
+        last?.branches.join('\n') === branchesKey && last?.by === next.by
+          ? last
+          : next
+      );
+    }
+  }, [inParallel, branchesKey, branching.by]);
+  const branches = inParallel
+    ? (branching.branches ?? shown?.branches ?? null)
+    : null;
+  const branchesBy = branching.branches ? branching.by : (shown?.by ?? null);
+  const ready = inParallel && !!branching.branches;
+  const writing = inParallel && !ready;
+  const parent = branch?.cell ? model.cell(branch.cell) : null;
+  const branchLabels =
+    branch?.cell && branches
+      ? model.branchLabels(branch.cell, branches.length)
+      : [];
   const ask = (how: IAskHow) => {
     if (!question || !available) {
       return;
@@ -1065,14 +1132,27 @@ export function OwnQuestion(props: {
     setText('');
     setChosen(null);
     setOpen(false);
+    setParallelOn(false);
+    setShown(null);
     onAsk(question, how);
+  };
+  // Enter: the branches once the model has written them for this text, else
+  // the place on the button.
+  const submit = () => {
+    if (inParallel) {
+      if (ready) {
+        ask({ branches: branching.branches! });
+      }
+      return;
+    }
+    ask(places.length ? { place } : {});
   };
   return (
     <form
       className="jp-Epi-own jp-Epi-ownbox"
       onSubmit={event => {
         event.preventDefault();
-        ask(places.length ? { place } : {});
+        submit();
       }}
     >
       <div className="jp-Epi-own-row jp-mod-grows">
@@ -1113,7 +1193,7 @@ export function OwnQuestion(props: {
                     ask({ parallel: true });
                   }
                 } else if (!event.ctrlKey && !event.metaKey) {
-                  ask(places.length ? { place } : {});
+                  submit();
                 }
               }}
             />
@@ -1125,16 +1205,21 @@ export function OwnQuestion(props: {
             type="submit"
             small
             className="jp-Epi-button jp-mod-styled jp-mod-accept"
-            disabled={!available || !question}
+            disabled={!available || !question || writing}
           >
             {/* The button takes the width of its widest word, so that the
                 box keeps its width, and its lines, when the place changes
                 the word. */}
             <span
               className="jp-Epi-asklabel"
-              data-labels={askLabels(places).join('\n')}
+              data-labels={[
+                ...askLabels(places),
+                ...(listed.length >= 2 ? [`${listed.length} branches`] : [])
+              ].join('\n')}
             >
-              {askLabel(place)}
+              {inParallel
+                ? `${ready ? branching.branches!.length : listed.length} branches`
+                : askLabel(place)}
             </span>
           </Button>
           {places.length > 1 && (
@@ -1172,7 +1257,9 @@ export function OwnQuestion(props: {
               parallel={!!props.parallel}
               focusItem={focusItem}
               onPick={picked => {
+                // A place picked asks the question as one, at that place.
                 setChosen(picked);
+                setParallelOn(false);
                 closeMenu(true);
               }}
               onParallel={() => {
@@ -1191,28 +1278,145 @@ export function OwnQuestion(props: {
       )}
       {question && (
         <div className="jp-Epi-own-meta">
-          <TypeBadge type={typed.type} />
-          {typed.by && (
-            <AITag
-              title={`Type chosen by ${typed.by}${typed.probability !== null ? `, ${Math.round(100 * typed.probability)}%` : ''}`}
+          {/* Each AI tag sits close to what the model chose, closer than the
+              gap between two parts of the line. */}
+          <span className="jp-Epi-own-tagged">
+            <TypeBadge type={typed.type} />
+            {typed.by && (
+              <AITag
+                title={`Type chosen by ${typed.by}${typed.probability !== null ? `, ${Math.round(100 * typed.probability)}%` : ''}`}
+              />
+            )}
+          </span>
+          {inParallel ? (
+            <span>
+              Branches of {parent?.label ?? 'the cell'} · run in parallel
+            </span>
+          ) : (
+            place && !modelTicked && <span>{place.label}</span>
+          )}
+          {/* One spot under the Ask button for the bar while the model reads,
+              and then for the place that it suggests (design iteration 1.128). */}
+          <span className="jp-Epi-own-slot" aria-busy={reading || undefined}>
+            {reading ? (
+              <ProgressBar value={null} label="The model reads the question" />
+            ) : exploring ? null : modelHint ? (
+              <label className="jp-Epi-own-option jp-Epi-own-tagged">
+                <input
+                  type="checkbox"
+                  checked={modelTicked}
+                  onChange={event =>
+                    setChosen(event.target.checked ? modelHint.place : null)
+                  }
+                />
+                <span>{capitalized(modelHint.place.label)}</span>
+                <AITag title={`Suggested by ${modelHint.by}`} />
+              </label>
+            ) : (
+              hint && (
+                <span className="jp-Epi-own-tagged">
+                  <button
+                    type="button"
+                    className="jp-Epi-own-hint"
+                    onClick={() => setChosen(hint.place)}
+                  >
+                    {hintText(hint)}
+                  </button>
+                  {hint.by && <AITag title={`Suggested by ${hint.by}`} />}
+                </span>
+              )
+            )}
+          </span>
+        </div>
+      )}
+      {question && listed.length >= 2 && (
+        <div className="jp-Epi-own-explore">
+          <label className="jp-Epi-own-option">
+            <input
+              type="checkbox"
+              checked={parallelOn}
+              onChange={event => setParallelOn(event.target.checked)}
+            />
+            <span>
+              Explore in parallel: a branch of {parent?.label ?? 'the cell'} for
+              each of{' '}
+              {listed.map((name, index) => (
+                <React.Fragment key={name}>
+                  {index ? ', ' : ''}
+                  <code>{name}</code>
+                </React.Fragment>
+              ))}
+            </span>
+          </label>
+          {branches && (
+            <ol
+              className={`jp-Epi-own-branches${ready ? '' : ' jp-mod-stale'}`}
+            >
+              {/* The model wrote the questions: dark blue, and the AI tag
+                  after the last. */}
+              {branches.map((branchText, index) => (
+                <li key={`${index}:${branchText}`}>
+                  <b>{branchLabels[index] ?? ''}</b>{' '}
+                  <span className="jp-Epi-ai">{branchText}</span>
+                  {branchesBy && index === branches.length - 1 && (
+                    <AITag title={`Written by ${branchesBy}`} />
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+          {writing && (
+            <ProgressBar
+              value={null}
+              label="The model writes the branches"
+              wide
             />
           )}
-          {place && (
-            <span className={placeBy ? 'jp-Epi-ai' : undefined}>
-              {place.label}
-            </span>
+          {listed.length > MAX_BRANCHES && (
+            <div className="jp-Epi-own-meta" role="status">
+              {`At most ${MAX_BRANCHES} branches for one question: the names after the ${MAX_BRANCHES}th get none.`}
+            </div>
           )}
-          {placeBy && <AITag title={`Place chosen by ${placeBy}`} />}
+          {asOne && (
+            <div className="jp-Epi-own-meta" role="status">
+              {branching.failed
+                ? 'The model could not write the branches, so Ask asks the question as one.'
+                : 'The model found one question in the text, so Ask asks it as one.'}
+            </div>
+          )}
         </div>
       )}
     </form>
   );
 }
 
+/** A place's label with a capital letter, as the start of a suggestion. */
+function capitalized(label: string): string {
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+}
+
+/**
+ * The words of the link under the Ask button that suggests another place: a
+ * preview, which the first words or a model suggest, or a new cell or an
+ * edit that a model predicts. A click takes it, and the Ask button's menu has
+ * every place. The words are the same whoever suggests the place: the AI tag
+ * after a model's suggestion names the model.
+ */
+export function hintText(hint: {
+  place: IPlacement;
+  by: string | null;
+}): string {
+  return hint.place.kind === 'preview'
+    ? 'A quick look? Preview instead'
+    : `${capitalized(hint.place.label)} instead?`;
+}
+
 /** How a user question is asked: the place of its cell, or in parallel. */
 export interface IAskHow {
   place?: IPlacement | null;
   parallel?: boolean;
+  /** The questions of the branches, which run side by side (design iteration 1.126). */
+  branches?: string[];
 }
 
 /** The Ask button's word for a place, as a merge button names its method. */

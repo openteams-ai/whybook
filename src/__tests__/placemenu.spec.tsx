@@ -27,10 +27,21 @@ function fakeModel(): any {
     changed: new Signal({}),
     aiReady: () => true,
     sortOwn: async () => undefined,
+    notebookNames: () => [],
+    ownSplit: () => ({
+      branches: null,
+      by: null,
+      splitting: false,
+      failed: false
+    }),
+    splitOwn: async () => undefined,
+    branchLabels: () => [],
+    cell: () => null,
+    ownSorting: () => false,
     ownType: () => ({ type: 'descriptive', by: null, probability: null }),
     ownPlace: (_: string, offered: IPlacement[]) => ({
-      place: offered[0] ?? null,
-      by: null
+      suggestion: null,
+      place: offered[0] ?? null
     }),
     settings: { models: { ...DEFAULT_MODELS } },
     status: null,

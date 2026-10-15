@@ -4,7 +4,8 @@ import {
   guessType,
   keywordType,
   ownOption,
-  wordPlace
+  wordPlace,
+  wordPreview
 } from '../model/own';
 import type { IPlacement } from '../tokens';
 
@@ -84,6 +85,13 @@ describe('wordPlace', () => {
 
   it('picks the place the words suggest, when the request offers it', () => {
     expect(wordPlace('Add age as a covariate', places)?.kind).toBe('edit');
+    expect(wordPlace('What if we drop site?', places)?.kind).toBe('branch');
+    // Words of a quick look only suggest a preview: the analyst asks for it.
+    expect(wordPlace('Show the first rows of weekly', places)).toBeNull();
+    expect(wordPreview('Show the first rows of weekly', places)?.kind).toBe(
+      'preview'
+    );
+    expect(wordPreview('Add age as a covariate', places)).toBeNull();
     // Words that choose no place leave it to the model or the default.
     expect(wordPlace('Is sleep related to pain?', places)).toBeNull();
     // A request without an edit has no place for these words.

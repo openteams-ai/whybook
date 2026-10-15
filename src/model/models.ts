@@ -664,7 +664,7 @@ function typedChoices(status: IServerStatus | null): IModelChoice[] {
     {
       id: 'rules',
       label: 'Keywords, built in',
-      note: 'right for 45% of the types and 84% of the places of 120 test questions',
+      note: 'right for 67% of the types of 276 questions from public notebooks; each answer goes to a new cell, unless the first words ask for an edit or a branch',
       available: true,
       reason: null,
       download: null,

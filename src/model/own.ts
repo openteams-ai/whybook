@@ -127,13 +127,31 @@ export function guessPlace(text: string): 'preview' | 'edit' | 'branch' | null {
   return null;
 }
 
-/** The place a typed question's first words choose, when the request offers it, or null. */
+/**
+ * The place a user question's first words choose, when the request offers
+ * it, or null: an edit or a branch, which stay in the notebook, show on the
+ * Ask button before the analyst asks, and can be undone. Words of a quick
+ * look only suggest a preview (wordPreview): a preview leaves the notebook,
+ * and the analyst asks for it.
+ */
 export function wordPlace(
   text: string,
   places: IPlacement[]
 ): IPlacement | null {
   const kind = guessPlace(text);
-  return (kind && places.find(place => place.kind === kind)) || null;
+  return kind === 'edit' || kind === 'branch'
+    ? (places.find(place => place.kind === kind) ?? null)
+    : null;
+}
+
+/** The preview that a user question's first words suggest, when the request offers one, or null. */
+export function wordPreview(
+  text: string,
+  places: IPlacement[]
+): IPlacement | null {
+  return guessPlace(text) === 'preview'
+    ? (places.find(place => place.kind === 'preview') ?? null)
+    : null;
 }
 
 // The separators of a list of alternatives: commas, "and", "or", "vs".

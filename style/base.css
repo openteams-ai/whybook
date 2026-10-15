@@ -1247,10 +1247,108 @@
 .jp-Epi-own-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 12px;
   align-items: center;
   font-size: var(--jp-ui-font-size0);
   color: var(--jp-ui-font-color2);
+}
+
+/* A part of the line and its AI tag: closer to each other than two parts. */
+.jp-Epi-own-tagged {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.jp-Epi-own-tagged > .jp-Epi-aitag {
+  margin-left: 0;
+}
+
+/* Under the Ask button: the bar while the model reads, then the place that it
+   suggests, or a preview that the first words suggest (design iteration 1.128). */
+.jp-Epi-own-slot {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.jp-Epi-own-slot > .jp-Epi-progress {
+  width: 96px;
+  height: 3px;
+}
+
+.jp-Epi-own-slot .jp-Epi-own-option {
+  gap: 4px;
+  align-items: center;
+  margin-top: 0;
+  font-size: inherit;
+}
+
+/* Another place, suggested under the Ask button: a click takes it. */
+
+.jp-Epi-own-hint {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--jp-brand-color1);
+  cursor: pointer;
+}
+
+.jp-Epi-own-hint:hover,
+.jp-Epi-own-hint:focus-visible {
+  text-decoration: underline;
+}
+
+/* A choice under the box, to tick: a branch that a model suggests, or a
+   branch for each name that the question lists (design iterations 1.125 and 1.126). */
+.jp-Epi-own-option {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 4px;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-brand-color1);
+  cursor: pointer;
+}
+
+.jp-Epi-own-option > input {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.jp-Epi-own-option code {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-code-font-size);
+}
+
+/* The questions of the branches, under the box; grey while the model writes them again. */
+.jp-Epi-own-branches {
+  margin: 6px 0 0;
+  padding: 0 0 0 8px;
+  border-left: 2px solid var(--jp-brand-color2);
+  list-style: none;
+  font-size: var(--jp-ui-font-size1);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-own-branches > li {
+  padding: 2px 0;
+}
+
+.jp-Epi-own-branches > li > b {
+  margin-right: 4px;
+  font-weight: 600;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-own-branches.jp-mod-stale {
+  opacity: 0.55;
+}
+
+.jp-Epi-own-explore > .jp-Epi-progress {
+  display: block;
+  margin-top: 4px;
 }
 
 /* The Ask button and its menu of places, as a merge button and its methods. */
@@ -1278,6 +1376,14 @@
 
 .jp-Epi-split-toggle > span {
   display: flex;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jp-Epi-own-slot > .jp-Epi-progress.jp-mod-indeterminate > span {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 /* The caret on the blue of the accept button, as its label is. */

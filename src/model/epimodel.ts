@@ -96,7 +96,7 @@ import { KernelBridge } from './kernel';
 import type { Feature } from './languages';
 import { languageOf, unsupported as unsupportedIn } from './languages';
 import { outputText, rawText, stoppedBeforeConverging } from './logs';
-import { guessPlace, keywordType, ownOption, wordPlace } from './own';
+import { keywordType, ownOption, wordPlace, wordPreview } from './own';
 import { namesIn } from './names';
 import type { INewCell, IPlacedCell } from './placement';
 import { placeAfter } from './placement';
@@ -1245,10 +1245,13 @@ export class EpiModel implements IDisposable {
   }
 
   /**
-   * Ask the model chosen for typed questions for the type of a question, and
-   * with Jev its place, once per text. The keywords and first words decide
-   * when they match, so a local model is asked only when the keywords give
-   * no type; Jev also when the first words give no place.
+   * Ask the model chosen for user questions for the type of a question, and
+   * with a decision model its place, once per text. A local model is asked
+   * only when the keywords give no type; a decision model is asked for every
+   * question, since alone it typed more questions right than after the
+   * keywords: on 276 questions of public notebooks, 89% for Jev against 82%
+   * (research/local-predictors-2.md). The decision model's place is a
+   * suggestion under the box (ownPlace).
    */
   async sortOwn(text: string, places: IPlacement[]): Promise<void> {
     const question = text.trim();
@@ -1261,12 +1264,9 @@ export class EpiModel implements IDisposable {
     ) {
       return;
     }
-    const placeLeft =
-      model === 'jev' && places.length > 1 && !guessPlace(question);
-    if (keywordType(question) && !placeLeft) {
-      return;
-    }
     this._sorted.set(question, null);
+    this._sorting.add(question);
+    this._emit();
     const cellId = places.find(place => place.cell)?.cell ?? null;
     const cell = cellId ? this.cell(cellId) : null;
     try {
@@ -1280,12 +1280,19 @@ export class EpiModel implements IDisposable {
     } catch (error) {
       // The box keeps the keywords' type; the text is not asked again.
       console.warn('Could not sort the user question', error);
+    } finally {
+      this._sorting.delete(question);
     }
     // The texts of the last questions typed are enough.
     for (const old of Array.from(this._sorted.keys()).slice(0, -50)) {
       this._sorted.delete(old);
     }
     this._emit();
+  }
+
+  /** Whether the model for user questions is reading this text: the Ask button shows a bar. */
+  ownSorting(text: string): boolean {
+    return this._sorting.has(text.trim());
   }
 
   /** The names of the kernel's variables and of their columns, which a user question can list. */
@@ -1409,23 +1416,41 @@ export class EpiModel implements IDisposable {
     return { type: 'descriptive', by: null, probability: null };
   }
 
-  /** The place of a typed question: its first words', else Jev's, else the request's default, with the model that chose it. */
+  /**
+   * The place of a user question, and another place suggested under the Ask
+   * button. The place is the request's default, a new cell, unless the first
+   * words ask for an edit or a branch. A decision model's prediction of the
+   * place, once it answered, is the suggestion whenever it differs from that
+   * place, also where a rule matched (design iteration 1.128); without one, a
+   * preview that the first words suggest is. The analyst takes a suggestion
+   * with a click: no answer of a model moves the Ask button.
+   */
   ownPlace(
     text: string,
     places: IPlacement[]
-  ): { place: IPlacement | null; by: string | null } {
+  ): {
+    place: IPlacement | null;
+    suggestion: { place: IPlacement; by: string | null } | null;
+  } {
     const question = text.trim();
     const byWords = wordPlace(question, places);
-    if (byWords) {
-      return { place: byWords, by: null };
-    }
+    const place = byWords ?? places[0] ?? null;
     const sorted = this._sorted.get(question);
     const pick = sorted?.place?.choice;
-    const byModel = pick ? places.find(place => place.kind === pick) : null;
+    const byModel = pick ? places.find(item => item.kind === pick) : null;
     if (sorted && byModel) {
-      return { place: byModel, by: sorted.model };
+      return {
+        place,
+        suggestion:
+          byModel !== place ? { place: byModel, by: sorted.model } : null
+      };
     }
-    return { place: places[0] ?? null, by: null };
+    const preview = wordPreview(question, places);
+    return {
+      place,
+      suggestion:
+        preview && preview !== place ? { place: preview, by: null } : null
+    };
   }
 
   /** Asks the view's toolbar to open its panel of AI models. */
@@ -9660,6 +9685,8 @@ export class EpiModel implements IDisposable {
   private _revision = 0;
   // A model's type and place for each text typed, null while it is asked.
   private _sorted = new Map<string, ISortedQuestion | null>();
+  // The user questions whose request to the model is on its way.
+  private _sorting = new Set<string>();
   // The questions of the branches of a user question that lists alternatives,
   // by its text, from the model of More questions, with the model's name;
   // null when the call failed.
