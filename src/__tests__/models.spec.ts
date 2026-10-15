@@ -47,7 +47,9 @@ const STATUS: IServerStatus = {
       available: false,
       reason:
         'not downloaded: hf download openbmb/MiniCPM5-2B-GGUF MiniCPM5-2B-Q4_K_M.gguf',
-      downloadable: true
+      downloadable: true,
+      // As the server lists it: not user questions.
+      tasks: ['labels', 'questions', 'ranking']
     }
   ],
   decision_models: {
@@ -101,9 +103,11 @@ describe('readModels, from the settings of an earlier version', () => {
 
   it('gives a model that the view dropped the step down in its place', () => {
     expect(saved({ tableLabels: 'qwen3.5-0.8b' }).labels).toBe('minicpm5-2b');
+    // MiniCPM5 2B left the list of user questions: the keywords take them.
     expect(
       saved({ labels: 'qwen3.5-0.8b', typed: 'qwen3.5-0.8b' })
-    ).toMatchObject({ labels: 'minicpm5-2b', typed: 'minicpm5-2b' });
+    ).toMatchObject({ labels: 'minicpm5-2b', typed: 'rules' });
+    expect(saved({ typed: 'minicpm5-2b' }).typed).toBe('rules');
   });
 });
 
@@ -118,6 +122,15 @@ describe('modelAvailable', () => {
     expect(modelAvailable(STATUS, 'minicpm5-2b')).toBe(false);
     expect(modelAvailable(STATUS, 'off')).toBe(false);
     expect(modelAvailable(null, 'remote')).toBe(false);
+  });
+
+  it('does not run a local model for a task that the server does not list for it', () => {
+    const local = STATUS.local_models!.map(model =>
+      model.id === 'minicpm5-2b' ? { ...model, available: true } : model
+    );
+    const status = { ...STATUS, local_models: local };
+    expect(modelAvailable(status, 'minicpm5-2b', 'labels')).toBe(true);
+    expect(modelAvailable(status, 'minicpm5-2b', 'typed')).toBe(false);
   });
 
   it('always runs the rules, and a decision model when the server can reach it', () => {
@@ -221,17 +234,24 @@ describe('choicesFor', () => {
 
   it('offers the rules, the local models and the decision models for user questions', () => {
     const typed = choicesFor(STATUS, 'typed');
+    // MiniCPM5 2B is not listed: the server leaves user questions off its tasks.
     expect(typed.map(choice => [choice.id, choice.available])).toEqual([
       ['rules', true],
       ['gemma-4-e2b', true],
-      ['minicpm5-2b', false],
       ['decision:jev', false],
       ['decision:solar-decide', true]
     ]);
     // Each local model with what it did on this task.
-    expect(typed[1].note).toMatch(/69% of 120 test questions/);
-    expect(typed[3].reason).toBe(
+    expect(typed[1].note).toMatch(
+      /the type of every user question: on 276 questions from public notebooks, 70% right/
+    );
+    expect(typed[2].reason).toBe(
       'needs an OpenRouter key: sign in with OpenRouter in the AI models panel'
+    );
+    // Each decision model with what it did, as Whybook asks it.
+    expect(typed[3].label).toBe('Solar Decide by Upstage, remote');
+    expect(typed[3].note).toMatch(
+      /^the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; .* the type was right for 84%, against 67% with the keywords alone$/
     );
     expect(typed[3].group).toBe(DECISION_GROUP);
     // Until the server answers, it lists no decision model.
@@ -303,6 +323,35 @@ describe('local decision models', () => {
       }
     ]
   };
+
+  it('offers a local decision model for user questions and the order of questions alone', () => {
+    for (const task of ['labels', 'cells', 'questions'] as const) {
+      expect(
+        choicesFor(deciding, task).some(choice => choice.id === 'jevk5-4b')
+      ).toBe(false);
+    }
+    const typed = choicesFor(deciding, 'typed');
+    expect(typed.map(choice => choice.id)).toEqual([
+      'rules',
+      'gemma-4-e2b',
+      'jevk5-4b',
+      'decision:jev',
+      'decision:solar-decide'
+    ]);
+    const jevk5 = typed[2];
+    expect([jevk5.label, jevk5.group, jevk5.available]).toEqual([
+      'JevK5 v0.3 (4B), local',
+      LOCAL_GROUPS.decision,
+      true
+    ]);
+    expect(jevk5.note).toBe(
+      "2.7 GB; the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; about 4 s for the type and 6 s for the place on 6 CPU threads"
+    );
+    const ranking = choicesFor(deciding, 'ranking');
+    expect(ranking.find(choice => choice.id === 'jevk5-4b')?.note).toMatch(
+      /^2\.7 GB; one reading of the offered questions as lettered options, with its maker's prompt; .* for 52% of them, against 57% with the rules, built in; about 10 s a list on 6 CPU threads$/
+    );
+  });
 
   it('counts a local decision model as a decision model, which runs on this machine', () => {
     expect(isDecisionModel(deciding, 'jevk5-4b')).toBe(true);

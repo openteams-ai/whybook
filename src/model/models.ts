@@ -299,12 +299,22 @@ export const TASKS: {
   {
     id: 'typed',
     label: 'User questions',
-    help: 'Gives a question typed in a "Your own question" box its type: descriptive, association, causal, model check or data quality. The type shows on the question, counts in Questions asked, and goes to the model that writes the cell. With the keywords alone, words such as "cause", "missing" or "residual" set the type, and a question without them counts as descriptive. A local model reads the question when no keyword matches, and Jev also chooses where its cell goes.',
+    help: 'Gives a question typed in a "Your own question" box its type: descriptive, association, causal, model check or data quality. The type shows on the question, counts in Questions asked, and goes to the model that writes the cell. With the keywords alone, words such as "cause", "missing" or "residual" set the type, and a question without them counts as descriptive. A model reads every question, and its type replaces the keywords\'; a decision model also suggests a place for its cell under the Ask button.',
     sends: 'the question you type, and the first 20 lines of its cell',
     local: true,
     notes: {
+      'ministral-3-3b':
+        'the type of every user question: on 276 questions from public notebooks, 75% right, against 67% with the keywords alone; about 0.3 s a question on 7 CPU threads',
       'gemma-4-e2b':
-        'the type when the keywords do not match: 69% of 120 test questions right, against 45%; about 0.5 s a question'
+        'the type of every user question: on 276 questions from public notebooks, 70% right, against 67% with the keywords alone; about 0.3 s a question on 7 CPU threads',
+      'gemma-4-e4b':
+        'the type of every user question: on 276 questions from public notebooks, 71% right, against 67% with the keywords alone; about 0.5 s a question on 7 CPU threads',
+      'qwen3-4b':
+        'the type of every user question: on 276 questions from public notebooks, 64% right, against 67% with the keywords alone; about 0.5 s a question on 7 CPU threads',
+      'jevk5-4b':
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
+      'h2o-lightning-4b':
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads"
     }
   },
   {
@@ -365,6 +375,15 @@ const DROPPED: Record<string, string> = {
   'qwen3.5-0.8b': 'minicpm5-2b',
   // Jev is one of the decision models.
   jev: `${DECISION_PREFIX}jev`
+};
+
+/**
+ * The models that left the list of one task. MiniCPM5 2B gave "data
+ * quality" to 206 of 276 user questions of public notebooks, and types fewer
+ * right than "descriptive" every time (design iteration 1.129).
+ */
+const DROPPED_FROM: Partial<Record<Task, string[]>> = {
+  typed: ['minicpm5-2b']
 };
 
 /** A model that a task can use, as the settings list it. */
@@ -451,7 +470,11 @@ export function readModels(value: unknown, own: unknown = value): ModelChoices {
   for (const task of TASKS) {
     const choice = stored[task.id];
     if (typeof choice === 'string') {
-      models[task.id] = DROPPED[choice] ?? choice;
+      const kept = DROPPED[choice] ?? choice;
+      // A model that left a task's list leaves the task to its default.
+      models[task.id] = DROPPED_FROM[task.id]?.includes(kept)
+        ? (DEFAULT_MODELS[task.id] ?? 'rules')
+        : kept;
     }
   }
   // Older versions kept the labels for tables only, under another key.

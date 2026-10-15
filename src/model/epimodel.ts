@@ -1397,26 +1397,34 @@ export class EpiModel implements IDisposable {
     return labels;
   }
 
-  /** The type of a typed question: the keywords', else the model's, else descriptive, with the model that chose it. */
+  /**
+   * The type of a user question, with the model that chose it: the model's
+   * for user questions once it answered, a decision model or a general one,
+   * else the keywords', else descriptive (design iteration 1.129).
+   */
   ownType(text: string): {
     type: QuestionType;
     by: string | null;
     probability: number | null;
   } {
     const question = text.trim();
-    const keyword = keywordType(question);
-    if (keyword) {
-      return { type: keyword, by: null, probability: null };
-    }
     const sorted = this._sorted.get(question);
     const pick = sorted?.type;
     const known = QUESTION_TYPES.find(type => type.id === pick?.choice);
-    if (sorted && pick && known) {
-      return {
-        type: known.id,
-        by: sorted.model,
-        probability: pick.probabilities[pick.choice] ?? null
-      };
+    const byModel =
+      sorted && pick && known
+        ? {
+            type: known.id,
+            by: sorted.model,
+            probability: pick.probabilities[pick.choice] ?? null
+          }
+        : null;
+    if (byModel) {
+      return byModel;
+    }
+    const keyword = keywordType(question);
+    if (keyword) {
+      return { type: keyword, by: null, probability: null };
     }
     return { type: 'descriptive', by: null, probability: null };
   }

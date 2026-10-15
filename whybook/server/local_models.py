@@ -228,6 +228,9 @@ MODELS = {
             revision="2079a22f3beaa4e306449978533478fe0522f4b3",
             sha256="ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd",
             thinking_off=True,
+            # Not user questions: it gave "data quality" to 206 of 276 questions of public
+            # notebooks, fewer right than "descriptive" every time (design iteration 1.129).
+            tasks=("labels", "questions", "ranking"),
         ),
         LocalModel(
             "gemma-4-e4b",

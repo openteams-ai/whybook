@@ -374,6 +374,8 @@ async def test_the_server_reports_its_local_models(jp_fetch, fake):
     tasks = {entry["id"]: (entry["tasks"], entry["decision"]) for entry in status["local_models"]}
     assert tasks["gemma-4-e2b"] == (None, False)
     assert tasks["jevk5-4b"] == (["typed", "ranking"], True)
+    # MiniCPM5 2B types fewer user questions right than "descriptive" every time (design iteration 1.129).
+    assert tasks["minicpm5-2b"] == (["labels", "questions", "ranking"], False)
     assert status["remote_model"] is None
 
 

@@ -1515,7 +1515,11 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
         describe_tables: false,
         local_models: [
           local('gemma-4-e2b', 'Gemma 4 E2B', 'recommended', true),
-          local('minicpm5-2b', 'MiniCPM5 2B', 'smaller', false)
+          // As the server lists it: not user questions.
+          {
+            ...local('minicpm5-2b', 'MiniCPM5 2B', 'smaller', false),
+            tasks: ['labels', 'questions', 'ranking']
+          }
         ],
         json_check_warning: failed ? warning : null
       }
@@ -1585,16 +1589,23 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
         .evaluateAll(groups => groups.map(group => group.getAttribute('label')))
     )
     .toEqual(['Local, for a laptop with 16 GB', 'Local, smaller, for 8 GB']);
-  // Typed questions: the rules, the local models, and Jev, greyed without a key.
-  await expect(panel.locator('#jp-Epi-quick-typed option')).toHaveText([
+  // User questions: the rules, the local models, and the decision models,
+  // greyed without an OpenRouter key.
+  const jev = panel.locator('#jp-Epi-quick-typed option[value="decision:jev"]');
+  await expect(jev).toHaveText('Jev 1.13 by TypeSafe, remote (cannot run)');
+  await expect(jev).toBeDisabled();
+  const typedChoices = await panel
+    .locator('#jp-Epi-quick-typed option')
+    .allTextContents();
+  // MiniCPM5 2B is not offered for user questions.
+  expect(typedChoices.slice(0, 2)).toEqual([
     'Keywords, built in',
-    'Gemma 4 E2B, local',
-    'MiniCPM5 2B, local (cannot run)',
-    'Jev by TypeSafe, remote (cannot run)'
+    'Gemma 4 E2B, local'
   ]);
-  await expect(
-    panel.locator('#jp-Epi-quick-typed option[value="jev"]')
-  ).toBeDisabled();
+  expect(typedChoices.slice(2)).toHaveLength(10);
+  expect(
+    typedChoices.slice(2).every(text => text.endsWith(', remote (cannot run)'))
+  ).toBe(true);
   await panel.locator('#jp-Epi-quick-labels').selectOption('gemma-4-e2b');
   await expect(item).toHaveText('AI: remote and local');
   const saved = await page.evaluate(async () => {
@@ -2985,26 +2996,16 @@ test('sorts a user question with the model chosen for user questions', async ({
     model: 'gemma-4-e2b',
     cell: 'x = 21'
   });
-  // A keyword types the question: the model is not asked. The box sorts a
-  // text 300 ms after the typing stops, and each text is noted here once
-  // its sort has ended, with a request or without.
-  await page.evaluate(() => {
-    const state = window as any;
-    const model = state.jupyterapp.shell.currentWidget.content.model;
-    const sortOwn = model.sortOwn;
-    state.epiSorted = [];
-    model.sortOwn = async function (this: unknown, ...args: unknown[]) {
-      await sortOwn.apply(this, args);
-      state.epiSorted.push(args[0]);
-    };
-  });
+  // A question that a keyword types is asked too, and the model's type
+  // replaces the keywords' (design iteration 1.129).
   await box.locator('textarea').fill('Is x related to its double?');
-  await expect(meta).toContainText('Association');
-  await expect(meta.locator('.jp-Epi-aitag')).toHaveCount(0);
-  await expect
-    .poll(() => page.evaluate(() => (window as any).epiSorted))
-    .toContain('Is x related to its double?');
-  expect(sorted).toHaveLength(1);
+  await expect.poll(() => sorted.length).toBe(2);
+  expect(sorted[1]).toMatchObject({ text: 'Is x related to its double?' });
+  await expect(meta).toContainText('Data quality');
+  await expect(meta.locator('.jp-Epi-aitag').first()).toHaveAttribute(
+    'title',
+    'Type chosen by Gemma 4 E2B, 80%'
+  );
 });
 
 test('orders the questions offered with the model chosen for question order', async ({
