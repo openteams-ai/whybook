@@ -63,6 +63,21 @@ export const PICK_MODEL = 'pick-remote-model';
 /** The start of a decision model's choice: 'decision:jev' (whybook/server/decision_models.py). */
 export const DECISION_PREFIX = 'decision:';
 
+/**
+ * Whether a choice names a decision model: a remote one, through OpenRouter's
+ * decision endpoint, or a local one that the server reads with its maker's
+ * prompt. A decision model gives the type of every user question.
+ */
+export function isDecisionModel(
+  status: IServerStatus | null,
+  choice: string | undefined
+): boolean {
+  return (
+    isDecision(choice) ||
+    !!status?.local_models?.find(model => model.id === choice)?.decision
+  );
+}
+
 /** Whether a choice names a remote decision model, which answers through OpenRouter's decision endpoint. */
 export function isDecision(choice: string | undefined): boolean {
   return (
@@ -303,7 +318,17 @@ export const TASKS: {
       'gemma-4-e2b':
         "picks the next question among the offered ones, read once after the notebook's state; on 60 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 45% of them, against 57% with the rules, built in",
       'gemma-4-e4b':
-        "picks the next question among the offered ones, read once after the notebook's state; on 60 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 43% of them, against 57% with the rules, built in"
+        "picks the next question among the offered ones, read once after the notebook's state; on 60 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 43% of them, against 57% with the rules, built in",
+      'jevk5-4b':
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 52% of them, against 57% with the rules, built in; about 10 s a list on 6 CPU threads",
+      'jevk5-2b':
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 39% of them, against 57% with the rules, built in",
+      'decider-2b':
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 45% of them, against 57% with the rules, built in",
+      'decider-4b':
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 40% of them, against 57% with the rules, built in",
+      'gemma-4-12b-cygnet':
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 42% of them, against 57% with the rules, built in; about 25 s a list on 6 CPU threads"
     }
   },
   {
@@ -326,6 +351,7 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
   recommended: 'Local, for a laptop with 16 GB',
   smaller: 'Local, smaller, for 8 GB',
   larger: 'Local, larger, for 24 GB or more',
+  decision: 'Local, decision models',
   custom: 'Local, added in the settings'
 };
 
@@ -520,7 +546,9 @@ export function modelAvailable(
       otherProviderReason(status, model) === null
     );
   }
-  return !!status?.local_models?.find(entry => entry.id === model)?.available;
+  const local = status?.local_models?.find(entry => entry.id === model);
+  // A local model that the task does not list does not run for it.
+  return !!local?.available && (!local.tasks || local.tasks.includes(task));
 }
 
 /** Whether a task will ask its model, with the settings and the server as they are. */
@@ -544,7 +572,10 @@ function localChoices(
   if (!info.local) {
     return [];
   }
-  return (status?.local_models ?? []).map(model => {
+  // A decision model does user questions and the order of questions alone.
+  const fits = (model: { tasks?: string[] | null }) =>
+    !model.tasks || model.tasks.includes(task);
+  return (status?.local_models ?? []).filter(fits).map(model => {
     const tier = model.tier ?? 'recommended';
     // A preset's own note is about labels; a model of the settings has the note written there.
     const note =

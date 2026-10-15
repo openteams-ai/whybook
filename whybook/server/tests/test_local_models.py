@@ -364,7 +364,16 @@ async def test_the_server_reports_its_local_models(jp_fetch, fake):
         ("qwen3-4b", "recommended", False),
         ("minicpm5-2b", "smaller", False),
         ("gemma-4-e4b", "larger", False),
+        ("jevk5-4b", "decision", False),
+        ("jevk5-2b", "decision", False),
+        ("decider-2b", "decision", False),
+        ("decider-4b", "decision", False),
+        ("gemma-4-12b-cygnet", "decision", False),
     ]
+    # The decision models do user questions and the order of questions alone.
+    tasks = {entry["id"]: (entry["tasks"], entry["decision"]) for entry in status["local_models"]}
+    assert tasks["gemma-4-e2b"] == (None, False)
+    assert tasks["jevk5-4b"] == (["typed", "ranking"], True)
     assert status["remote_model"] is None
 
 

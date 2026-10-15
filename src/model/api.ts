@@ -17,7 +17,8 @@ import type {
  * the step down or the step up, or a model added in the settings.
  * whybook/server/local_models.py, TIERS.
  */
-export type LocalTier = 'recommended' | 'smaller' | 'larger' | 'custom';
+export type LocalTier =
+  'recommended' | 'smaller' | 'larger' | 'decision' | 'custom';
 
 /** A model the server runs on this machine: whybook/server/local_models.py. */
 export interface ILocalModel {
@@ -37,6 +38,10 @@ export interface ILocalModel {
   reason: string | null;
   /** The file is missing and the server can fetch it. */
   downloadable?: boolean;
+  /** The tasks it can do, or null for every task of a local model. */
+  tasks?: string[] | null;
+  /** A decision model, read with its maker's prompt: user questions and the order alone. */
+  decision?: boolean;
 }
 
 /** A speech engine the server runs on this machine: whybook/server/speech.py. */

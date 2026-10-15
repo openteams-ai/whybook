@@ -36,6 +36,16 @@ The same models can write more questions for a drop, sort a question that the
 analyst types into its type (``classify``), as the Jev-style classifier of
 research/local_predictors/jev_local.py does, and order offered questions
 (``rank_questions``).
+
+Six decision models (DECISION) do only those two jobs, or one of them: JevK5
+v0.3 and JevK5-2B v0.2, decider-2b and decider-4b, and Gemma 4 12B read as
+Cygnet reads it, do both, and H2O-Lightning-4B v1.1 does user questions alone.
+Each is fine-tuned, or read, with its maker's prompt, and reads worse with
+Whybook's: on 100 drops, JevK5 v0.3 put the analyst's type first for 50% with
+its card's prompt and 45% with Whybook's (research/choice-classifiers.md). So a
+decision model gets its maker's prompt (``decision_prompt``), as the research
+measured it, and a model of the settings whose file names JevK5 or decider
+does too.
 """
 
 from __future__ import annotations
@@ -138,7 +148,7 @@ TITLE_SCHEMA = {
 
 # Where a model stands among the five: the three best for the target laptop,
 # one step down and one step up. A model of the settings is "custom".
-TIERS = ("recommended", "smaller", "larger", "custom")
+TIERS = ("recommended", "smaller", "larger", "decision", "custom")
 
 
 @dataclass(frozen=True)
@@ -161,6 +171,11 @@ class LocalModel:
     thinking_off: bool = False
     # A GGUF file on this machine, for a model of the settings, in place of a repository.
     path: str | None = None
+    # The prompt that the model reads: Whybook's ("chat"), or its maker's for a
+    # decision model ("jevk5", "decider", "cygnet" or "h2o"; decision_prompt).
+    layout: str = "chat"
+    # The tasks that the model can do, or None for every task of a local model.
+    tasks: tuple[str, ...] | None = None
 
 
 # The notes give the labels measured with the method of label(), over the 20
@@ -228,6 +243,92 @@ MODELS = {
     ]
 }
 
+# The decision models, for user questions and the order of offered questions,
+# from the commits and with the SHA-256 that research/choice-classifiers.md
+# measured. The notes of the view (src/model/models.ts) give what each measured.
+DECISION_TASKS = ("typed", "ranking")
+DECISION = {
+    model.id: model
+    for model in [
+        LocalModel(
+            "jevk5-4b",
+            "JevK5 v0.3 (4B)",
+            "alibiserikbay/JevK5-GGUF",
+            "jevk5-4b-v0.3-Q4_K_M.gguf",
+            2709,
+            "a decision model, read with the prompt of its card; Apache-2.0, trained on decisions that GPT-6 Luna wrote",
+            tier="decision",
+            revision="ec67b0bfce5119a8b11a2cdb430bb43e3fa3e82a",
+            sha256="94ca0d7745c47f79091b0892ca657c81d9dc9e4ed0238ba0a7ea261d8938c882",
+            layout="jevk5",
+            tasks=DECISION_TASKS,
+        ),
+        LocalModel(
+            "jevk5-2b",
+            "JevK5-2B v0.2",
+            "alibiserikbay/JevK5-GGUF",
+            "jevk5-2b-v0.2-Q8_0.gguf",
+            2012,
+            "a decision model, read with the prompt of its card; Apache-2.0",
+            tier="decision",
+            revision="ec67b0bfce5119a8b11a2cdb430bb43e3fa3e82a",
+            sha256="17222f27a89273aca7614e34083a530b0d90cd51cffeb225c7acc8e79a7e0eba",
+            layout="jevk5",
+            tasks=DECISION_TASKS,
+        ),
+        LocalModel(
+            "decider-2b",
+            "decider-2b v11",
+            "Mapika/decider-2b-GGUF",
+            "decider-2b-v11-Q8_0.gguf",
+            2012,
+            "a decision model of Mapika, read with its prompt",
+            tier="decision",
+            revision="ff2e5e687327eda9ac34e9a3ca84d3f400672c87",
+            sha256="3657848acb4851da4465ab4abad7c6fe273c7e1f15e83629cd6da972a5282cb3",
+            layout="decider",
+            tasks=DECISION_TASKS,
+        ),
+        LocalModel(
+            "decider-4b",
+            "decider-4b v2.1",
+            "Mapika/decider-4b-GGUF",
+            "decider-4b-v2.1-Q4_K_M.gguf",
+            2709,
+            "a decision model of Mapika, read with its prompt",
+            tier="decision",
+            revision="b79f09d9ba7837f1b744295ea267b55d08e958ec",
+            sha256="c7083fcfc93f650cd66caeade4a3840ef9eeeeb1e80920907c554f70619d7c56",
+            layout="decider",
+            tasks=DECISION_TASKS,
+        ),
+        LocalModel(
+            "gemma-4-12b-cygnet",
+            "Gemma 4 12B, read as Cygnet reads it",
+            "google/gemma-4-12B-it-qat-q4_0-gguf",
+            "gemma-4-12b-it-qat-q4_0.gguf",
+            6976,
+            "Google's Gemma 4 12B, read with the prompt of Cygnet's shim at the option letters; needs about 8 GB of memory",
+            tier="decision",
+            revision="29d097773436b69ff9feafd636ab4cf873786537",
+            sha256="93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b",
+            layout="cygnet",
+            tasks=DECISION_TASKS,
+        ),
+    ]
+}
+
+
+def layout_of(file: str) -> str:
+    """The prompt of a model of the settings, from its file name: a decision model's maker's, or Whybook's."""
+    name = file.lower()
+    if "jevk5" in name:
+        return "jevk5"
+    if "decider" in name:
+        return "decider"
+    return "chat"
+
+
 # The models of the settings, by id, as the view last sent them.
 CUSTOM: dict[str, LocalModel] = {}
 MAX_CUSTOM = 20
@@ -265,11 +366,19 @@ def custom_model(spec: Any) -> LocalModel:
         if not os.path.isabs(path) or not path.endswith(".gguf"):
             raise LocalModelError(f"{name}: the path is the absolute path of a .gguf file")
         size = round(os.path.getsize(path) / 1e6) if os.path.isfile(path) else None
-        return LocalModel(custom_id(name), name, "", os.path.basename(path), size, note, "custom", None, sha256, True, path)
+        layout = layout_of(os.path.basename(path))
+        return LocalModel(
+            custom_id(name), name, "", os.path.basename(path), size, note, "custom", None, sha256, True, path,
+            layout=layout, tasks=None if layout == "chat" else DECISION_TASKS,
+        )
     repo, file = str(spec.get("repo") or ""), str(spec.get("file") or "")
     if not REPO.match(repo) or not FILE.match(file) or ".." in file:
         raise LocalModelError(f"{name}: give a Hugging Face repository and a .gguf file in it, or the path of a GGUF file")
-    model = LocalModel(custom_id(name), name, repo, file, None, note, "custom", revision, sha256, True)
+    layout = layout_of(file)
+    model = LocalModel(
+        custom_id(name), name, repo, file, None, note, "custom", revision, sha256, True,
+        layout=layout, tasks=None if layout == "chat" else DECISION_TASKS,
+    )
     path = model_path(model)
     return replace(model, size_mb=round(path.stat().st_size / 1e6)) if path else model
 
@@ -307,6 +416,8 @@ def model_of(model_id: Any, spec: Any = None) -> LocalModel | None:
         return None
     if model_id in MODELS:
         return MODELS[model_id]
+    if model_id in DECISION:
+        return DECISION[model_id]
     if model_id in EXTRA:
         return EXTRA[model_id]
     if model_id.startswith("custom:") and spec is not None:
@@ -315,7 +426,7 @@ def model_of(model_id: Any, spec: Any = None) -> LocalModel | None:
 
 
 def all_models() -> list[LocalModel]:
-    return [*MODELS.values(), *CUSTOM.values()]
+    return [*MODELS.values(), *DECISION.values(), *CUSTOM.values()]
 
 
 def file_of(model: LocalModel) -> str:
@@ -398,6 +509,10 @@ def status(models: list[LocalModel] | None = None) -> list[dict[str, Any]]:
                 "available": reason is None,
                 "reason": reason,
                 "downloadable": missing and not running and not model.path and hub_available(),
+                # The tasks of a model that does only some: a decision model does
+                # user questions, and most also the order of questions.
+                "tasks": list(model.tasks) if model.tasks else None,
+                "decision": model.layout != "chat",
             }
         )
     return entries
@@ -897,7 +1012,91 @@ def _softmax(scores: list[float]) -> list[float]:
     return [weight / total for weight in weights]
 
 
-def classify(model: LocalModel, text: str, threads: int) -> dict[str, Any]:
+# The prompts of the decision models, as their makers' clients write them:
+# research/local_predictors/cell_drops.py, decision_prompt, which measured them.
+DECISION_LETTERS = "ABCDEFGHIJKL"
+NEXT_QUESTION = "Which of these questions does the analyst ask next?"
+# The system prompt of the client on JevK5-GGUF's card (SemIf's protocol).
+JEVK5_SYSTEM = (
+    "Apply the supplied criterion to the supplied evidence. Choose exactly one listed option. "
+    "Respond with only its uppercase letter, with no explanation or reasoning."
+)
+# The system prompt of Cygnet's shim (github.com/blockbrain-ai/cygnet-recipe at 3cf591c, shim/cygnet_shim.py).
+CYGNET_SYSTEM = (
+    "You are a calibration engine. You never answer in prose. You are given a state, a question and "
+    "a numbered set of options, and you choose exactly one option. You reply with that option's "
+    "LETTER and nothing else \u2014 a single character, no words, no punctuation, no explanation."
+)
+
+
+def decision_prompt(llm: Any, model: LocalModel, evidence: Any, instruction: str, keys: list[str], texts: list[str]) -> str:
+    """A decision model's prompt, ending where the answer's letter starts.
+
+    decider: the plain layout of decider.prompt.build, with no chat template.
+    JevK5: the chat layout of its card's client, with the evidence, the
+    criterion and the options as JSON. Cygnet: the layout of its shim, in the
+    model's chat template with thinking off. H2O-Lightning-4B: the layout of
+    its shim (``h2o_prompt``).
+    """
+    letters = DECISION_LETTERS[: len(texts)]
+    if model.layout == "decider":
+        shown = evidence if isinstance(evidence, str) else json.dumps(evidence, ensure_ascii=False)
+        options = "".join(f"\n({letter}) {text}" for letter, text in zip(letters, texts))
+        return f"Context:\n{shown}\n\nQuestion: {instruction}\nOptions:{options}\nAnswer: ("
+    if model.layout == "cygnet":
+        shown = evidence if isinstance(evidence, str) else json.dumps(evidence, ensure_ascii=False, indent=1)
+        options = "\n".join(f"{letter}. {text}" for letter, text in zip(letters, texts))
+        user = f"{shown.rstrip()}\n\n{instruction.rstrip()}\n\nOptions:\n{options}\n\nAnswer with the letter of exactly one option, and nothing else:"
+        return _chat(llm, CYGNET_SYSTEM, user)
+    user = json.dumps(
+        {"evidence": evidence, "criterion": instruction, "options": [{"letter": letter, "description": f"{key}: {text}"} for key, letter, text in zip(keys, letters, texts)]},
+        ensure_ascii=False,
+    )
+    return f"<|im_start|>system\n{JEVK5_SYSTEM}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+
+
+# The tokens that decode to each letter alone, by model: Gemma 4 has more than one (Cygnet's README).
+_letter_ids_of: dict[str, dict[str, list[int]]] = {}
+
+
+def _letter_mass(llm: Any, model: LocalModel, prompt: str, letters: str) -> list[float]:
+    """Cygnet's read: the probability of each letter, summed over its tokens, over the letters. Call it with the lock held."""
+    import llama_cpp
+    import numpy as np
+
+    if model.id not in _letter_ids_of:
+        found: dict[str, list[int]] = {}
+        for token in range(llm.n_vocab()):
+            text = llm.detokenize([token]).decode(errors="replace")
+            if len(text) == 1 and text in DECISION_LETTERS:
+                found.setdefault(text, []).append(token)
+        _letter_ids_of[model.id] = found
+    ids = _letter_ids_of[model.id]
+    memory = llama_cpp.llama_get_memory(llm._ctx.ctx)
+    llama_cpp.llama_memory_clear(memory, True)
+    llm.n_tokens = 0
+    llm.eval(llm.tokenize(prompt.encode(), add_bos=False, special=True))
+    logits = np.ctypeslib.as_array(llm._ctx.get_logits(), shape=(llm.n_vocab(),)).astype(np.float64)
+    llama_cpp.llama_memory_clear(memory, True)
+    llm.n_tokens = 0
+    top = logits.max()
+    mass = [float(np.exp(logits[ids.get(letter, [])] - top).sum()) for letter in letters]
+    total = sum(mass)
+    return [weight / total for weight in mass] if total else [1 / len(letters)] * len(letters)
+
+
+def decision_read(model: LocalModel, evidence: Any, instruction: str, keys: list[str], texts: list[str], threads: int) -> list[float]:
+    """The probability of each option, read at its letter with the maker's prompt."""
+    letters = DECISION_LETTERS[: len(texts)]
+    with _lock:
+        llm = _llm(model, threads)
+        prompt = decision_prompt(llm, model, evidence, instruction, keys, texts)
+        if model.layout == "cygnet":
+            return _letter_mass(llm, model, prompt, letters)
+        return _softmax(_letter_scores(llm, model, prompt, prompt, letters, {}))
+
+
+def classify(model: LocalModel, text: str, threads: int, cell: str | None = None, places: list[str] | None = None) -> dict[str, Any]:
     """The probability of each type of a user question, read where the answer starts.
 
     The prompt lists the types, each with a letter and a meaning, with one
@@ -905,9 +1104,27 @@ def classify(model: LocalModel, text: str, threads: int) -> dict[str, Any]:
     is a letter: the fewshot variant of research/local-predictors-2.md. The
     part of the prompt before the question is the same for every question,
     and its state is kept for the next one.
-    """
-    from .sorting import TYPE_EXAMPLES, TYPE_INSTRUCTION, TYPES
 
+    A decision model also gives the place of the answer, out of ``places``,
+    when the view offers two or more.
+    """
+    from .sorting import PLACE_INSTRUCTION, PLACES, TYPE_EXAMPLES, TYPE_INSTRUCTION, TYPES
+
+    if model.layout != "chat":
+        # A decision model reads the question and the first lines of its cell,
+        # as research/local_predictors/typed_systemone.py asked it.
+        evidence = {"question": " ".join(text.split()), **({"cell": cell} if cell else {})}
+
+        def choice(instruction: str, options: dict[str, str]) -> dict[str, Any]:
+            names = list(options)
+            weights = decision_read(model, evidence, instruction, names, [options[name] for name in names], threads)
+            probabilities = {name: round(weight, 4) for name, weight in zip(names, weights)}
+            return {"choice": max(probabilities, key=probabilities.get), "probabilities": probabilities}
+
+        kind = choice(TYPE_INSTRUCTION, TYPES)
+        offered = {place: meaning for place, meaning in PLACES.items() if place in (places or [])}
+        place = choice(PLACE_INSTRUCTION, offered) if len(offered) > 1 else None
+        return {"type": kind, "place": place, "model": model.label}
     names = list(TYPES)
     letters = "ABCDEFGH"[: len(names)]
     letter_of = dict(zip(names, letters))
@@ -946,6 +1163,9 @@ def rank_questions(model: LocalModel, state: str, questions: list[str], threads:
     shown = questions[: len(RANK_LETTERS)]
     if not shown:
         return []
+    if model.layout != "chat":
+        weights = decision_read(model, state, NEXT_QUESTION, [f"q{index}" for index in range(len(shown))], shown, threads)
+        return [round(weight, 4) for weight in weights] + [0.0] * (len(questions) - len(shown))
     letters = RANK_LETTERS[: len(shown)]
     options = "\n".join(f"({letter}) {' '.join(text.split())}" for letter, text in zip(letters, shown))
     with _lock:
@@ -968,7 +1188,7 @@ async def ask_rank(model_id: str, state: str, questions: list[str], threads: int
     return {"probabilities": probabilities, "model": model.label, "file": file_of(model), "elapsed": round(time.monotonic() - start, 2)}
 
 
-async def ask_classify(model_id: str, text: str, threads: int) -> dict[str, Any]:
+async def ask_classify(model_id: str, text: str, threads: int, cell: str | None = None, places: list[str] | None = None) -> dict[str, Any]:
     """``classify`` in a worker thread."""
     start = time.monotonic()
     model = model_of(model_id)
@@ -977,7 +1197,7 @@ async def ask_classify(model_id: str, text: str, threads: int) -> dict[str, Any]
     if not runtime_available():
         raise LocalModelError("llama-cpp-python is not installed on the server")
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, classify, model, text, threads)
+    result = await loop.run_in_executor(None, classify, model, text, threads, cell, places)
     return {**result, "elapsed": round(time.monotonic() - start, 2)}
 
 

@@ -585,7 +585,7 @@ class SortHandler(BaseHandler):
             # What the call cost, which the view keeps: nothing for a model on this
             # machine, and for a decision model what OpenRouter reports.
             if local_model_of(body):
-                result = {**await local_models.ask_classify(model, request["text"], self.future_config.local_threads), "cost_usd": 0.0}
+                result = {**await local_models.ask_classify(model, request["text"], self.future_config.local_threads, request["cell"], request["places"]), "cost_usd": 0.0}
             elif decision is not None:
                 reason = decision_models.status(self.future_config)[decision.id]["reason"]
                 if reason:

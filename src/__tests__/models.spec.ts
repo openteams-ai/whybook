@@ -9,6 +9,7 @@ import {
   DECISION_GROUP,
   DEFAULT_MODELS,
   isDecision,
+  isDecisionModel,
   LOCAL_GROUPS,
   modelAvailable,
   NOT_MEASURED,
@@ -277,6 +278,47 @@ describe('choicesFor', () => {
     const [remote] = choicesFor({ ...STATUS, remote_model: 'opus' }, 'cells');
     expect(remote.label).toBe('Remote AI model: opus');
     expect(remote.note).toMatch(/leave the machine$/);
+  });
+});
+
+describe('local decision models', () => {
+  // A decision model that the server reads with the prompt of its card.
+  const deciding: IServerStatus = {
+    ...STATUS,
+    local_models: [
+      ...STATUS.local_models!,
+      {
+        id: 'jevk5-4b',
+        label: 'JevK5 v0.3 (4B)',
+        kind: 'local',
+        tier: 'decision',
+        size_mb: 2709,
+        note: 'a decision model, read with the prompt of its card; Apache-2.0, trained on decisions that GPT-6 Luna wrote',
+        repo: 'alibiserikbay/JevK5-GGUF',
+        available: true,
+        reason: null,
+        downloadable: false,
+        tasks: ['typed', 'ranking'],
+        decision: true
+      }
+    ]
+  };
+
+  it('counts a local decision model as a decision model, which runs on this machine', () => {
+    expect(isDecisionModel(deciding, 'jevk5-4b')).toBe(true);
+    expect(isDecisionModel(deciding, 'decision:jev')).toBe(true);
+    expect(isDecisionModel(deciding, 'gemma-4-e2b')).toBe(false);
+    expect(isDecisionModel(deciding, 'rules')).toBe(false);
+    // Until the server answers, a local id is no decision model.
+    expect(isDecisionModel(null, 'jevk5-4b')).toBe(false);
+    expect(
+      aiSummary(deciding, {
+        cells: 'off',
+        questions: 'off',
+        labels: 'off',
+        typed: 'jevk5-4b'
+      })
+    ).toBe('AI: local');
   });
 });
 
