@@ -1,4 +1,4 @@
-"""The order of offered questions by a model: the request, the remote model, Jev and the route."""
+"""The order of offered questions by a model: the request, the remote model, a decision model and the route."""
 
 import json
 import types
@@ -8,6 +8,7 @@ from tornado.httpclient import HTTPClientError
 
 from whybook.server import claude, local_models
 from whybook.server.config import Whybook
+from whybook.server.keystore import KeyStore
 from whybook.server.questions import ranking
 from whybook.server.questions.models import InvalidRequest
 
@@ -91,33 +92,33 @@ async def test_the_setting_asks_the_remote_model_what_the_analyst_should_ask(mon
     assert ranking.request_from_json(body())["prompt"] == "next"
 
 
-async def test_jev_asks_one_yes_or_no_question_per_question_through_typesafe():
+async def test_a_decision_model_makes_one_choice_over_the_questions_through_openrouter():
     calls = []
 
     async def fetch(url, **options):
         calls.append((url, options))
-        answers = {"q0": {"type": "noul", "noul": 0.3}, "q1": {"type": "noul", "noul": 0.8}}
-        return types.SimpleNamespace(body=json.dumps({"model": "jev-1.13.0", "answers": answers}))
+        answers = {"next": {"type": "choice", "choice": "q1", "probabilities": {"q0": 0.3, "q1": 0.7}}}
+        return types.SimpleNamespace(body=json.dumps({"model": "liquid/d1-20260930", "usage": {"cost": 0.00002}, "answers": answers}))
 
-    config = Whybook(typesafe_api_key="key", typesafe_base_url="https://jev.example/")
-    found = await events(ranking.request_from_json(body("jev")), config, fetch)
+    KeyStore().set("openrouter", "sk-or-test")
+    found = await events(ranking.request_from_json(body("decision:d1")), Whybook(), fetch)
     url, options = calls[0]
-    assert url == "https://jev.example/v1/systemone"
+    assert url == "https://openrouter.ai/api/v1/systemone"
     sent = json.loads(options["body"])
-    assert sorted(sent["questions"]) == ["q0", "q1"]
-    assert sent["questions"]["q1"]["type"] == "noul"
-    assert "How many rows lack age?" in sent["questions"]["q1"]["instructions"]
-    assert found[-1]["scores"] == {"q1": 0.3, "q2": 0.8}
-    assert found[-1]["model"] == "jev-1.13.0"
-    # Jev's price is not known here: the view counts the call apart.
-    assert found[-1]["cost_usd"] is None
+    assert sent["model"] == "liquid/d1"
+    assert sent["provider"] == {"zdr": True}
+    assert sent["questions"]["next"]["type"] == "choice"
+    assert sent["questions"]["next"]["instructions"] == ranking.NEXT_INSTRUCTION
+    assert list(sent["questions"]["next"]["criteria"].values()) == [question["text"] for question in QUESTIONS]
+    assert found[-1]["scores"] == {"q1": 0.3, "q2": 0.7}
+    assert found[-1]["model"] == "liquid/d1-20260930"
+    assert found[-1]["cost_usd"] == 0.00002
 
 
-async def test_jev_without_a_key_is_an_error_and_a_local_model_answers(monkeypatch):
-    config = Whybook(typesafe_api_key="", jev_account_id="", jev_api_token="")
-    found = await events(ranking.request_from_json(body("jev")), config)
+async def test_a_decision_model_without_a_key_is_an_error_and_a_local_model_answers(monkeypatch):
+    found = await events(ranking.request_from_json(body("decision:jev")), Whybook(typesafe_api_key=""))
     assert found[-1]["type"] == "error"
-    assert "TYPESAFE_API_KEY" in found[-1]["message"]
+    assert "OpenRouter key" in found[-1]["message"]
 
     async def ask_rank(model_id, state, questions, threads):
         assert "Selected:" in state and questions == [question["text"] for question in QUESTIONS]

@@ -5,8 +5,8 @@ The view's rules score the questions of every request at once
 the settings, the view then sends the questions it offers here, and sorts
 them by the model's probability that the analyst asks each one next when the
 answer comes. The model is the remote one, a local model in the Jupyter
-server (``local_models.rank_questions``), or Jev from TypeSafe, with one
-yes-or-no question for each candidate (``jev_body``).
+server (``local_models.rank_questions``), or a decision model
+(``decision_models.py``), with one choice over the questions (``choice_body``).
 
 What each sees: the questions, the names, kinds and sizes of the variables
 selected, the titles of the last 20 cells, the questions already asked, and
@@ -21,10 +21,10 @@ from typing import Any, AsyncIterator, Awaitable, Callable
 
 from tornado.httpclient import AsyncHTTPClient
 
-from .. import connection, local_models, privacy, tiers
+from .. import connection, decision_models, local_models, privacy, tiers
 from ..config import Whybook
+from ..decision_models import DecisionModel
 from .models import Context, InvalidRequest, Selection
-from .rankers import CLOUDFLARE_RUN_URL, jev_probabilities
 
 MAX_QUESTIONS = 30
 MAX_TEXT = 300
@@ -100,7 +100,7 @@ def request_from_json(body: Any) -> dict[str, Any]:
 
 
 def state_of(request: dict[str, Any]) -> dict[str, Any]:
-    """What the models read of the notebook, as Jev's state; with the data on this machine, the selection as names, kinds and sizes."""
+    """What the models read of the notebook; with the data on this machine, the selection as names, kinds and sizes."""
     context: Context = request["context"]
     state: dict[str, Any] = {
         "analysis_so_far": list(context.cells[-20:]),
@@ -132,51 +132,24 @@ def state_text(state: dict[str, Any]) -> str:
 Fetch = Callable[..., Awaitable[Any]]
 
 
-def jev_body(request: dict[str, Any], model: str) -> dict[str, Any]:
-    """One yes-or-no question per candidate, with the state that Jev reads."""
-    questions = {
-        f"q{index}": {
-            "type": "noul",
-            "instructions": (
-                "Should the analyst ask this question next about `selected`,"
-                " given `analysis_so_far`, `already_asked` and their `mode`?"
-                f" Question: {question['text']}"
-            ),
-            "criteria": {
-                "true": "Useful now: the analysis depends on the answer, and it is not answered yet",
-                "false": "Not useful now: already answered, does not apply to these variables, or minor",
-            },
-        }
-        for index, question in enumerate(request["questions"])
-    }
-    return {"state": state_of(request), "model": model, "questions": questions}
+# The instruction to a decision model, as research/choice-classifiers.md measured
+# it ("one choice over the questions"). A yes or no for each question puts the
+# analyst's type first less often for most models.
+NEXT_INSTRUCTION = "Which of these questions does the analyst ask next about `selected`, judging from `analysis_so_far` and `already_asked`?"
 
 
-async def ask_jev(request: dict[str, Any], config: Whybook, fetch: Fetch | None = None) -> dict[str, Any]:
-    """Jev's probabilities, through the TypeSafe API, or else through Cloudflare's."""
-    fetch = fetch or AsyncHTTPClient().fetch
-    if config.typesafe_api_key:
-        body = jev_body(request, config.typesafe_model)
-        url = config.typesafe_base_url.rstrip("/") + "/v1/systemone"
-        token = config.typesafe_api_key
-        model = config.typesafe_model
-    elif config.jev_configured:
-        body = {"model": config.jev_model, "input": {key: value for key, value in jev_body(request, config.jev_model).items() if key != "model"}}
-        url = CLOUDFLARE_RUN_URL.format(account_id=config.jev_account_id)
-        token = config.jev_api_token
-        model = config.jev_model
-    else:
-        raise InvalidRequest("Jev needs a TypeSafe API key on the server: TYPESAFE_API_KEY")
-    response = await fetch(
-        url,
-        method="POST",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"},
-        body=json.dumps(body),
-        request_timeout=config.jev_timeout,
-    )
-    decoded = json.loads(response.body)
-    probabilities = jev_probabilities(decoded, len(request["questions"]))
-    return {"probabilities": probabilities, "model": decoded.get("model") or model}
+def choice_body(request: dict[str, Any]) -> dict[str, Any]:
+    """One choice over the offered questions, with the state that the models read."""
+    criteria = {f"q{index}": question["text"] for index, question in enumerate(request["questions"])}
+    return {"state": state_of(request), "questions": {"next": {"type": "choice", "instructions": NEXT_INSTRUCTION, "criteria": criteria}}}
+
+
+async def ask_decision(model: DecisionModel, request: dict[str, Any], config: Whybook, fetch: Fetch | None = None) -> dict[str, Any]:
+    """A decision model's probability of each question, with the model that answered and the cost."""
+    answer = await decision_models.ask(model, choice_body(request), config, fetch)
+    found = (answer["answers"].get("next") or {}).get("probabilities") or {}
+    probabilities = [found.get(f"q{index}") for index in range(len(request["questions"]))]
+    return {**answer, "probabilities": [None if p is None else float(p) for p in probabilities]}
 
 
 def scores_from_output(output: Any, ids: list[str]) -> list[float | None]:
@@ -197,7 +170,7 @@ async def rank_events(request: dict[str, Any], config: Whybook, fetch: Fetch | N
     ids = [question["id"] for question in request["questions"]]
 
     def result(probabilities: list[float | None], label: str | None, cost: float | None = 0.0, **extra: Any) -> dict[str, Any]:
-        # A local model costs nothing; Jev's price is not known here.
+        # A local model costs nothing.
         scores = {question_id: round(p, 4) for question_id, p in zip(ids, probabilities) if p is not None}
         return {"type": "result", "scores": scores, "model": label, "cost_usd": cost, **extra, "elapsed": round(time.monotonic() - start, 2)}
 
@@ -213,9 +186,10 @@ async def rank_events(request: dict[str, Any], config: Whybook, fetch: Fetch | N
         return
     yield {"type": "progress", "stage": "starting", "message": f"ordering {len(ids)} questions", "elapsed": 0.0}
     try:
-        if model == "jev":
-            answer = await ask_jev(request, config, fetch)
-            yield result(answer["probabilities"], answer["model"], None)
+        decision = decision_models.model_of(model)
+        if decision is not None:
+            answer = await ask_decision(decision, request, config, fetch)
+            yield result(answer["probabilities"], answer["model"], answer["cost_usd"])
         elif local_models.model_of(model) is not None:
             texts = [question["text"] for question in request["questions"]]
             answer = await local_models.ask_rank(model, state_text(state_of(request)), texts, config.local_threads)

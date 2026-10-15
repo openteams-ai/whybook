@@ -30,7 +30,7 @@ from typing import Any, AsyncIterator, Sequence
 from .. import claude, connection, local_models, privacy
 from ..config import Whybook
 from .models import TYPES, Candidate, Context, InvalidRequest, Placement, Selection, Variable
-from .rankers import jev_state, merged_order
+from .rankers import merged_order, model_state
 from .templates import TIME_NAME
 
 SYSTEM_PROMPT = """\
@@ -547,7 +547,7 @@ async def generate(
     goes as the notebook's cells do.
     """
     shown = offered if offered is not None else suggested
-    state = jev_state(selection, context)
+    state = model_state(selection, context)
     if cell is not None:
         state["dropped_onto"] = cell
     state["frames"] = frames_state(context)
@@ -629,7 +629,7 @@ def local_state(
     found: list[dict[str, str]] | None = None,
 ) -> dict:
     """What a local model reads: the selection, the cell it was dropped onto, the last 8 cells, 15 questions asked and the 2 newest findings of agents."""
-    state = jev_state(selection, context)
+    state = model_state(selection, context)
     if cell is not None:
         state["dropped_onto"] = {**cell, "code": cell["code"][:600]}
     state["analysis_so_far"] = [str(cell)[:300] for cell in state["analysis_so_far"][-8:]]

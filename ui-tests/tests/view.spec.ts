@@ -3081,12 +3081,18 @@ test('orders the questions offered with the model chosen for question order', as
   await openInWhybook(page, file);
   await kernelIdle(page);
   await page.locator('.jp-Epi-aibutton').click();
-  await expect(page.locator('#jp-Epi-quick-ranking option')).toHaveText([
+  await expect(
+    page.locator('#jp-Epi-quick-ranking option[value="decision:jev"]')
+  ).toHaveText('Jev 1.13 by TypeSafe, remote (cannot run)');
+  const ranking = await page
+    .locator('#jp-Epi-quick-ranking option')
+    .allTextContents();
+  expect(ranking.slice(0, 3)).toEqual([
     'Rules, built in',
     'Remote AI model',
-    'Gemma 4 E2B, local',
-    'Jev by TypeSafe, remote (cannot run)'
+    'Gemma 4 E2B, local'
   ]);
+  expect(ranking.slice(3)).toHaveLength(10);
   await page.locator('#jp-Epi-quick-ranking').selectOption('gemma-4-e2b');
   await page.keyboard.press('Escape');
   await page.locator('.jp-Epi-runall').click();

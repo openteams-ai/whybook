@@ -57,7 +57,6 @@ function statusOf(
 ): IServerStatus {
   return {
     ranker: 'heuristic',
-    jev_configured: false,
     claude_available: true,
     claude: {
       available: true,
@@ -214,7 +213,6 @@ describe('The choices of a task', () => {
       'remote',
       'remote:fast',
       'remote:openrouter:z-ai/glm-5.3-flash',
-      'jev',
       PICK_MODEL
     ]);
     // Code and answers keep the connected model.

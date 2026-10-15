@@ -1,29 +1,29 @@
 """The type and the place of a question that the analyst types, from a model.
 
-The view's keywords and first-word rules come first (``guessType`` and
-``guessPlace`` in src/model/own.ts). When the keywords do not match, the model
-chosen for typed questions in the settings gives the type: a local model
-(``local_models.classify``) or Jev from TypeSafe. Jev also gives the place
-when no first-word rule matches.
+The model chosen for user questions in the settings gives the type: a local
+model (``local_models.classify``) when the view's keywords do not match
+(``guessType`` in src/model/own.ts), or a decision model
+(``decision_models.py``) for every question. The view's first-word rules give
+the place (``guessPlace``), and a decision model gives it when they do not.
 
-research/local-predictors-2.md measured the local models on 120 typed
-questions. With the keywords first, Gemma 4 E2B types 69% right and Qwen3.5
-0.8B 49%, where the keywords alone type 45%. No local model placed a cell
-better than the rules, which are right for 84%, so a local model gives only
-the type. Through OpenRouter, Jev 1.13 types 75% of them right alone
-(research/choice-classifiers.md), but its place, taken where no first word
-gives one, puts 65% of the places right, against 84% for the rules alone.
+research/local-predictors-2.md measured the local models on 120 user
+questions, scored against a second reader who saw neither the keywords, the
+rules nor the first labels ("A second reader's labels"). With the keywords
+first, Gemma 4 E2B types 73% right and Qwen3.5 0.8B 55%, where the keywords
+alone type 39%. No local model placed a cell better than the rules, which are
+right for 71%, so a local model gives only the type. On 276 questions from
+public notebooks, labelled by a reader who saw no method, the decision models
+alone type 77% to 89% of them right, against 67% for the keywords, and more
+than with the keywords first (research/local-predictors-2.md).
 """
 
 from __future__ import annotations
 
-import json
-import time
-from typing import Any, Awaitable, Callable
+from typing import Any
 
-from tornado.httpclient import AsyncHTTPClient
-
+from . import decision_models
 from .config import Whybook
+from .decision_models import DecisionModel, Fetch
 from .questions.models import InvalidRequest
 
 TYPE_INSTRUCTION = "Sort a question that a data analyst asked about a notebook by the kind of question it is."
@@ -78,18 +78,12 @@ def request_from_json(body: Any) -> dict[str, Any]:
     }
 
 
-def jev_status(config: Whybook) -> dict[str, Any]:
-    """Whether Jev can run, and why not."""
-    if not config.typesafe_api_key:
-        return {"available": False, "reason": "needs a TypeSafe API key on the server: TYPESAFE_API_KEY"}
-    return {"available": True, "reason": None}
-
-
-def jev_body(request: dict[str, Any], model: str) -> dict[str, Any]:
+def decision_body(request: dict[str, Any]) -> dict[str, Any]:
     """One request with a choice question for the type and, when places are offered, one for the place.
 
-    Jev judges the state and answers the questions about it, so the question
-    the analyst typed is part of the state, and the instructions say what to decide.
+    A decision model judges the state and answers the questions about it, so
+    the question the analyst typed is part of the state, and the instructions
+    say what to decide.
     """
     state: dict[str, Any] = {"question": request["text"]}
     if request["cell"]:
@@ -101,21 +95,18 @@ def jev_body(request: dict[str, Any], model: str) -> dict[str, Any]:
             "instructions": PLACE_INSTRUCTION,
             "criteria": {place: PLACES[place] for place in request["places"]},
         }
-    return {"state": state, "model": model, "questions": questions}
+    return {"state": state, "questions": questions}
 
 
-def jev_answers(response: dict[str, Any]) -> dict[str, Any]:
+def decision_answers(answers: dict[str, Any]) -> dict[str, Any]:
     """The choice and the probability of each option, for the type and the place."""
-    answers = response.get("answers")
-    if not isinstance(answers, dict):
-        raise ValueError("Jev's answer has no answers")
     found: dict[str, Any] = {"type": None, "place": None}
     for name in ("type", "place"):
         answer = answers.get(name)
         if answer is None:
             continue
         if answer.get("type") != "choice" or not isinstance(answer.get("probabilities"), dict):
-            raise ValueError(f"Jev's answer about the {name} is not a choice")
+            raise ValueError(f"the answer about the {name} is not a choice")
         found[name] = {
             "choice": str(answer["choice"]),
             "probabilities": {str(key): float(value) for key, value in answer["probabilities"].items()},
@@ -123,23 +114,7 @@ def jev_answers(response: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
-Fetch = Callable[..., Awaitable[Any]]
-
-
-async def ask_jev(request: dict[str, Any], config: Whybook, fetch: Fetch | None = None) -> dict[str, Any]:
-    """Jev's type and place for a typed question, through the TypeSafe API."""
-    start = time.monotonic()
-    fetch = fetch or AsyncHTTPClient().fetch
-    response = await fetch(
-        config.typesafe_base_url.rstrip("/") + "/v1/systemone",
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {config.typesafe_api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        body=json.dumps(jev_body(request, config.typesafe_model)),
-        request_timeout=config.jev_timeout,
-    )
-    decoded = json.loads(response.body)
-    return {**jev_answers(decoded), "model": decoded.get("model") or config.typesafe_model, "elapsed": round(time.monotonic() - start, 2)}
+async def ask(model: DecisionModel, request: dict[str, Any], config: Whybook, fetch: Fetch | None = None) -> dict[str, Any]:
+    """A decision model's type and place for a user question, with the model that answered, the cost and the seconds."""
+    answer = await decision_models.ask(model, decision_body(request), config, fetch)
+    return {**decision_answers(answer["answers"]), "model": answer["model"], "cost_usd": answer["cost_usd"], "elapsed": answer["elapsed"]}

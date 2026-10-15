@@ -190,7 +190,7 @@ def local_variable(variable: Any) -> Any:
 
 
 def local_state(state: dict[str, Any]) -> dict[str, Any]:
-    """A state for Claude or Jev (``rankers.jev_state``, ``ranking.state_of``) with its selection cut back."""
+    """A state for a remote model (``rankers.model_state``, ``ranking.state_of``) with its selection cut back."""
     if isinstance(state.get("selected"), list):
         return {**state, "selected": [local_variable(item) for item in state["selected"]]}
     return state

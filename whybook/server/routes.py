@@ -12,7 +12,7 @@ from jupyter_server.utils import url_path_join
 from tornado.iostream import StreamClosedError
 from tornado.web import HTTPError
 
-from . import agent, cell_titles, connection, databases, dependencies, frame_notes, guard, library_defaults, local_models, model_client, privacy, providers, signin, sorting, speech, table_notes, tiers
+from . import agent, cell_titles, connection, databases, decision_models, dependencies, frame_notes, guard, library_defaults, local_models, model_client, privacy, providers, signin, sorting, speech, table_notes, tiers
 from .keystore import KeyStore
 from .config import Whybook
 from .questions import claude_questions, ranking, review, templates, values
@@ -136,7 +136,6 @@ class StatusHandler(BaseHandler):
         remote = connection.readiness(config)
         return {
             "ranker": config.question_ranker,
-            "jev_configured": config.jev_configured,
             "claude_available": remote["available"],
             "claude": remote,
             "describe_tables": config.describe_tables,
@@ -152,7 +151,8 @@ class StatusHandler(BaseHandler):
             "openrouter_zdr": config.openrouter_zdr,
             # The connected provider's models for the tasks that need speed: tiers.py.
             "remote_tiers": tiers.recommended(remote["provider"]),
-            "jev": sorting.jev_status(config),
+            # Each decision model by id, with its label, and whether it can run and why not.
+            "decision_models": decision_models.status(config),
         }
 
 
@@ -570,7 +570,7 @@ class RankQuestionsHandler(BaseHandler):
 
 
 class SortHandler(BaseHandler):
-    """The type and the place of a question the analyst types, from a local model or Jev."""
+    """The type and the place of a question the analyst types, from a local model or a decision model."""
 
     @tornado.web.authenticated
     async def post(self):
@@ -580,15 +580,17 @@ class SortHandler(BaseHandler):
             request = sorting.request_from_json(body)
         except InvalidRequest as error:
             raise HTTPError(400, str(error)) from error
+        decision = decision_models.model_of(model)
         try:
             # What the call cost, which the view keeps: nothing for a model on this
-            # machine, and not known for Jev.
+            # machine, and for a decision model what OpenRouter reports.
             if local_model_of(body):
                 result = {**await local_models.ask_classify(model, request["text"], self.future_config.local_threads), "cost_usd": 0.0}
-            elif model == "jev":
-                if not self.future_config.typesafe_api_key:
-                    raise HTTPError(409, sorting.jev_status(self.future_config)["reason"])
-                result = {**await sorting.ask_jev(request, self.future_config), "cost_usd": None}
+            elif decision is not None:
+                reason = decision_models.status(self.future_config)[decision.id]["reason"]
+                if reason:
+                    raise HTTPError(409, f"{decision.label} {reason}")
+                result = await sorting.ask(decision, request, self.future_config)
             else:
                 raise HTTPError(400, f"unknown model {model!r}")
         except HTTPError:

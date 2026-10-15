@@ -199,7 +199,6 @@ describe('the connected model in the choices', () => {
     extra: Partial<IServerStatus> = {}
   ): IServerStatus => ({
     ranker: 'heuristic',
-    jev_configured: false,
     claude_available: true,
     claude: {
       available: true,

@@ -242,7 +242,7 @@ export interface IPlacement {
 export interface IWrittenBy {
   /**
    * The choice in the settings: 'remote', a local model's id such as
-   * 'gemma-4-e2b', or 'jev'; 'script' for labels that a script wrote from the
+   * 'gemma-4-e2b', or a decision model such as 'decision:jev'; 'script' for labels that a script wrote from the
    * table's numbers in place of a model, as the demos' generators do.
    */
   choice: string;

@@ -2,8 +2,7 @@
 
 ``score_candidate`` sets ``Candidate.probability`` and ``Candidate.reasons``
 of every option offered, so that the user can question the order too. A model
-chosen for "Question order" orders them again (``ranking.py``), Jev among them
-through the Cloudflare AI REST API (``CLOUDFLARE_RUN_URL``, ``jev_probabilities``).
+chosen for "Question order" orders them again (``ranking.py``).
 """
 
 from __future__ import annotations
@@ -15,9 +14,6 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .models import Candidate, Context, Selection
-
-CLOUDFLARE_RUN_URL = "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run"
-
 
 def _logit(p: float) -> float:
     return math.log(p / (1 - p))
@@ -185,8 +181,8 @@ def merged_order(
     return merged
 
 
-def jev_state(selection: Selection, context: Context) -> dict[str, Any]:
-    """The state that Jev and Claude see: the selection and the notebook so far."""
+def model_state(selection: Selection, context: Context) -> dict[str, Any]:
+    """The state that a remote model sees: the selection and the notebook so far."""
     selected = [selection.source.to_state()]
     if not selection.univariate and selection.target is not None:
         selected.append(selection.target.to_state())
@@ -196,11 +192,3 @@ def jev_state(selection: Selection, context: Context) -> dict[str, Any]:
         "already_asked": [question.text for question in context.asked],
         "mode": context.mode,
     }
-
-
-def jev_probabilities(response: dict[str, Any], count: int) -> list[float]:
-    """Read the ``noul`` probabilities, in candidate order."""
-    # The REST API wraps the model output in a "result" envelope.
-    result = response.get("result", response)
-    answers = result["answers"]
-    return [float(answers[f"q{index}"]["noul"]) for index in range(count)]

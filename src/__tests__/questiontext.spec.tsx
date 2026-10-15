@@ -16,7 +16,6 @@ import { mount, settle, step } from './fakes/bench-render';
 
 const NO_MODEL = {
   ranker: 'rules',
-  jev_configured: false,
   claude_available: false,
   claude: {
     available: false,
@@ -31,7 +30,6 @@ const NO_MODEL = {
 
 const CONNECTED = {
   ranker: 'rules',
-  jev_configured: false,
   claude_available: true,
   claude: {
     available: true,

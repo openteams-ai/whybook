@@ -2,7 +2,7 @@ import pytest
 
 from whybook.server.questions import templates
 from whybook.server.questions.models import AskedQuestion, Candidate, Context, Selection, Variable
-from whybook.server.questions.rankers import jev_probabilities, jev_state, score_candidate
+from whybook.server.questions.rankers import model_state, score_candidate
 
 AGE = Variable("df['age']", "age", "numeric", parent="df", rows=100, missing=30)
 INCOME = Variable("df['income']", "income", "numeric", parent="df", rows=100, missing=0)
@@ -127,18 +127,10 @@ def test_the_models_that_propose_questions_read_the_mode():
 
     selection = Selection(AGE, INCOME)
     context = Context(mode="report")
-    assert jev_state(selection, context)["mode"] == "report"
+    assert model_state(selection, context)["mode"] == "report"
     assert local_state(selection, context, [])["mode"] == "report"
     for mode in ("do:", "report:", "wonder:"):
         assert mode in SYSTEM_PROMPT
-
-
-@pytest.mark.parametrize("envelope", [False, True])
-def test_jev_probabilities(envelope):
-    body = {"model": "jev-1.13.0", "answers": {"q0": {"type": "noul", "noul": 0.2}, "q1": {"type": "noul", "noul": 0.9}}}
-    if envelope:
-        body = {"result": body, "success": True}
-    assert jev_probabilities(body, 2) == [0.2, 0.9]
 
 
 def test_the_branch_of_a_default_takes_the_value_that_its_function_accepts():

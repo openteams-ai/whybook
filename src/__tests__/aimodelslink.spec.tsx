@@ -22,7 +22,6 @@ import { mount, settle, step } from './fakes/bench-render';
 function noModel(reason: string, setup: string | null): IServerStatus {
   return {
     ranker: 'rules',
-    jev_configured: false,
     claude_available: false,
     claude: {
       available: false,

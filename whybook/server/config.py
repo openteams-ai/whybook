@@ -15,9 +15,8 @@ class Whybook(Configurable):
         ["heuristic", "jev"],
         default_value="heuristic",
         help=(
-            "What ranks the candidate questions. 'heuristic' runs offline with no"
-            " external service. 'jev' sends the candidates to TypeSafe Jev through"
-            " the Cloudflare AI REST API and falls back to 'heuristic' on failure."
+            "Reported in the server's status. The rules rank the candidate questions,"
+            " and the model chosen under Question order in the settings orders them again."
         ),
     ).tag(config=True)
 
@@ -190,34 +189,14 @@ class Whybook(Configurable):
         help="Effort level when Claude describes tables.",
     ).tag(config=True)
 
-    jev_account_id = Unicode(help="Cloudflare account id for Jev.").tag(config=True)
-
-    jev_api_token = Unicode(help="Cloudflare API token for Jev.").tag(config=True)
-
-    jev_model = Unicode("typesafe/jev", help="Model name in the Cloudflare catalogue.").tag(
-        config=True
-    )
-
-    jev_timeout = Float(10.0, help="Seconds to wait for Jev before falling back.").tag(
-        config=True
-    )
-
-    @default("jev_account_id")
-    def _default_jev_account_id(self):
-        return os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-
-    @default("jev_api_token")
-    def _default_jev_api_token(self):
-        return os.environ.get("CLOUDFLARE_API_TOKEN", "")
-
-    @property
-    def jev_configured(self) -> bool:
-        return bool(self.jev_account_id and self.jev_api_token)
+    decision_timeout = Float(
+        10.0, help="Seconds to wait for a decision model (decision_models.py) before the view keeps the rules' answer."
+    ).tag(config=True)
 
     typesafe_api_key = Unicode(
         help=(
-            "TypeSafe API key for Jev, which can sort the questions the analyst types."
-            " The TYPESAFE_API_KEY environment variable by default."
+            "TypeSafe API key, for Jev through TypeSafe's own API when the AI models panel holds no"
+            " OpenRouter key (decision_models.py). The TYPESAFE_API_KEY environment variable by default."
         )
     ).tag(config=True)
 

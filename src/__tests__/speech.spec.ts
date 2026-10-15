@@ -65,7 +65,6 @@ function engine(
 
 const STATUS: IServerStatus = {
   ranker: 'heuristic',
-  jev_configured: false,
   claude_available: true,
   speech_engines: [
     engine('moonshine-medium'),

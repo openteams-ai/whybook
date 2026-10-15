@@ -134,8 +134,17 @@ describe('describeBy', () => {
     ).toBe(
       "Written by make_later.py from the table's numbers, in place of an AI model"
     );
+    expect(
+      describeBy(
+        by('decision:solar-decide', 'upstage/solar-decide-20260928'),
+        'Chosen'
+      )
+    ).toMatch(
+      /^Chosen by upstage\/solar-decide-20260928, a remote decision model/
+    );
+    // A cell of an earlier version names Jev's choice "jev".
     expect(describeBy(by('jev'), 'Chosen')).toMatch(
-      /^Chosen by Jev, by TypeSafe/
+      /^Chosen by Jev, a remote decision model/
     );
   });
 

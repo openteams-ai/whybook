@@ -41,7 +41,6 @@ const server = {} as ServerConnection.ISettings;
 function statusOf(extra: Partial<IServerStatus> = {}): IServerStatus {
   return {
     ranker: 'heuristic',
-    jev_configured: false,
     claude_available: true,
     claude: {
       available: true,

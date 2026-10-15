@@ -370,7 +370,7 @@ describe('Api, for what each model call cost', () => {
     });
     await new Api(server, { onCall: call => calls.push(call) }).sortQuestion({
       text: 'Add age',
-      model: 'jev'
+      model: 'decision:jev'
     });
     expect(calls).toEqual([
       {
@@ -378,7 +378,7 @@ describe('Api, for what each model call cost', () => {
         usd: null,
         seconds: 0.4,
         model: 'jev-1.13.0',
-        body: { text: 'Add age', model: 'jev' },
+        body: { text: 'Add age', model: 'decision:jev' },
         failed: false
       }
     ]);

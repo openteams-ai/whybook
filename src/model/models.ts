@@ -7,8 +7,9 @@ export type Task =
 
 /**
  * The model of each task: 'off', 'remote', or the id of a local model. The
- * typed questions have 'rules', the keywords and first words alone, and
- * 'jev', Jev from TypeSafe, in place of 'remote' and 'off'. Spoken questions
+ * user questions have 'rules', the keywords and first words alone, and a
+ * decision model, 'decision:<id>' (whybook/server/decision_models.py), in
+ * place of 'remote' and 'off'. Spoken questions
  * have 'off' or the id of a speech engine (speech/registry.ts); they came
  * later, so a stored object may lack them, and then they are off. In place
  * of 'remote', the connected model, a task can name a faster model of the
@@ -20,7 +21,7 @@ export type ModelChoices = Record<
   string
 > & {
   speech?: string;
-  /** The order of offered questions: 'rules', 'remote', a local model or 'jev'. */
+  /** The order of offered questions: 'rules', 'remote', a local model or a decision model. */
   ranking?: string;
 };
 
@@ -59,6 +60,23 @@ const TIERED_TASKS: Task[] = ['questions', 'labels', 'ranking'];
 export const PICK_MODEL = 'pick-remote-model';
 
 /** Whether a task's choice is the connected provider: its model, a tier, or one of its models. */
+/** The start of a decision model's choice: 'decision:jev' (whybook/server/decision_models.py). */
+export const DECISION_PREFIX = 'decision:';
+
+/** Whether a choice names a remote decision model, which answers through OpenRouter's decision endpoint. */
+export function isDecision(choice: string | undefined): boolean {
+  return (
+    !!choice &&
+    choice.startsWith(DECISION_PREFIX) &&
+    choice.length > DECISION_PREFIX.length
+  );
+}
+
+/** The decision model of a choice, by its id in the server's status. */
+function decisionOf(status: IServerStatus | null, choice: string) {
+  return status?.decision_models?.[choice.slice(DECISION_PREFIX.length)];
+}
+
 export function isRemote(choice: string | undefined): boolean {
   return (
     choice === 'remote' ||
@@ -317,7 +335,11 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
  * held-out tables right (research/local-models.md), and user questions
  * gained 4 points with it over the keywords.
  */
-const DROPPED: Record<string, string> = { 'qwen3.5-0.8b': 'minicpm5-2b' };
+const DROPPED: Record<string, string> = {
+  'qwen3.5-0.8b': 'minicpm5-2b',
+  // Jev is one of the decision models.
+  jev: `${DECISION_PREFIX}jev`
+};
 
 /** A model that a task can use, as the settings list it. */
 export interface IModelChoice {
@@ -488,12 +510,8 @@ export function modelAvailable(
   if (model === 'rules') {
     return true;
   }
-  if (model === 'jev') {
-    // Jev orders questions through TypeSafe or, as before, through Cloudflare.
-    return (
-      !!status?.jev?.available ||
-      (task === 'ranking' && !!status?.jev_configured)
-    );
+  if (isDecision(model)) {
+    return !!decisionOf(status, model)?.available;
   }
   if (isRemote(model)) {
     // A tier or another model of the connected provider, with its key.
@@ -550,8 +568,65 @@ function localChoices(
 }
 
 /**
- * The choices for typed questions: the keywords and first words alone, a
- * local model for the type, or Jev for the type and the place.
+ * What research measured of each decision model, as Whybook asks it: the
+ * share of 276 questions from public notebooks given the right type, by a
+ * reader who saw no method (research/local-predictors-2.md); and the share of
+ * 300 cells of public notebooks whose first question had the type of the
+ * analyst's next question, as one choice over the questions
+ * (research/choice-classifiers.md). Decider V1.1 of Perplexity is not
+ * measured on the order.
+ */
+const DECISION_MEASURED: Record<
+  string,
+  { type: number; order: number | null } | undefined
+> = {
+  jev: { type: 89, order: 49 },
+  'solar-decide': { type: 84, order: 40 },
+  clef: { type: 88, order: 40 },
+  'clef-flash': { type: 80, order: 44 },
+  'pplx-decider': { type: 88, order: null },
+  'luna-decisions': { type: 79, order: 40 },
+  'mercury-decide': { type: 81, order: 44 },
+  d1: { type: 79, order: 49 },
+  kev: { type: 77, order: 50 },
+  tev1: { type: 82, order: 47 }
+};
+
+/** The heading of the decision models in a select. */
+export const DECISION_GROUP = 'Remote, decision models';
+
+/** The decision models that the server lists, for user questions or the order of questions. */
+function decisionChoices(
+  status: IServerStatus | null,
+  task: 'typed' | 'ranking'
+): IModelChoice[] {
+  const info = TASKS.find(entry => entry.id === task)!;
+  return Object.entries(status?.decision_models ?? {}).map(([id, model]) => {
+    const measured = DECISION_MEASURED[id];
+    const note =
+      task === 'typed'
+        ? measured
+          ? `the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; ${info.sends} leave the machine; on 276 questions from public notebooks, by a reader who saw no method, the type was right for ${measured.type}%, against 67% with the keywords alone`
+          : NOT_MEASURED
+        : measured?.order
+          ? `one choice over the offered questions; ${info.sends} leave the machine; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for ${measured.order}% of them, against 57% with the rules, built in`
+          : NOT_MEASURED;
+    return {
+      id: `${DECISION_PREFIX}${id}`,
+      label: `${model.label}, remote`,
+      note,
+      available: model.available,
+      reason: model.reason,
+      download: null,
+      source: null,
+      group: DECISION_GROUP
+    };
+  });
+}
+
+/**
+ * The choices for user questions: the keywords and first words alone, a
+ * local model for the type, or a decision model for the type and the place.
  */
 function typedChoices(status: IServerStatus | null): IModelChoice[] {
   return [
@@ -565,17 +640,7 @@ function typedChoices(status: IServerStatus | null): IModelChoice[] {
       source: null
     },
     ...localChoices(status, 'typed'),
-    {
-      id: 'jev',
-      label: 'Jev by TypeSafe, remote',
-      note: 'the type, and the place when no first word gives it; the question and the first 20 lines of its cell leave the machine; on 120 test questions, the type was right for 76%, against 45% with the keywords alone, and the place for 65%, against 84% with the first words alone',
-      available: !!status?.jev?.available,
-      reason: status
-        ? (status.jev?.reason ?? null)
-        : 'the server did not answer',
-      download: null,
-      source: null
-    }
+    ...decisionChoices(status, 'typed')
   ];
 }
 
@@ -589,7 +654,6 @@ function rankingChoices(
 ): IModelChoice[] {
   const reason = remoteReason(status, 'ranking');
   const info = TASKS.find(entry => entry.id === 'ranking')!;
-  const jev = modelAvailable(status, 'jev', 'ranking');
   const remote: IModelChoice = {
     id: 'remote',
     label: remoteLabel(status),
@@ -616,19 +680,7 @@ function rankingChoices(
     remote,
     ...tiers,
     ...localChoices(status, 'ranking'),
-    {
-      id: 'jev',
-      label: 'Jev by TypeSafe, remote',
-      note: `one yes-or-no question per offered question; ${info.sends} leave the machine; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 40% of them, against 57% with the rules, built in`,
-      available: jev,
-      reason: jev
-        ? null
-        : status
-          ? 'needs a TypeSafe API key on the server: TYPESAFE_API_KEY'
-          : 'the server did not answer',
-      download: null,
-      source: null
-    },
+    ...decisionChoices(status, 'ranking'),
     ...pick
   ];
 }
@@ -707,8 +759,10 @@ export function modelName(
   if (model === 'rules') {
     return 'rules';
   }
-  if (model === 'jev') {
-    return 'Jev';
+  if (isDecision(model)) {
+    return (
+      decisionOf(status, model)?.label ?? model.slice(DECISION_PREFIX.length)
+    );
   }
   if (isRemote(model)) {
     // A tier by the model it takes, and a model of the provider by its id.
@@ -734,8 +788,8 @@ export function aiSummary(
   status: IServerStatus | null,
   models: ModelChoices
 ): string {
-  // The rules are no model; Jev runs away from the machine, as the remote model does.
-  const remote = (id: string) => isRemote(id) || id === 'jev';
+  // The rules are no model; a decision model runs away from the machine, as the remote model does.
+  const remote = (id: string) => isRemote(id) || isDecision(id);
   const used = TASKS.map(task => choiceOf(models, task.id)).filter(
     id => id !== 'off' && id !== 'rules'
   );

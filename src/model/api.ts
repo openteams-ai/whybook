@@ -72,7 +72,6 @@ export interface IDownloadEvent {
 
 export interface IServerStatus {
   ranker: string;
-  jev_configured: boolean;
   /** Whether the connected model can answer. The name is older than the connection. */
   claude_available: boolean;
   /**
@@ -110,8 +109,14 @@ export interface IServerStatus {
   speech_engines?: IServerSpeechEngine[];
   /** Why local models use the standard JSON check although the fast one was chosen, if they do. */
   json_check_warning?: string | null;
-  /** Whether Jev from TypeSafe can sort typed questions, and why not. */
-  jev?: { available: boolean; reason: string | null };
+  /**
+   * The decision models by id, with each one's label, and whether it can run
+   * and why not: whybook/server/decision_models.py.
+   */
+  decision_models?: Record<
+    string,
+    { label: string; available: boolean; reason: string | null }
+  >;
   /**
    * True when the server keeps the data on the machine for every user
    * (c.Whybook.keep_data_local). In a status from `withDataPolicy`, true
@@ -242,7 +247,7 @@ export interface ISortedQuestion {
   place: { choice: string; probabilities: Record<string, number> } | null;
   model: string;
   elapsed?: number;
-  /** What the call cost: $0 for a local model, null for Jev, whose price is not known. */
+  /** What the call cost: $0 for a local model, and for a decision model what OpenRouter reports, or null. */
   cost_usd?: number | null;
 }
 
@@ -406,7 +411,7 @@ export class Api {
     );
   }
 
-  /** The type, and with Jev the place, of a question the analyst types. */
+  /** The type, and with a decision model the place, of a question the analyst types. */
   async sortQuestion(body: unknown): Promise<ISortedQuestion> {
     const sorted = await this._post<ISortedQuestion>('questions/sort', body);
     this._options.onCall?.({

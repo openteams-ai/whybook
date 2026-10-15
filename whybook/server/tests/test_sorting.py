@@ -1,7 +1,7 @@
 """User questions sorted by a model, and more questions from a local model.
 
-Jev is answered by a fake fetch, and the local models by a fake llama_cpp:
-nothing leaves the machine and no model loads.
+The decision models are answered by a fake fetch, and the local models by a
+fake llama_cpp: nothing leaves the machine and no model loads.
 """
 
 import importlib.machinery
@@ -12,7 +12,8 @@ import types
 import pytest
 from tornado.httpclient import HTTPClientError
 
-from whybook.server import local_models, sorting
+from whybook.server import decision_models, local_models, sorting
+from whybook.server.keystore import KeyStore
 from whybook.server.config import Whybook
 from whybook.server.questions import claude_questions
 from whybook.server.questions.models import Context, InvalidRequest, Selection
@@ -31,66 +32,110 @@ def test_the_request_keeps_the_question_the_first_lines_of_its_cell_and_known_pl
         sorting.request_from_json({"text": "  "})
 
 
-def test_jev_gets_the_question_as_state_and_a_choice_per_decision():
+def test_a_decision_model_gets_the_question_as_state_and_a_choice_per_decision():
     request = sorting.request_from_json({"text": "Add age", "cell": "fit = ols()", "places": ["new", "edit", "preview"]})
-    body = sorting.jev_body(request, "jev-latest")
-    assert body["model"] == "jev-latest"
+    body = sorting.decision_body(request)
     assert body["state"] == {"question": "Add age", "cell": "fit = ols()"}
     assert body["questions"]["type"]["type"] == "choice"
     assert list(body["questions"]["type"]["criteria"]) == ["descriptive", "association", "causal", "model", "quality"]
     # Only the places the view can use are offered.
     assert list(body["questions"]["place"]["criteria"]) == ["new", "edit", "preview"]
     # With one place or none there is nothing to choose.
-    alone = sorting.jev_body(sorting.request_from_json({"text": "Add age", "places": ["new"]}), "jev-latest")
+    alone = sorting.decision_body(sorting.request_from_json({"text": "Add age", "places": ["new"]}))
     assert "place" not in alone["questions"]
 
 
-def test_jev_needs_a_key():
-    assert sorting.jev_status(Whybook(typesafe_api_key="")) == {
-        "available": False,
-        "reason": "needs a TypeSafe API key on the server: TYPESAFE_API_KEY",
+def test_a_decision_model_needs_an_openrouter_key_or_its_makers_api():
+    found = decision_models.status(Whybook(typesafe_api_key=""))
+    assert set(found) == set(decision_models.MODELS)
+    assert all(not state["available"] for state in found.values())
+    assert found["solar-decide"]["reason"] == "needs an OpenRouter key: sign in with OpenRouter in the AI models panel"
+    # Jev also answers through TypeSafe's own API.
+    assert decision_models.status(Whybook(typesafe_api_key="key"))["jev"]["available"] is True
+    KeyStore().set("openrouter", "sk-or-test")
+    found = decision_models.status(Whybook())
+    assert found["solar-decide"] == {"label": "Solar Decide by Upstage", "available": True, "reason": None}
+    # With zero data retention on, a model with no such endpoint is not offered.
+    assert found["luna-decisions"]["available"] is False
+    assert "zero data retention" in found["luna-decisions"]["reason"]
+    assert decision_models.status(Whybook(zero_data_retention=False))["luna-decisions"]["available"] is True
+
+
+def answers_of(place="edit"):
+    return {
+        "type": {"type": "choice", "choice": "model", "confidence": 0.6, "probabilities": {"model": 0.7, "causal": 0.3}},
+        "place": {"type": "choice", "choice": place, "confidence": 0.8, "probabilities": {place: 0.9, "new": 0.1}},
     }
-    assert sorting.jev_status(Whybook(typesafe_api_key="key"))["available"] is True
 
 
-async def test_jev_is_asked_through_the_typesafe_api():
+async def test_a_decision_model_is_asked_through_openrouter_with_zero_data_retention():
     calls = []
 
     async def fetch(url, **options):
         calls.append((url, options))
-        answers = {
-            "type": {"type": "choice", "choice": "model", "confidence": 0.6, "probabilities": {"model": 0.7, "causal": 0.3}},
-            "place": {"type": "choice", "choice": "edit", "confidence": 0.8, "probabilities": {"edit": 0.9, "new": 0.1}},
-        }
-        return types.SimpleNamespace(body=json.dumps({"model": "jev-1.13.0", "usage": {}, "answers": answers}))
+        return types.SimpleNamespace(body=json.dumps({"model": "upstage/solar-decide-20260928", "usage": {"cost": 0.00006}, "answers": answers_of()}))
+
+    KeyStore().set("openrouter", "sk-or-test")
+    request = sorting.request_from_json({"text": "Add age", "places": ["new", "edit"]})
+    sorted_ = await sorting.ask(decision_models.MODELS["solar-decide"], request, Whybook(), fetch)
+    url, options = calls[0]
+    assert url == "https://openrouter.ai/api/v1/systemone"
+    assert options["headers"]["Authorization"] == "Bearer sk-or-test"
+    sent = json.loads(options["body"])
+    assert sent["model"] == "upstage/solar-decide"
+    assert sent["provider"] == {"zdr": True}
+    assert sent["state"] == {"question": "Add age"}
+    assert sorted_["type"] == {"choice": "model", "probabilities": {"model": 0.7, "causal": 0.3}}
+    assert sorted_["place"]["choice"] == "edit"
+    assert sorted_["model"] == "upstage/solar-decide-20260928"
+    assert sorted_["cost_usd"] == 0.00006
+    # With zero data retention off, OpenRouter may route to any endpoint.
+    await sorting.ask(decision_models.MODELS["solar-decide"], request, Whybook(zero_data_retention=False), fetch)
+    assert "provider" not in json.loads(calls[1][1]["body"])
+
+
+async def test_jev_goes_through_typesafes_api_when_there_is_no_openrouter_key():
+    calls = []
+
+    async def fetch(url, **options):
+        calls.append((url, options))
+        return types.SimpleNamespace(body=json.dumps({"model": "jev-1.13.0", "usage": {}, "answers": answers_of()}))
 
     config = Whybook(typesafe_api_key="key", typesafe_base_url="https://jev.example/")
     request = sorting.request_from_json({"text": "Add age", "places": ["new", "edit"]})
-    sorted_ = await sorting.ask_jev(request, config, fetch)
+    sorted_ = await sorting.ask(decision_models.MODELS["jev"], request, config, fetch)
     url, options = calls[0]
     assert url == "https://jev.example/v1/systemone"
     assert options["headers"]["Authorization"] == "Bearer key"
     assert json.loads(options["body"])["model"] == "jev-latest"
-    assert sorted_["type"] == {"choice": "model", "probabilities": {"model": 0.7, "causal": 0.3}}
-    assert sorted_["place"]["choice"] == "edit"
     assert sorted_["model"] == "jev-1.13.0"
+    # Another decision model has no API of its own here.
+    with pytest.raises(ValueError, match="OpenRouter key"):
+        await sorting.ask(decision_models.MODELS["clef"], request, config, fetch)
 
 
 def test_an_answer_that_is_not_a_choice_is_refused():
     with pytest.raises(ValueError):
-        sorting.jev_answers({"answers": {"type": {"type": "noul", "noul": 0.2}}})
+        sorting.decision_answers({"type": {"type": "noul", "noul": 0.2}})
 
 
-async def test_the_route_refuses_jev_without_a_key_and_unknown_models(jp_fetch, monkeypatch):
+def test_a_choice_of_the_settings_names_its_decision_model():
+    assert decision_models.model_of("decision:clef").label == "Clef by Cloudflare"
+    assert decision_models.model_of("jev").id == "jev"
+    assert decision_models.model_of("decision:unknown") is None
+    assert decision_models.model_of("gemma-4-e2b") is None
+
+
+async def test_the_route_refuses_a_decision_model_without_a_key_and_unknown_models(jp_fetch, monkeypatch):
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     with pytest.raises(HTTPClientError) as error:
-        await jp_fetch("whybook", "questions", "sort", method="POST", body=json.dumps({"text": "Add age", "model": "jev"}))
+        await jp_fetch("whybook", "questions", "sort", method="POST", body=json.dumps({"text": "Add age", "model": "decision:jev"}))
     assert error.value.code == 409
     with pytest.raises(HTTPClientError) as error:
         await jp_fetch("whybook", "questions", "sort", method="POST", body=json.dumps({"text": "Add age", "model": "remote"}))
     assert error.value.code == 400
     status = json.loads((await jp_fetch("whybook", "status")).body)
-    assert status["jev"]["available"] is False
+    assert status["decision_models"]["jev"]["available"] is False
 
 
 class FakeContext:

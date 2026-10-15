@@ -7,7 +7,7 @@ import { expect, test as base } from '@jupyterlab/galata';
  * provider which models it has or whether a key works.
  */
 export const MODEL_ROUTES = [
-  // The connected model, a local model, Jev, or a speech engine.
+  // The connected model, a local model, a decision model, or a speech engine.
   'solve',
   'agent',
   'agent/result',

@@ -1,4 +1,4 @@
-"""The data kept on this machine: what the remote model and Jev read, route by route (fake models)."""
+"""The data kept on this machine: what the remote model and a decision model read, route by route (fake models)."""
 
 import json
 

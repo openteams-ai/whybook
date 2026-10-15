@@ -6,7 +6,9 @@ import {
   cannotRun,
   choiceLabel,
   choicesFor,
+  DECISION_GROUP,
   DEFAULT_MODELS,
+  isDecision,
   LOCAL_GROUPS,
   modelAvailable,
   NOT_MEASURED,
@@ -17,7 +19,6 @@ import { composed } from './fakes/settings-fake';
 
 const STATUS: IServerStatus = {
   ranker: 'heuristic',
-  jev_configured: false,
   claude_available: true,
   describe_tables: true,
   remote_model: null,
@@ -48,9 +49,18 @@ const STATUS: IServerStatus = {
       downloadable: true
     }
   ],
-  jev: {
-    available: false,
-    reason: 'needs a TypeSafe API key on the server: TYPESAFE_API_KEY'
+  decision_models: {
+    jev: {
+      label: 'Jev 1.13 by TypeSafe',
+      available: false,
+      reason:
+        'needs an OpenRouter key: sign in with OpenRouter in the AI models panel'
+    },
+    'solar-decide': {
+      label: 'Solar Decide by Upstage',
+      available: true,
+      reason: null
+    }
   }
 };
 
@@ -109,11 +119,21 @@ describe('modelAvailable', () => {
     expect(modelAvailable(null, 'remote')).toBe(false);
   });
 
-  it('always runs the rules, and Jev only with a key on the server', () => {
+  it('always runs the rules, and a decision model when the server can reach it', () => {
     expect(modelAvailable(STATUS, 'rules', 'typed')).toBe(true);
-    expect(modelAvailable(STATUS, 'jev', 'typed')).toBe(false);
-    const keyed = { ...STATUS, jev: { available: true, reason: null } };
-    expect(modelAvailable(keyed, 'jev', 'typed')).toBe(true);
+    expect(modelAvailable(STATUS, 'decision:jev', 'typed')).toBe(false);
+    expect(modelAvailable(STATUS, 'decision:solar-decide', 'typed')).toBe(true);
+    expect(modelAvailable(STATUS, 'decision:solar-decide', 'ranking')).toBe(
+      true
+    );
+    expect(modelAvailable(STATUS, 'decision:unknown', 'typed')).toBe(false);
+    expect(modelAvailable(null, 'decision:solar-decide', 'typed')).toBe(false);
+  });
+
+  it('keeps a saved choice of Jev as the decision model it is', () => {
+    const models = readModels({ typed: 'jev', ranking: 'jev' });
+    expect(models.typed).toBe('decision:jev');
+    expect(models.ranking).toBe('decision:jev');
   });
 
   it('turns a task off with its setting', () => {
@@ -198,32 +218,40 @@ describe('choicesFor', () => {
     expect(questions[2].note).toBe(`1.6 GB; ${NOT_MEASURED}`);
   });
 
-  it('offers the rules, the local models and Jev, greyed, for typed questions', () => {
+  it('offers the rules, the local models and the decision models for user questions', () => {
     const typed = choicesFor(STATUS, 'typed');
     expect(typed.map(choice => [choice.id, choice.available])).toEqual([
       ['rules', true],
       ['gemma-4-e2b', true],
       ['minicpm5-2b', false],
-      ['jev', false]
+      ['decision:jev', false],
+      ['decision:solar-decide', true]
     ]);
     // Each local model with what it did on this task.
     expect(typed[1].note).toMatch(/69% of 120 test questions/);
     expect(typed[3].reason).toBe(
-      'needs a TypeSafe API key on the server: TYPESAFE_API_KEY'
+      'needs an OpenRouter key: sign in with OpenRouter in the AI models panel'
     );
-    const jev = choicesFor(null, 'typed').find(choice => choice.id === 'jev');
-    expect(jev?.reason).toBe('the server did not answer');
+    expect(typed[3].group).toBe(DECISION_GROUP);
+    // Until the server answers, it lists no decision model.
+    expect(
+      choicesFor(null, 'typed').some(choice => isDecision(choice.id))
+    ).toBe(false);
   });
 
-  it('offers the rules, the remote model, the local models and Jev for the order of questions', () => {
+  it('offers the rules, the remote model, the local models and the decision models for the order of questions', () => {
     const ranking = choicesFor(STATUS, 'ranking');
     expect(ranking.map(choice => [choice.id, choice.available])).toEqual([
       ['rules', true],
       ['remote', true],
       ['gemma-4-e2b', true],
       ['minicpm5-2b', false],
-      ['jev', false]
+      ['decision:jev', false],
+      ['decision:solar-decide', true]
     ]);
+    expect(ranking[4].note).toMatch(
+      /^one choice over the offered questions; .* for 49% of them, against 57% with the rules, built in$/
+    );
     expect(ranking[2].note).toMatch(/45% of them, against 57% with the rules/);
     // The remote model's prompt predicts the next question, as measured through OpenRouter.
     expect(ranking[1].note).toMatch(
@@ -236,17 +264,13 @@ describe('choicesFor', () => {
     expect(ranking[0].measured).toMatch(
       /^Measured on 4,790 cells .* 52.4% of them, against 33.9% with the rules alone and 26.5% in a random order\.$/
     );
-    // Jev orders questions through Cloudflare too, as the ranker did before TypeSafe.
-    const cloudflare = { ...STATUS, jev_configured: true };
-    expect(modelAvailable(cloudflare, 'jev', 'ranking')).toBe(true);
-    expect(modelAvailable(cloudflare, 'jev', 'typed')).toBe(false);
-    // The rules are no model; Jev without a key cannot run.
+    // The rules are no model; a decision model without a key cannot run.
     expect(aiSummary(STATUS, { ...DEFAULT_MODELS, ranking: 'rules' })).toBe(
       'AI: remote'
     );
-    expect(aiSummary(STATUS, { ...DEFAULT_MODELS, ranking: 'jev' })).toBe(
-      'AI: remote · 1 cannot run'
-    );
+    expect(
+      aiSummary(STATUS, { ...DEFAULT_MODELS, ranking: 'decision:jev' })
+    ).toBe('AI: remote · 1 cannot run');
   });
 
   it('names the remote model when the server sets one', () => {
@@ -270,13 +294,13 @@ describe('aiSummary', () => {
         typed: 'rules'
       })
     ).toBe('AI: off');
-    // Jev runs away from the machine; without a key it cannot run.
+    // A decision model runs away from the machine; without a key it cannot run.
     expect(
       aiSummary(STATUS, {
         cells: 'off',
         questions: 'off',
         labels: 'off',
-        typed: 'jev'
+        typed: 'decision:jev'
       })
     ).toBe('AI: remote · 1 cannot run');
     expect(

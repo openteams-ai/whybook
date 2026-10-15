@@ -10,7 +10,7 @@ import { HelpButton } from './common';
  * which is a short form of this text.
  */
 export const DATA_POLICY_HELP =
-  'Only models on this machine read outputs and variables: the local models, and a connected model that runs here. A hosted model and Jev get names, kinds and what the local models wrote about the data, and write code: no values, tables, printed outputs or pictures leave the machine. Labels and captions then need a model on this machine, and a question about a picture cannot be asked.';
+  'Only models on this machine read outputs and variables: the local models, and a connected model that runs here. A hosted model and a decision model get names, kinds and what the local models wrote about the data, and write code: no values, tables, printed outputs or pictures leave the machine. Labels and captions then need a model on this machine, and a question about a picture cannot be asked.';
 
 /** Why the setting cannot change, when the server fixes it. */
 export const DATA_POLICY_FIXED =

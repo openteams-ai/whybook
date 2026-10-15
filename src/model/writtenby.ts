@@ -1,5 +1,5 @@
 import type { IEpiCellMeta, IWrittenBy } from '../tokens';
-import { isRemote } from './models';
+import { isDecision, isRemote } from './models';
 
 /** The earlier notes of a table or a frame, one per other model, at most. */
 const EARLIER = 4;
@@ -132,8 +132,8 @@ export function codeModel(meta: IEpiCellMeta): string | null {
 function writerOf(by: IWrittenBy): string {
   return isRemote(by.choice)
     ? `the remote AI model${by.model ? `, ${by.model}` : ''}`
-    : by.choice === 'jev'
-      ? 'Jev, by TypeSafe'
+    : isDecision(by.choice) || by.choice === 'jev'
+      ? `${by.model ?? 'Jev'}, a remote decision model`
       : by.choice === 'script'
         ? `${by.model ?? 'a script'} from the table's numbers, in place of an AI model`
         : `${by.model ?? by.choice}, a local model`;

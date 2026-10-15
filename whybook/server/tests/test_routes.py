@@ -31,7 +31,8 @@ async def test_status(jp_fetch):
     response = await jp_fetch("whybook", "status")
     payload = json.loads(response.body)
     assert payload["ranker"] == "heuristic"
-    assert payload["jev_configured"] in (True, False)
+    # No OpenRouter key in the test's keystore, so no decision model can run.
+    assert not any(state["available"] for state in payload["decision_models"].values())
     assert payload["describe_tables"] is True
     # The connected model: the Claude Code login until the analyst connects another (connection.py).
     assert set(payload["claude"]) == {"available", "cli", "credential", "reason", "setup", "provider", "model", "label", "local", "priced"}
