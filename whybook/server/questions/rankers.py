@@ -144,6 +144,7 @@ def merged_order(
     *,
     learned: bool,
     cells_above: int,
+    missing: str | None = None,
 ) -> list[Candidate]:
     """The questions of a request with a model's questions among them, in the view's order.
 
@@ -159,6 +160,10 @@ def merged_order(
     check reads names in the texts, so the model's own claim is not trusted.
     The other questions stay where the order puts them, so the questions that
     run at once stay in the first screen of the list.
+
+    When the view names a type that the analyst likely wants and that no
+    offered question has (``missing``, from missing.py), the model's best
+    question of that type comes first instead.
     """
     for candidate in added:
         score_candidate(candidate, involved, context)
@@ -172,10 +177,13 @@ def merged_order(
     merged = sorted([*offered, *added], key=lambda option: option.probability or 0.0, reverse=True)
     if learned:
         merged = learned_order(merged, kind_group(involved), context, cells_above)
-    first = next((candidate for candidate in merged if missed.get(candidate.id)), None)
+    wanted = next((candidate for candidate in merged if candidate.id in missed and candidate.type == missing), None) if missing else None
+    first = wanted or next((candidate for candidate in merged if missed.get(candidate.id)), None)
     if first is not None:
-        names = missed[first.id]
-        first.reasons.insert(1, f"names {', '.join(names)}, which no template question here names")
+        if first is wanted:
+            first.reasons.insert(1, f"is of the type {missing}, which no template question here has")
+        else:
+            first.reasons.insert(1, f"names {', '.join(missed[first.id])}, which no template question here names")
         merged.remove(first)
         merged.insert(0, first)
     return merged

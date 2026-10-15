@@ -36,7 +36,14 @@ import {
 import { runnableFirst } from '../model/questionorder';
 import { triesValues, valuesCaption, valuesWhy } from '../model/rulesfirst';
 import { constantText } from '../model/values';
-import type { IColumn, IItem, IOption, ITerm, IVariable } from '../tokens';
+import type {
+  IColumn,
+  IItem,
+  IOption,
+  ITerm,
+  IVariable,
+  QuestionType
+} from '../tokens';
 import {
   AIOffNote,
   AITag,
@@ -57,6 +64,7 @@ import {
   questionKeys,
   setDragItem,
   stageText,
+  TypeBadge,
   useModel,
   useQuestionFocus
 } from './common';
@@ -1592,7 +1600,7 @@ function DropAskContent(props: {
       {result.note && <div className="jp-Epi-joinnote">{result.note}</div>}
       {!parallel && <OfferedOff model={model} />}
       <OrderNote list={ask} />
-      <ModelLine ask={ask} />
+      <ModelLine ask={ask} ready={model.aiReady('questions')} />
       {parallel && (
         <div className="jp-Epi-caption">
           Run several at once. Each becomes a branch that runs in parallel, on
@@ -1600,6 +1608,7 @@ function DropAskContent(props: {
         </div>
       )}
       <InferredChips model={model} options={offered(model, result.options)} />
+      <MissingSlot ask={ask} />
       <OptionRows model={model} options={rows}>
         {option => (
           <OptionRow
@@ -1611,6 +1620,7 @@ function DropAskContent(props: {
               parallel ? () => model.toggleChecked(option.id) : undefined
             }
             aiOff={aiOffReason(model)}
+            unlikely={lighter(ask, option)}
             note={
               parallel && ask.checked.includes(option.id)
                 ? subshellNote(model, ask, option.id)
@@ -1658,28 +1668,55 @@ function DropAskContent(props: {
  * it works, then its questions in the list with the AI tag, none of which
  * runs until the analyst picks it. Where no template fits, the line says so,
  * and why no model answers. Where templates fit, the line shows only while
- * the model works, or when it failed.
+ * the model works, or when it failed. Where the type predictor marks the
+ * list (design iteration 1.130), the line asks whether the analyst looks for
+ * a question of the type that no question has: while the model writes one,
+ * and when no model answers. With `ready`, a model answers More questions
+ * from AI.
  */
-function ModelLine(props: { ask: IDropAsk }): JSX.Element | null {
+export function ModelLine(props: {
+  ask: IDropAsk;
+  ready?: boolean;
+}): JSX.Element | null {
   const { ask } = props;
-  if (!ask.fromModel || !ask.result) {
+  if (!ask.result) {
     return null;
+  }
+  const none = !!ask.noTemplate;
+  // A list that no template fits says so, as before.
+  const missing =
+    !none && ask.missingType ? <MissingWords type={ask.missingType} /> : null;
+  if (!ask.fromModel) {
+    return missing ? (
+      <div className="jp-Epi-caption jp-Epi-modelline jp-Epi-missingline">
+        {missing}
+        {props.ready ? ' More questions from AI can write one.' : null}
+      </div>
+    ) : null;
   }
   const fromTemplates = ask.result.options.filter(
     option => option.origin === 'template'
   );
-  const none = !!ask.noTemplate;
   const first = fromTemplates.length
     ? 'Every template question here needs AI'
     : 'No template has a question for this';
-  const classes = `jp-Epi-caption jp-Epi-modelline${none ? ' jp-Epi-notemplate' : ''}`;
+  const classes = `jp-Epi-caption jp-Epi-modelline${none ? ' jp-Epi-notemplate' : ''}${missing ? ' jp-Epi-missingline' : ''}`;
   switch (ask.fromModel) {
     case 'asking':
+      // On a marked list, the row held for the model's question carries
+      // the words and the bar (`MissingSlot`).
+      if (missing && ask.slot) {
+        return null;
+      }
       return (
         <div className={`${classes} jp-mod-asking`} role="status">
-          {none
-            ? `${first}: an AI model writes more.`
-            : 'An AI model adds questions that the templates miss.'}
+          {none ? (
+            `${first}: an AI model writes more.`
+          ) : missing ? (
+            <>{missing} An AI model is writing one.</>
+          ) : (
+            'An AI model adds questions that the templates miss.'
+          )}
           <span className="jp-Epi-modelwait">
             <span>{stageText(ask.claudeStage, null)}…</span>
             <ProgressBar
@@ -1700,18 +1737,88 @@ function ModelLine(props: { ask: IDropAsk }): JSX.Element | null {
     case 'off':
       return (
         <div className={`${classes} jp-mod-off`}>
-          {first}. {ask.fromModelNote}
+          {missing ?? `${first}.`} {ask.fromModelNote}
         </div>
       );
     case 'failed':
       return (
         <div className={`${classes} jp-mod-off`}>
-          {none
-            ? `${first}. The AI model could not suggest questions: ${ask.fromModelNote}`
-            : `An AI model could not add questions: ${ask.fromModelNote}`}
+          {none ? (
+            `${first}. The AI model could not suggest questions: ${ask.fromModelNote}`
+          ) : missing ? (
+            <>
+              {missing} The AI model could not suggest one: {ask.fromModelNote}
+            </>
+          ) : (
+            `An AI model could not add questions: ${ask.fromModelNote}`
+          )}
         </div>
       );
   }
+}
+
+/**
+ * "Looking for a [Descriptive] question?", with the type's badge: a question,
+ * so that a wrong guess of the type predictor costs the analyst a glance.
+ */
+function MissingWords(props: { type: QuestionType }): JSX.Element {
+  return (
+    <>
+      Looking for {props.type === 'association' ? 'an' : 'a'}{' '}
+      <TypeBadge type={props.type} /> question?
+    </>
+  );
+}
+
+/**
+ * The first row of a marked list, held for the model's question of the
+ * missing type (design iteration 1.130). While the model writes, it asks
+ * whether the analyst looks for one, with the bar. The model's question
+ * takes the row, so that no question below moves. When the model wrote
+ * none, the row says so until the pointer leaves the list.
+ */
+export function MissingSlot(props: { ask: IDropAsk }): JSX.Element | null {
+  const { ask } = props;
+  if (!ask.slot || !ask.missingType) {
+    return null;
+  }
+  if (ask.slot === 'empty') {
+    return (
+      <div className="jp-Epi-slot jp-mod-empty">
+        <span className="jp-Epi-slot-text">
+          The AI model wrote no <TypeBadge type={ask.missingType} /> question.
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="jp-Epi-slot" role="status">
+      <span className="jp-Epi-slot-text">
+        <MissingWords type={ask.missingType} />
+      </span>{' '}
+      <span className="jp-Epi-slot-effect">An AI model is writing one.</span>{' '}
+      <span className="jp-Epi-modelwait">
+        <span>{stageText(ask.claudeStage, null)}…</span>
+        <ProgressBar value={null} label="An AI model writes a question" wide />
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Whether a row of a marked list shows lighter: a template question, while
+ * the model writes a question of the missing type. Once the model answered,
+ * or when none answers, the list looks as any list does.
+ */
+export function lighter(
+  ask: Pick<IDropAsk, 'missingType' | 'fromModel'>,
+  option: Pick<IOption, 'origin'>
+): boolean {
+  return (
+    !!ask.missingType &&
+    ask.fromModel === 'asking' &&
+    option.origin === 'template'
+  );
 }
 
 /**

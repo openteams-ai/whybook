@@ -76,6 +76,7 @@ import type {
 import {
   asksModel,
   markModelValues,
+  missingType,
   noModelNote,
   noTemplateFits,
   requestKey
@@ -731,6 +732,21 @@ export interface IDropAsk extends IAskBase {
   fromModelNote?: string | null;
   /** Whether no template fits the request: none of its questions runs. */
   noTemplate?: boolean;
+  /**
+   * The type that the analyst likely wants and that no offered question
+   * has, when the type predictor marks the list (./rulesfirst.ts,
+   * `missingType`): the model of More questions is asked for one, the line
+   * above the list asks whether the analyst looks for one, and the template
+   * questions show lighter while the model writes.
+   */
+  missingType?: QuestionType | null;
+  /**
+   * The first row of a marked list, held for the model's question of the
+   * missing type, so that no question below moves when it comes: 'waiting'
+   * while the model writes, and 'empty' when its answer had none, until the
+   * pointer leaves the list.
+   */
+  slot?: 'waiting' | 'empty' | null;
 }
 
 export interface ICellsAsk extends IAskBase {
@@ -4318,8 +4334,10 @@ export class EpiModel implements IDisposable {
     }
     const none = noTemplateFits(result.options);
     ask.noTemplate = none;
+    const marked = missingType(result);
+    ask.missingType = marked;
     if (
-      !asksModel(this.settings.modelQuestions, result.options) ||
+      !asksModel(this.settings.modelQuestions, result.options, !!marked) ||
       (!none && (ask.source.kind === 'file' || ask.source.kind === 'table'))
     ) {
       return;
@@ -4348,7 +4366,7 @@ export class EpiModel implements IDisposable {
       this._capHolds('questions')
     );
     if (off) {
-      if (none) {
+      if (none || marked) {
         ask.fromModel = 'off';
         ask.fromModelNote = off;
       }
@@ -4479,6 +4497,7 @@ export class EpiModel implements IDisposable {
     if (key !== null) {
       ask.fromModel = 'asking';
       ask.fromModelNote = null;
+      ask.slot = ask.missingType && !ask.noTemplate ? 'waiting' : null;
       (this._modelAsked ??= new Set()).add(key);
     }
     this._emit();
@@ -4521,7 +4540,9 @@ export class EpiModel implements IDisposable {
           formulas: this._formulas(),
           // What agents found, so that the model does not ask it again.
           found: agentFindings(notebookMeta(this.notebook).agent_runs),
-          cells_above: this.codeCells().length
+          cells_above: this.codeCells().length,
+          // The type that no offered question has, which the model is asked for.
+          ...(ask.missingType ? { missing_type: ask.missingType } : {})
         },
         (event: StreamEvent) => {
           if (event.type === 'progress') {
@@ -4569,6 +4590,7 @@ export class EpiModel implements IDisposable {
     } else {
       ask.fromModel = 'failed';
       ask.fromModelNote = `${(got.failure ?? 'it gave no answer').replace(/\.$/, '')}.`;
+      ask.slot = null;
     }
     this._emit();
   }
@@ -4577,7 +4599,10 @@ export class EpiModel implements IDisposable {
    * The model's questions join the list of a request in the order that the
    * server gave. While the pointer is on the list, they wait at its end, and
    * the order shows once the pointer leaves, so that no question moves under
-   * the pointer.
+   * the pointer. On a marked list, the model's question of the missing type,
+   * which the server puts first, takes the row held for it at once: nothing
+   * moves. When the model wrote none, the row says so until the pointer
+   * leaves.
    */
   private _joinList(
     ask: IDropAsk,
@@ -4588,9 +4613,26 @@ export class EpiModel implements IDisposable {
       return;
     }
     ask.result.options = [...ask.result.options, ...added];
+    if (ask.slot === 'waiting') {
+      const held = added.find(
+        option => option.id === order?.[0] && option.type === ask.missingType
+      );
+      if (held) {
+        ask.result.options = [
+          held,
+          ...ask.result.options.filter(option => option !== held)
+        ];
+        ask.slot = null;
+      } else {
+        ask.slot = 'empty';
+      }
+    }
     const show = () => {
       if (ask.result) {
         ask.result.options = inOrder(ask.result.options, order);
+        if (ask.slot === 'empty') {
+          ask.slot = null;
+        }
         this._emit();
       }
     };

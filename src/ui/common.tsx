@@ -545,7 +545,9 @@ export function PlacementTag(props: {
  * One option of a question request: text, what it does, type, relevance and
  * placement. With `aiOff`, the reason no AI model answers, an option that
  * needs AI is greyed and does nothing: it stays in the list and takes the
- * keyboard focus, so that it can be read.
+ * keyboard focus, so that it can be read. With `unlikely`, a template
+ * question of a list that likely misses the analyst's type shows lighter
+ * while the model writes, and still runs (design iteration 1.130).
  */
 export function OptionRow(props: {
   option: IOption;
@@ -555,6 +557,7 @@ export function OptionRow(props: {
   onToggle?: () => void;
   note?: string;
   aiOff?: string | null;
+  unlikely?: boolean;
 }): JSX.Element {
   const { option, placement, onApply, checked, onToggle, note } = props;
   const needs = needsAI(option);
@@ -562,7 +565,7 @@ export function OptionRow(props: {
   const off = needs && props.aiOff ? props.aiOff : null;
   return (
     <button
-      className={`jp-Epi-option${checklist ? ' jp-mod-checklist' : ''}${checked ? ' jp-mod-checked' : ''}${off ? ' jp-mod-disabled' : ''}`}
+      className={`jp-Epi-option${checklist ? ' jp-mod-checklist' : ''}${checked ? ' jp-mod-checked' : ''}${off ? ' jp-mod-disabled' : ''}${props.unlikely ? ' jp-mod-unlikely' : ''}`}
       onClick={off ? undefined : checklist ? onToggle : onApply}
       aria-pressed={checklist ? checked : undefined}
       aria-disabled={off ? 'true' : undefined}

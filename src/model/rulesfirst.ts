@@ -13,7 +13,7 @@
  *   first drops of a new notebook got generic templates alone), only when no
  *   template fits, or never.
  */
-import type { IOption, IWrittenBy } from '../tokens';
+import type { IDropResult, IOption, IWrittenBy, QuestionType } from '../tokens';
 import type { ISuggestedValue } from './api';
 import { needsAI } from './questionorder';
 
@@ -42,20 +42,42 @@ export function readModelQuestions(
 /**
  * Whether a request asks the model for questions with these options: never
  * with the setting at never, and with "only when no template fits" when a
- * template question runs.
+ * template question runs and fits. A list that the type predictor marks
+ * (`missingType`) counts as one that no template fits.
  */
 export function asksModel(
   when: ModelQuestions,
-  options: Pick<IOption, 'code'>[]
+  options: Pick<IOption, 'code'>[],
+  marked = false
 ): boolean {
   switch (when) {
     case 'always':
       return true;
     case 'no-template':
-      return noTemplateFits(options);
+      return marked || noTemplateFits(options);
     case 'never':
       return false;
   }
+}
+
+/**
+ * The probability from which the view marks a list as likely to miss what
+ * the analyst wants. research/order-none.md chose it on 300 cases of each
+ * gesture: it marks 12% of them, and greys a list that holds a question of
+ * the analyst's type in 5% of the lists that hold one (design iteration
+ * 1.130).
+ */
+export const MISSING_CUT = 0.7;
+
+/**
+ * The type that the analyst likely wants and that no offered question has,
+ * when the server's type predictor gives it MISSING_CUT or more, else null.
+ */
+export function missingType(
+  result: Pick<IDropResult, 'missing'> | null
+): QuestionType | null {
+  const missing = result?.missing;
+  return missing && missing.probability >= MISSING_CUT ? missing.type : null;
 }
 
 /**

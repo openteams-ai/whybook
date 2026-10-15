@@ -508,7 +508,9 @@ class ClaudeQuestionsHandler(BaseHandler):
 
     The view asks with the questions that the drop offers already (``offered``),
     so that the model adds what they miss, and the answer orders them all.
-    It also sends what agents found in the notebook (``found``).
+    It also sends what agents found in the notebook (``found``), and, when
+    the type predictor marks the list, the type that no offered question has
+    (``missing_type``).
     """
 
     @tornado.web.authenticated
@@ -521,6 +523,7 @@ class ClaudeQuestionsHandler(BaseHandler):
         try:
             cell = claude_questions.dropped_onto(body.get("cell"))
             offered = claude_questions.offered_from_json(body.get("offered"))
+            missing = claude_questions.missing_from_json(body.get("missing_type"))
         except InvalidRequest as error:
             raise HTTPError(400, str(error)) from error
         formulas = claude_questions.formulas_from_json(body.get("formulas"))
@@ -530,7 +533,7 @@ class ClaudeQuestionsHandler(BaseHandler):
             threads = self.future_config.local_threads
             await self.stream(
                 claude_questions.generate_local(
-                    model, selection, context, suggested, threads, json_check_of(body), cell, offered, cells_above, found=found
+                    model, selection, context, suggested, threads, json_check_of(body), cell, offered, cells_above, found=found, missing=missing
                 )
             )
             return
@@ -538,7 +541,7 @@ class ClaudeQuestionsHandler(BaseHandler):
             raise HTTPError(400, f"unknown model {model!r}")
         keep = privacy.keep_local_for_remote(self.future_config, body)
         await self.stream(
-            claude_questions.generate(selection, context, suggested, self.future_config, keep, cell, offered, formulas, cells_above, found=found)
+            claude_questions.generate(selection, context, suggested, self.future_config, keep, cell, offered, formulas, cells_above, found=found, missing=missing)
         )
 
 

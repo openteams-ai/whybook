@@ -130,6 +130,25 @@ SCHEMA = {
 MAX_FRAMES = 12
 MAX_COLUMNS = 40
 MAX_OFFERED = 30
+
+# One sentence after the system prompt when the view names a type that the
+# analyst likely wants and that no offered question has (missing.py, design
+# iteration 1.130). research/order-none.md measured it with Mercury 2.5.
+MISSING_SENTENCE = 'Propose at least one question of type "{missing}", a type that no question in "already_suggested" has.'
+
+
+def missing_from_json(data: Any) -> str | None:
+    """The type that the view names as missing from the offered questions, or None."""
+    if data is None:
+        return None
+    if data not in TYPES:
+        raise InvalidRequest(f"missing_type is one of {', '.join(TYPES)}")
+    return data
+
+
+def with_missing(system_prompt: str, missing: str | None) -> str:
+    """The system prompt, with the sentence that asks for a question of the missing type."""
+    return system_prompt if missing is None else f"{system_prompt}\n{MISSING_SENTENCE.format(missing=missing)}"
 MAX_FORMULAS = 12
 # At most this many outcomes and units from one answer.
 MAX_INFERRED = 3
@@ -508,13 +527,14 @@ def _order(
     context: Context,
     cell: dict[str, str] | None,
     cells_above: int,
+    missing: str | None = None,
 ) -> list[str] | None:
     """The ids of the offered questions and the model's, in the view's order, or None when the view sent no questions."""
     if offered is None:
         return None
     involved = [v for v in (selection.source, selection.target) if v is not None and not (selection.univariate and v is selection.target)]
     # A drop onto a cell keeps the rules' order, as its options do (drops.drop_options).
-    merged = merged_order(offered, questions, involved, context, learned=cell is None, cells_above=cells_above)
+    merged = merged_order(offered, questions, involved, context, learned=cell is None, cells_above=cells_above, missing=missing)
     return [candidate.id for candidate in merged]
 
 
@@ -529,6 +549,7 @@ async def generate(
     formulas: list[dict[str, str]] | None = None,
     cells_above: int = 0,
     found: list[dict[str, str]] | None = None,
+    missing: str | None = None,
 ) -> AsyncIterator[claude.Event]:
     """Stream progress events, then a result event with the new questions, the outcomes and the units.
 
@@ -544,7 +565,9 @@ async def generate(
     hold a constant's value; so does what agents found (``found``), since an
     answer can quote one. The frames go as names, kinds and sizes either way.
     ``cell`` is the cell of a drop onto a cell (``dropped_onto``): its code
-    goes as the notebook's cells do.
+    goes as the notebook's cells do. ``missing`` is a type that the analyst
+    likely wants and that no offered question has: the model is asked for a
+    question of it (``MISSING_SENTENCE``), which goes first in the order.
     """
     shown = offered if offered is not None else suggested
     state = model_state(selection, context)
@@ -568,7 +591,7 @@ async def generate(
     async for event in connection.structured_call(
         prompt,
         schema=SCHEMA,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=with_missing(SYSTEM_PROMPT, missing),
         config=config,
         effort=config.question_effort,
     ):
@@ -580,7 +603,7 @@ async def generate(
                 return
             offers, left_out = kept(output.get("questions") or [], selection, context, shown, cell, formulas or [])
             questions = [_candidate(item, variables) for item in offers]
-            order = _order(questions, offered, selection, context, cell, cells_above)
+            order = _order(questions, offered, selection, context, cell, cells_above, missing)
             event["questions"] = [question.to_json() for question in questions]
             event["left_out"] = left_out
             event["outcomes"] = inferred_columns(output.get("outcomes"), context)
@@ -651,6 +674,7 @@ async def generate_local(
     offered: list[Candidate] | None = None,
     cells_above: int = 0,
     found: list[dict[str, str]] | None = None,
+    missing: str | None = None,
 ) -> AsyncIterator[dict]:
     """Stream progress events, then a result event with a local model's questions.
 
@@ -662,7 +686,7 @@ async def generate_local(
     variables = tuple(v.name for v in (selection.source, selection.target) if v is not None)
     state = local_state(selection, context, shown, cell, found)
     async for event in local_models.ask_json(
-        model_id, LOCAL_SYSTEM_PROMPT, state, LOCAL_SCHEMA, 400, threads, "writing questions", check
+        model_id, with_missing(LOCAL_SYSTEM_PROMPT, missing), state, LOCAL_SCHEMA, 400, threads, "writing questions", check
     ):
         if event["type"] == "result":
             output = event.pop("output")
@@ -672,7 +696,7 @@ async def generate_local(
                 return
             offers, left_out = kept(output.get("questions") or [], selection, context, shown, cell)
             questions = [_candidate(item, variables, "local") for item in offers]
-            order = _order(questions, offered, selection, context, cell, cells_above)
+            order = _order(questions, offered, selection, context, cell, cells_above, missing)
             event["questions"] = [question.to_json() for question in questions]
             event["left_out"] = left_out
             event["outcomes"], event["units"] = [], []

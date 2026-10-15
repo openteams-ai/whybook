@@ -287,6 +287,18 @@ export interface IDropResult {
   options: IOption[];
   placements: IPlacement[];
   preselected: string[];
+  /**
+   * The type that the analyst likely wants and that no offered question
+   * has, with the probability that none of the offered types is theirs
+   * (whybook/server/questions/missing.py).
+   */
+  missing?: IMissingType | null;
+}
+
+/** A question type that no offered question has, and how likely the analyst wants a type that none has. */
+export interface IMissingType {
+  type: QuestionType;
+  probability: number;
 }
 
 export interface IAskedQuestion {

@@ -237,21 +237,32 @@ test('asks the model next to the templates, with a bar, puts its questions where
   await drag(page, variable(page, 'readings'), variable(page, 'homes'));
 
   // The templates' questions show at once, and a bar while the model works.
+  // No template question of two frames dragged together is descriptive, and
+  // the server's type predictor finds that the analyst likely wants one
+  // (design iteration 1.130): the first row is held for the model's
+  // question and asks whether the analyst looks for one, the template
+  // questions show lighter while the model writes, and the model is asked
+  // for one.
   await expect(texts(page).first()).toHaveText(
     'How do readings and homes line up?'
   );
+  const slot = popover(page).locator('.jp-Epi-slot');
+  await expect(slot).toContainText('Looking for a Descriptive question?');
+  await expect(slot).toContainText('An AI model is writing one.');
+  await expect(slot.locator('.jp-Epi-progress')).toBeVisible();
   const line = popover(page).locator('.jp-Epi-modelline');
-  await expect(line).toContainText(
-    'An AI model adds questions that the templates miss.'
-  );
-  await expect(line.locator('.jp-Epi-progress')).toBeVisible();
+  await expect(line).toHaveCount(0);
+  await expect(
+    popover(page).locator('.jp-Epi-option.jp-mod-unlikely').first()
+  ).toBeVisible();
   await expect.poll(() => answers.requests.length).toBe(1);
   const sent = answers.requests[0];
   // The default of More questions: the fast model of the connected provider.
   expect(sent).toMatchObject({
     model: 'remote:fast',
     selection: { source: { name: 'readings' }, target: { name: 'homes' } },
-    context: { unit: 'home_id', units: ['home_id'] }
+    context: { unit: 'home_id', units: ['home_id'] },
+    missing_type: 'descriptive'
   });
   // The model reads the questions offered, and which of them run.
   expect(
@@ -267,10 +278,17 @@ test('asks the model next to the templates, with a bar, puts its questions where
   await expect(texts(page).last()).toHaveText(
     'Are some homes read on fewer days?AI'
   );
+  // The model wrote no descriptive question, and the pointer is off the
+  // list: the held row goes, no line shows, and every question has its
+  // colour back.
+  await expect(slot).toHaveCount(0);
   await expect(line).toHaveCount(0);
   await expect(
     popover(page).locator('.jp-Epi-option .jp-Epi-aitag')
   ).toHaveCount(2);
+  await expect(
+    popover(page).locator('.jp-Epi-option.jp-mod-unlikely')
+  ).toHaveCount(0);
   // Nothing ran by itself: no strip, and the notebook keeps its two cells.
   await expect(page.locator('.jp-Epi-strip')).toHaveCount(0);
   expect(
@@ -427,8 +445,17 @@ test.describe('With the switch of before saved off', () => {
       name: 'More questions from AI'
     });
     // The list is whole once the button shows: nothing waits for a model.
+    // The line asks about the type that the list misses, with no bar, and
+    // the questions keep their colour.
     await expect(more).toBeVisible();
-    await expect(popover(page).locator('.jp-Epi-modelline')).toHaveCount(0);
+    const line = popover(page).locator('.jp-Epi-modelline');
+    await expect(line).toHaveText(
+      'Looking for a Descriptive question? More questions from AI can write one.'
+    );
+    await expect(line.locator('.jp-Epi-progress')).toHaveCount(0);
+    await expect(
+      popover(page).locator('.jp-Epi-option.jp-mod-unlikely')
+    ).toHaveCount(0);
     expect(answers.requests).toHaveLength(0);
     expect(
       await page.evaluate(

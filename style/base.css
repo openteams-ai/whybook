@@ -418,6 +418,65 @@
   background: var(--jp-layout-color0);
 }
 
+/*
+ * The row of a marked list held for the model's question of the missing type
+ * (design iteration 1.130), with a dashed border, so that it reads as a place
+ * and not as a question to pick. It has the height of a question of two
+ * lines: the model's questions have at most 12 words, two lines in the
+ * popover, and one that takes the row moves nothing below it.
+ */
+.jp-Epi-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  min-height: 84px;
+  padding: 6px 8px;
+  border: var(--jp-border-width) dashed var(--jp-border-color1);
+  border-radius: var(--jp-border-radius);
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-slot-text {
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-slot-effect {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-slot .jp-Epi-modelwait {
+  margin-top: 2px;
+}
+
+.jp-Epi-slot.jp-mod-empty {
+  justify-content: center;
+}
+
+.jp-Epi-slot.jp-mod-empty .jp-Epi-slot-text {
+  font-weight: normal;
+  color: var(--jp-ui-font-color2);
+}
+
+/*
+ * A template question of a list that likely misses the type that the analyst
+ * wants, while the model writes a question of that type (design iteration
+ * 1.130): lighter, and a question to pick all the same, so the pointer or the
+ * focus gives it its colour back.
+ */
+.jp-Epi-option.jp-mod-unlikely:not(:hover, :focus-visible) .jp-Epi-option-text {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-option.jp-mod-unlikely:not(:hover, :focus-visible)
+  .jp-Epi-option-effect,
+.jp-Epi-option.jp-mod-unlikely:not(:hover, :focus-visible) .jp-Epi-option-meta {
+  opacity: 0.7;
+}
+
 /* The questions have the focus after a click, with no ring of their own. */
 .jp-Epi-popover:focus,
 .jp-Epi-ask-block:focus {

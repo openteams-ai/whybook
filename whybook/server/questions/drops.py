@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .. import codegen
-from . import reshape, starts, templates
+from . import missing, reshape, starts, templates
 from .cells import CellInfo, Decision, group_column, primary_frame, question_id, site_column, sweep_code, sweep_list, sweep_names, unit_noun
 from .models import Candidate, Context, InvalidRequest, Placement, Selection, Variable
 from .rankers import kind_group, learned_order, score_candidate
@@ -281,7 +281,44 @@ def _crossed_branch(
     return code
 
 
-def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tuple[list[Candidate], str | None]:
+def _response_holds(formula: str, outcome: str) -> bool:
+    """Whether the left side of a formula names the outcome: pain_score in "np.log(pain_score) ~ arm"."""
+    left = formula.split("~", 1)[0]
+    return re.search(rf"(?<![\w]){re.escape(outcome)}(?![\w])", left) is not None
+
+
+def _model_cell(cells: tuple[CellInfo, ...], cell: CellInfo, outcome: str, column: Variable) -> CellInfo | None:
+    """The cell nearest above ``cell``, else below it, that fits a formula model of the outcome without the column."""
+    index = next((i for i, other in enumerate(cells) if other.id == cell.id), len(cells))
+    order = list(reversed(cells[:index])) + list(cells[index + 1 :])
+    for other in order:
+        model = other.model
+        if model is not None and _response_holds(model.formula, outcome) and column.label not in model.formula:
+            return other
+    return None
+
+
+def _covariate_option(column: Variable, model_cell: CellInfo, context: Context, text: str, uses: dict[str, str] | None = None) -> Candidate:
+    """The column added to the formula of the model that a cell fits, as an edit of that cell."""
+    model = model_cell.model
+    assert model is not None
+    edit = Placement("edit", model_cell.id, f"edit {model_cell.label} in place")
+    code = None
+    data_frame = model.data if model.data in context.frames else None
+    if data_frame:
+        new_source = codegen.replace_string(model_cell.source, model.formula, f"{model.formula} + {codegen.term(column.label)}")
+        if new_source and column.label not in context.frames[data_frame]:
+            plan = codegen.plan_data(data_frame, [column.label], context.frames, context.unit, target=data_frame)
+            if plan and len(plan.lines) == 2:
+                merged = plan.lines[1].split(" = ", 1)[1]
+                new_source = codegen.replace_keyword_value(new_source, model.function, "data", merged) or None
+            else:
+                new_source = None
+        code = new_source
+    return _option(text, "model", 0.55, edit, code, f"Refits the model with {column.label}", column.name, model_cell.id, uses=uses)
+
+
+def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells: tuple[CellInfo, ...] = ()) -> tuple[list[Candidate], str | None]:
     after = Placement("new", cell.id, f"new cell after {cell.label}")
     branch = Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel")
     edit = Placement("edit", cell.id, f"edit {cell.label} in place")
@@ -333,19 +370,28 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context) -> tup
         options.append(interaction)
     model = cell.model
     if model is not None and column.label not in model.formula:
-        code = None
-        data_frame = model.data if model.data in context.frames else None
-        if data_frame:
-            new_source = codegen.replace_string(cell.source, model.formula, f"{model.formula} + {codegen.term(column.label)}")
-            if new_source and column.label not in context.frames[data_frame]:
-                plan = codegen.plan_data(data_frame, [column.label], context.frames, context.unit, target=data_frame)
-                if plan and len(plan.lines) == 2:
-                    merged = plan.lines[1].split(" = ", 1)[1]
-                    new_source = codegen.replace_keyword_value(new_source, model.function, "data", merged) or None
-                else:
-                    new_source = None
-            code = new_source
-        options.append(_option(f"Add {column.label} as a covariate", "model", 0.55, edit, code, f"Refits the model with {column.label}", column.name, cell.id))
+        options.append(_covariate_option(column, cell, context, f"Add {column.label} as a covariate"))
+    elif model is None and base and outcome and column.label != outcome:
+        # A question of a model for a cell that fits none: the analysts of
+        # public notebooks asked one after 69 of the 80 drops onto a cell that
+        # offered no question of their type (research/order-none.md), most
+        # often adding the column to a model of another cell.
+        other = _model_cell(cells, cell, outcome, column)
+        if other is not None:
+            options.append(_covariate_option(column, other, context, f"Add {column.label} to the model in {other.label}", uses))
+        else:
+            result = codegen.identifier(f"{outcome}_on_{column.label}")
+            plan = codegen.plan_data(base, [column.label], context.frames, context.unit, target=codegen.temporary(result, "data"))
+            code = None
+            text = f"Fit a model of {outcome} on {column.label}"
+            if plan:
+                lines = [codegen.comment(text), "import statsmodels.formula.api as smf", ""] + plan.lines
+                lines.append(f"{result} = smf.ols({codegen.formula(outcome, [column.label])}, data={plan.name}).fit()")
+                if plan.name != base:
+                    lines.append(f"del {plan.name}")
+                lines.append(f"{result}.summary()")
+                code = "\n".join(lines)
+            options.append(_option(text, "model", 0.5, after, code, "A model to keep, with its fit", column.name, cell.id, uses=uses))
     # The exposure of the model that the cell fits, else the column that splits the units.
     # The column alone named the smallest frame's: "Could sex mediate the effect of wt82
     # missing?" on the adjusted model of the demo's v2take11.
@@ -514,7 +560,7 @@ def _onto_cell(request: DropRequest) -> tuple[list[Candidate], str | None]:
             _option(f"Does this cell explain what {source.label} leaves unexplained?", "association", 0.45, after, None, "Screens against the residuals", source.name, cell.id),
         ], None
     if source.kind in COLUMN_KINDS:
-        return _column_onto_cell(source, cell, context)
+        return _column_onto_cell(source, cell, context, request.cells)
     after = Placement("new", cell.id, f"new cell after {cell.label}")
     return [_option(f"Use {source.label} in {cell.label}", "descriptive", 0.4, after, None, "AI writes the cell", source.name, cell.id)], None
 
@@ -769,6 +815,10 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 code = "\n".join(line for i, line in enumerate(lines) if line or i != 1)
             uses = {"unit": unit_here} if unit or per_unit else None
             options.append(_option(text, "association", 0.7, home, code, "Question · joins frames if needed", a.name, b.name, uses=uses))
+            # A descriptive look at both columns: the analysts of public
+            # notebooks asked one after 38 of the 82 drops of two variables
+            # that offered no question of their type (research/order-none.md).
+            options.append(_summary_pair(a, b))
             if time is not None and other is not None and other.kind == "numeric":
                 options.append(_trajectory(request, time, other, unit_here, home))
                 answered.add("trend")
@@ -833,6 +883,24 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
             candidate.effect = "AI writes the cell"
             options.append(candidate)
     return options, note
+
+
+def _summary_lines(item: Variable) -> list[str]:
+    """The plot and the table of one column's quick look: whybook.hist or bars, then whybook.summary."""
+    column = codegen.literal(item.label)
+    plot = {"numeric": "hist", "datetime": "hist", "categorical": "bars", "binary": "bars"}.get(item.kind)
+    return [*([f"whybook.{plot}({item.parent}, {column})"] if plot else []), f"whybook.summary({item.parent}, {column})"]
+
+
+def _summary_pair(a: Variable, b: Variable) -> Candidate:
+    """A quick look at two columns, one after the other, as the quick look at one column shows it."""
+    preview = Placement("preview", None, "a preview in the sidebar", "Nothing is written to the notebook unless you keep it")
+    text = f"Summarise {a.label} and {b.label}: distribution and missingness"
+    first, second = _summary_lines(a), _summary_lines(b)
+    # The first table shows through display(): a cell shows its last value only.
+    first[-1] = f"display({first[-1]})"
+    code = "\n".join([codegen.comment(text), "from IPython.display import display", "import whybook", "", *first, *second])
+    return _option(text, "descriptive", 0.5, preview, code, f"Quick look · {starts.UNLESS_KEPT}", a.name, b.name)
 
 
 def _mismatch_note(first: str, second: str, context: Context) -> str | None:
@@ -937,11 +1005,22 @@ def drop_options(request: DropRequest) -> dict[str, Any]:
             if option.placement and option.placement.kind in ("new", "edit"):
                 option.placement = Placement("branch", option.placement.cell, option.placement.label.replace("new cell after", "branch of").replace("edit ", "branch of ").replace(" in place", "") + " · runs in parallel")
     mode = "parallel" if request.parallel else ("branch" if request.branch else "auto")
+    shown = options[:8]
     return {
         "title": title,
         "note": note,
         "mode": mode,
-        "options": [option.to_json() for option in options[:8]],
+        "options": [option.to_json() for option in shown],
+        # The type that the analyst likely wants and that no offered question
+        # has, with the probability that none of the offered types is theirs.
+        "missing": missing.for_request(
+            involved,
+            [option.type for option in shown],
+            [question.type for question in context.asked],
+            context.last_type,
+            len(request.cells),
+            onto_cell=request.target_cell is not None,
+        ),
         "placements": [placement.to_json() for placement in placements],
         "preselected": [option.id for option in options[:3]] if request.parallel else [],
     }
