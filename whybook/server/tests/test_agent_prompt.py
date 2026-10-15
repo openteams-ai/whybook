@@ -90,7 +90,8 @@ def test_the_rules_keep_the_prompt_short():
     # 244 more with how to fix a cell that failed in place (design iteration 1.103),
     # and 6,428 became 6,765 with the codes in a figure and the causal diagram
     # (design iteration 1.108), 6,810 with the rule for a second notebook (1.113),
-    # and 6,920 with how to write a small p-value.
+    # 6,920 with how to write a small p-value, and 6,953 with the number of cells
+    # that most answers take, in place of the limit of 8 cells (1.127).
     assert len(request().system_prompt()) < 7000
 
 

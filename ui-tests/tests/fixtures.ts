@@ -100,6 +100,17 @@ export const test = base.extend<{ modelRoutes: void; kernelActions: void }>({
 export { expect };
 
 /**
+ * How many branches the view runs at once with the default setting: one for
+ * each processor that the server reports, and at least 2.
+ */
+export async function parallelRuns(page: {
+  request: { get(url: string): Promise<{ json(): Promise<any> }> };
+}): Promise<number> {
+  const status = await (await page.request.get('/whybook/status')).json();
+  return Math.max(2, status.cpu_count);
+}
+
+/**
  * A request's body without the review guard's object. The server reads the
  * notebook's columns from it to check what would leave the machine, and no
  * model reads it: a check that a request holds nothing of the notebook

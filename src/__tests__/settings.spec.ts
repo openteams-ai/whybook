@@ -18,7 +18,7 @@ describe('readSettings', () => {
       interaction: 'drag',
       variablesPlacement: 'sidebar',
       explorationPlacement: 'sidebar',
-      capacity: 8,
+      capacity: 0,
       mapColumns: 'contents',
       detail: 'full',
       mapDetail: 'minimal',
@@ -34,6 +34,7 @@ describe('readSettings', () => {
       customLocalModels: [],
       answers: 'agent',
       agentView: 'strip',
+      agentMaxCells: 0,
       showCost: false,
       modelQuestions: 'always',
       rankingPrompt: 'next',
@@ -41,6 +42,16 @@ describe('readSettings', () => {
       exploredOrder: 'auto',
       guard: DEFAULT_GUARD
     });
+  });
+
+  it("reads the analyst's limit of cells for one answer, and none from a value that is not a whole number above 0", () => {
+    expect(read('{"agentMaxCells": 10}').agentMaxCells).toBe(10);
+    expect(readSettings({ agentMaxCells: 0 }, null).agentMaxCells).toBe(0);
+    expect(readSettings({ agentMaxCells: 2.5 }, null).agentMaxCells).toBe(0);
+    expect(readSettings({ agentMaxCells: '10' }, null).agentMaxCells).toBe(0);
+    // Parallel runs: 0, the default, is one for each processor of the server.
+    expect(read('{"subshellCapacity": 6}').capacity).toBe(6);
+    expect(readSettings({}, null).capacity).toBe(0);
   });
 
   it('reads "Questions from a model" as always, unless the analyst chose otherwise', () => {

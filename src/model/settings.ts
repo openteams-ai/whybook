@@ -38,6 +38,7 @@ interface IPluginSettings {
   customLocalModels?: unknown;
   answers?: unknown;
   agentView?: unknown;
+  agentMaxCells?: unknown;
   showCost?: unknown;
   modelQuestions?: unknown;
   rankingPrompt?: unknown;
@@ -72,7 +73,8 @@ export function readSettings(
     interaction: all.interaction ?? 'drag',
     variablesPlacement: all.variablesPlacement ?? 'sidebar',
     explorationPlacement: all.explorationPlacement ?? 'sidebar',
-    capacity: all.subshellCapacity ?? 8,
+    // 0: one for each processor of the server's machine.
+    capacity: all.subshellCapacity ?? 0,
     mapColumns: all.mapColumns ?? 'contents',
     detail: all.outputDetail ?? 'full',
     // The switch of earlier versions: off reads as no outputs.
@@ -95,6 +97,13 @@ export function readSettings(
     customLocalModels: readCustomModels(all.customLocalModels),
     answers: all.answers === 'cell' ? 'cell' : 'agent',
     agentView: agentViewOf(all.agentView),
+    // No limit of the analyst's own, unless one is set: the server's guard still holds.
+    agentMaxCells:
+      typeof all.agentMaxCells === 'number' &&
+      Number.isInteger(all.agentMaxCells) &&
+      all.agentMaxCells > 0
+        ? all.agentMaxCells
+        : 0,
     showCost: all.showCost === true,
     // Always, unless the analyst chose otherwise, or turned off the switch it replaced.
     modelQuestions: readModelQuestions(all.modelQuestions, own),

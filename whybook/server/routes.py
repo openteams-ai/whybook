@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import json
+import os
 import sqlite3
 from typing import Any, AsyncIterator
 
@@ -153,7 +154,20 @@ class StatusHandler(BaseHandler):
             "remote_tiers": tiers.recommended(remote["provider"]),
             # Each decision model by id, with its label, and whether it can run and why not.
             "decision_models": decision_models.status(config),
+            # How many branches the view runs at once unless the analyst sets another number.
+            "cpu_count": processors(),
         }
+
+
+def processors() -> int:
+    """The processors that this server's process may use, which its kernels share."""
+    if hasattr(os, "process_cpu_count"):  # Python 3.13: the affinity mask too
+        count = os.process_cpu_count()
+    elif hasattr(os, "sched_getaffinity"):
+        count = len(os.sched_getaffinity(0))
+    else:
+        count = os.cpu_count()
+    return max(1, count or 1)
 
 
 def for_kernel(result: dict[str, Any], context: Context) -> dict[str, Any]:

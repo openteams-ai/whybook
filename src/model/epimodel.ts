@@ -266,7 +266,8 @@ export class EpiSettings {
   interaction: Interaction = 'drag';
   variablesPlacement: Placement = 'sidebar';
   explorationPlacement: Placement = 'sidebar';
-  capacity = 8;
+  /** How many branches run at once, the notebook's own run included; 0 for one per processor of the server's machine. */
+  capacity = 0;
   /** Where the columns of a data node clicked in the map show. */
   mapColumns: MapColumns = 'contents';
   /** The level of detail of outputs on the bench. */
@@ -312,6 +313,8 @@ export class EpiSettings {
   answers: 'agent' | 'cell' = 'agent';
   /** Where an agent's run shows, for review: its strip, a card, or the sidebar. */
   agentView: AgentView = 'strip';
+  /** The most cells that an agent adds for one question; 0 for no limit but the server's. */
+  agentMaxCells = 0;
   /**
    * The Cost sections of the Exploration panel and of Cell details, and the
    * notebook's cap on what its answers cost. Off, the view shows no cost
@@ -426,6 +429,7 @@ export class EpiSettings {
       | 'zeroDataRetention'
       | 'answers'
       | 'agentView'
+      | 'agentMaxCells'
       | 'showCost'
       | 'modelQuestions'
       | 'rankingPrompt'
@@ -482,6 +486,7 @@ export class EpiSettings {
         | 'customLocalModels'
         | 'answers'
         | 'agentView'
+        | 'agentMaxCells'
         | 'showCost'
         | 'modelQuestions'
         | 'rankingPrompt'
@@ -929,7 +934,7 @@ export class EpiModel implements IDisposable {
     this.jobs = new JobManager({
       sessionContext: this.context.sessionContext,
       rendermime: this.rendermime,
-      capacity: this.settings.capacity,
+      capacity: this._capacity(),
       // The first figure a cell draws has the hooks' additions too.
       prepare: () => this.plotHooks.ready()
     });
@@ -1485,12 +1490,28 @@ export class EpiModel implements IDisposable {
     }
   }
 
+  /**
+   * How many branches run at once, the notebook's own run included: the
+   * analyst's number, else one for each processor of the server's machine,
+   * else of this browser's, and at least 2. The other branches wait.
+   */
+  private _capacity(): number {
+    if (this.settings.capacity > 0) {
+      return Math.max(2, this.settings.capacity);
+    }
+    const here =
+      typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 0;
+    return Math.max(2, this.status?.cpu_count || here || 8);
+  }
+
   /** Ask the server again what it can run. */
   refreshStatus(): void {
     this.api
       .status()
       .then(status => {
         this.status = status;
+        // The server's processors set how many branches run at once.
+        this.jobs.capacity = this._capacity();
         this._emit();
         // A model that can run now titles the cells that have none.
         if (this.context.isReady) {
@@ -6847,7 +6868,13 @@ export class EpiModel implements IDisposable {
         {
           ...this._solveBody(option, where, target, ask),
           ...context,
-          ...(budget !== null ? { budget_usd: budget } : {})
+          ...(budget !== null ? { budget_usd: budget } : {}),
+          // The analyst's limit of cells, when set, except for a rewrite in
+          // another kernel, which takes a cell for each step of the analysis.
+          // The server's guard holds without it.
+          ...(this.settings.agentMaxCells > 0 && !compare
+            ? { max_cells: this.settings.agentMaxCells }
+            : {})
         },
         event => {
           chain = chain.then(() =>
@@ -9356,7 +9383,7 @@ export class EpiModel implements IDisposable {
     if (this._isDisposed) {
       return;
     }
-    this.jobs.capacity = this.settings.capacity;
+    this.jobs.capacity = this._capacity();
     this.spaceDetail.settingsChanged();
     // A pick belongs to the way of asking that made it: Drag does not show
     // Click's targets, and another way cancels the pick.

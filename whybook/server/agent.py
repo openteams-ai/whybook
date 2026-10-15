@@ -69,7 +69,11 @@ log = logging.getLogger(__name__)
 
 # How long the view may take to run one tool: a cell can fit a model.
 TOOL_TIMEOUT = 30 * 60
-MAX_BRANCHES = 4
+# The branches of one explore call, and of one user question that lists
+# alternatives (questions/split.py): a guard against a call that goes wrong,
+# well above what an analysis compares. The view runs as many at once as the
+# machine has processors, and the rest wait.
+MAX_BRANCHES = 20
 # The files that one run may write, and the size of each: a module is the
 # exception, and the analysis stays in cells (VISION.md).
 MAX_FILES = 3
@@ -157,9 +161,9 @@ TOOLS: dict[str, dict[str, Any]] = {
     },
     "explore": {
         "description": (
-            "Run two to four variants of one cell side by side, each as a branch of it in a"
-            " subshell, such as another model, another threshold or another subset. Returns"
-            " what each branch shows."
+            "Run variants of one cell side by side, each as a branch of it in a subshell: one"
+            " branch for each model, threshold or subset that the answer compares. Returns what"
+            " each branch shows."
         ),
         "schema": {
             "type": "object",
@@ -355,13 +359,14 @@ The {language} kernel holds "variables", and the analyst sees every cell you add
 
 How to work:
 - Use as few cells as the question needs. When one cell answers it, run that cell and finish.
+  Most answers take fewer than 4 cells, and almost all fewer than 10; take more only when the
+  question needs them.
 - When the answer takes several steps, run them one at a time, and read each result before
   the next. When a result looks wrong, check the data before you go on.
 - Never add a cell that only shows a frame of "variables" or a result that an earlier cell
   shows: cite that cell.
 - Use explore when the answer depends on a choice, such as the model, a threshold or a subset:
-  it runs two to four variants of one cell side by side, as branches, at the same time and in
-  one namespace. In each branch, give every name that it assigns, intermediate values
+  it runs variants of one cell side by side, as branches, in one namespace. In each branch, give every name that it assigns, intermediate values
   included, a name unique to that branch, such as fit_mixed and fit_late. Never assign or
   delete a name that another branch or the notebook defines.
 - A cell that fails returns its error. Fix that cell in place: run_cell with "fix" set to its
@@ -372,8 +377,7 @@ How to work:
   call the same functions; the analysis stays in cells. Put the constants that the results
   depend on at the module's top, in upper case: the view shows them on the cells that use
   them.{reload}
-- Add at most {max_cells} cells in all, branches included.
-- End with finish: the answer in at most 3 sentences, citing the cells that show it by
+{cell_limit}- End with finish: the answer in at most 3 sentences, citing the cells that show it by
   label, such as [7].
 
 Rules for the analysis:
@@ -569,6 +573,7 @@ class AgentRequest:
 
     solve: SolveRequest
     keep_local: bool
+    # The run's limit of cells: the analyst's, when the view sends one under the server's, else the server's guard.
     max_cells: int
     # What is left under the notebook's cap, in US dollars: the view sends it
     # when the analyst set a cap. None when nothing but the server caps the run.
@@ -583,6 +588,8 @@ class AgentRequest:
     compare: dict[str, str] | None = None
     # The first prompt as the review guard let it go, its flagged parts masked; None sends it as built.
     guarded_prompt: str | None = None
+    # Whether the limit is the analyst's: the prompt then states it.
+    analyst_limit: bool = False
 
     @classmethod
     def from_json(cls, data: Any, config: Whybook) -> AgentRequest:
@@ -594,6 +601,11 @@ class AgentRequest:
         budget = data.get("budget_usd")
         if budget is not None and (isinstance(budget, bool) or not isinstance(budget, (int, float)) or not math.isfinite(budget) or budget < 0):
             raise InvalidRequest("budget_usd is a number of US dollars, 0 or more")
+        # The analyst's limit of cells for one answer (agentMaxCells): the server's guard still holds.
+        limit = data.get("max_cells")
+        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+            raise InvalidRequest("max_cells is a number of cells, 1 or more")
+        analyst_limit = limit is not None and limit < config.agent_max_cells
         solve = SolveRequest.from_json({**data, "placement": "new"})
         if keep_local:
             solve = privacy.local_request(solve)
@@ -604,7 +616,8 @@ class AgentRequest:
         return cls(
             solve=solve,
             keep_local=keep_local,
-            max_cells=config.agent_max_cells,
+            max_cells=limit if analyst_limit else config.agent_max_cells,
+            analyst_limit=analyst_limit,
             budget_usd=None if budget is None else float(budget),
             kernels=_kernels(data.get("kernels")),
             files=_files(data.get("files")),
@@ -647,7 +660,9 @@ class AgentRequest:
     def system_prompt(self) -> str:
         found = languages.language(self.solve.language)
         return SYSTEM_PROMPT.format(
-            max_cells=self.max_cells,
+            # Only the analyst's limit: the server's guard is far above any answer, and a number in
+            # the prompt reads as a size to aim for.
+            cell_limit=f"- Add at most {self.max_cells} cells in all, branches included.\n" if self.analyst_limit else "",
             max_fixes=MAX_FIXES,
             privacy=PRIVACY_PROMPT if self.keep_local else "",
             language=found.name,
@@ -804,6 +819,8 @@ class Run:
     id: str
     keep_local: bool
     max_cells: int
+    # Whether max_cells is the analyst's limit or the server's guard: the refusal says whose.
+    analyst_limit: bool = False
     queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     calls: dict[str, asyncio.Future] = field(default_factory=dict)
     task: asyncio.Task | None = None
@@ -1001,10 +1018,15 @@ class Run:
             again = shows_again(str(tool_input.get("code") or ""), self.shown) if name == "run_cell" and not tool_input.get("notebook") else None
             if again:
                 return {"status": "refused", "error": again}
+            branches = tool_input.get("branches") if isinstance(tool_input.get("branches"), list) else []
+            if name == "explore" and len(branches) > MAX_BRANCHES:
+                return {"status": "refused", "error": f"at most {MAX_BRANCHES} branches in one explore: compare fewer options, or call explore again for the rest"}
             # The cells of every notebook count against one limit.
-            added = 1 if name == "run_cell" else len(tool_input.get("branches") or [])
+            added = 1 if name == "run_cell" else len(branches)
             if self.cells + added > self.max_cells:
-                return {"status": "refused", "error": f"at most {self.max_cells} cells in all, in every notebook: finish with what you have"}
+                whose = "the analyst's limit" if self.analyst_limit else "the server's limit"
+                cells = "1 cell" if self.max_cells == 1 else f"{self.max_cells} cells"
+                return {"status": "refused", "error": f"{whose} is {cells} in all, in every notebook: finish with what you have"}
             self.cells += added
         held = await self.guard_code(name, tool_input)
         if held is not None:
@@ -1126,6 +1148,7 @@ async def run_events(request: AgentRequest, config: Whybook, driver: Driver | No
         id=secrets.token_hex(8),
         keep_local=request.keep_local,
         max_cells=request.max_cells,
+        analyst_limit=request.analyst_limit,
         shown=dict.fromkeys(request.frames()),
         guard_settings=dataclasses.replace(settings, language=languages.language(request.solve.language).name),
         to=to,

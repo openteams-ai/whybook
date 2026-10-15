@@ -3,6 +3,8 @@ import json
 import pytest
 from tornado.httpclient import HTTPClientError
 
+from whybook.server import routes
+
 AGE = {"name": "df['age']", "label": "age", "kind": "numeric", "parent": "df", "tag": "int", "rows": 100, "missing": 30}
 INCOME = {"name": "df['income']", "label": "income", "kind": "numeric", "parent": "df", "tag": "num", "rows": 100, "missing": 0}
 CONTEXT = {
@@ -39,6 +41,17 @@ async def test_status(jp_fetch):
     assert payload["claude"]["provider"] == "claude-code"
     assert payload["claude"]["local"] is False
     assert payload["claude_available"] is payload["claude"]["available"]
+    # The processors that the server may use: the view runs as many branches at once.
+    assert payload["cpu_count"] == routes.processors() >= 1
+
+
+def test_the_processors_follow_what_the_process_may_use(monkeypatch):
+    monkeypatch.delattr(routes.os, "process_cpu_count", raising=False)
+    monkeypatch.setattr(routes.os, "sched_getaffinity", lambda pid: {0, 1, 2}, raising=False)
+    assert routes.processors() == 3
+    monkeypatch.delattr(routes.os, "sched_getaffinity")
+    monkeypatch.setattr(routes.os, "cpu_count", lambda: None)
+    assert routes.processors() == 1
 
 
 async def test_status_says_why_the_remote_model_cannot_answer(jp_fetch, monkeypatch):

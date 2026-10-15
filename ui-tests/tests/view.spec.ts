@@ -3,7 +3,7 @@ import { galata } from '@jupyterlab/galata';
 import type { Locator } from '@playwright/test';
 import * as path from 'path';
 
-import { expect, test } from './fixtures';
+import { expect, parallelRuns, test } from './fixtures';
 import { tooltipLines } from './tooltips';
 
 const DEMO = path.resolve(__dirname, '..', '..', 'examples', 'pain_diary');
@@ -348,13 +348,17 @@ test('opens a notebook in the Whybook view', async ({ page, tmpPath }) => {
   });
   expect(Math.abs(place.offset)).toBeLessThan(0.5);
   expect(place.size).toBe(14);
-  // The status bar is short, and says the rest in its tooltip.
+  // The status bar is short, and says the rest in its tooltip. By default,
+  // one run for each processor that the server reports, and at least 2.
   const runs = page.locator('.jp-Epi-status-runs');
-  await expect(runs).toHaveText('Parallel 0/8');
+  const capacity = await parallelRuns(page);
+  await expect(runs).toHaveText(`Parallel 0/${capacity}`);
   // The tooltip also says that a parallel run shares the kernel's variables.
   await expect(runs).toHaveAttribute(
     'title',
-    /^0 of 8 parallel runs busy\. A parallel run is a subshell of the same kernel: it reads and writes the same variables/
+    new RegExp(
+      `^0 of ${capacity} parallel runs busy\\. A parallel run is a subshell of the same kernel: it reads and writes the same variables`
+    )
   );
   // With nothing selected, Contents has no head: its title names it.
   await expect(

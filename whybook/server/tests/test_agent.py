@@ -361,6 +361,52 @@ def test_a_file_result_keeps_its_path_when_the_data_stays_here():
     assert privacy.tool_result(result, True) == result
 
 
+async def test_a_run_takes_as_many_cells_as_the_analysis_needs_under_the_servers_guard():
+    # Writing an analysis again in another language took all 8 cells of the old limit in 8 of 18 runs.
+    assert (Whybook().agent_max_cells, Whybook().agent_max_turns) == (200, 400)
+    steps = [*[("run_cell", {"title": f"step {i}", "code": str(i)}) for i in range(12)], ("finish", {"answer": "done"})]
+    results = [{"status": "ok", "cell": f"[{i + 2}]"} for i in range(12)]
+    found = await drive(agent.run_events(request(), Whybook(), agent.scripted(steps)), results)
+    assert [event["name"] for event in found if event["type"] == "tool"] == ["run_cell"] * 12
+    assert found[-1]["answer"] == "done"
+
+
+def test_the_prompt_asks_for_few_cells_and_states_only_the_analysts_limit():
+    prompt = " ".join(request().system_prompt().split())
+    assert "Most answers take fewer than 4 cells, and almost all fewer than 10; take more only when the question needs them." in prompt
+    assert "Add at most" not in prompt
+    assert "two to four" not in prompt and "two to four" not in agent.TOOLS["explore"]["description"]
+    limited = request(max_cells=5)
+    assert (limited.max_cells, limited.analyst_limit) == (5, True)
+    assert "Add at most 5 cells in all, branches included." in limited.system_prompt()
+    # A limit above the server's guard leaves the guard.
+    above = request(max_cells=500)
+    assert (above.max_cells, above.analyst_limit) == (200, False)
+    for wrong in (0, -1, "5", True, 2.5):
+        with pytest.raises(InvalidRequest, match="max_cells"):
+            request(max_cells=wrong)
+
+
+async def test_a_run_refuses_cells_past_the_analysts_limit_and_says_whose_limit_it_is():
+    steps = [("run_cell", {"title": "one", "code": "1"}), ("run_cell", {"title": "two", "code": "2"}), ("finish", {"answer": "stopped"})]
+    found = await drive(agent.run_events(request(max_cells=1), Whybook(), agent.scripted(steps)), [{"status": "ok", "cell": "[2]"}])
+    assert found[-1]["results"][1] == {"status": "refused", "error": "the analyst's limit is 1 cell in all, in every notebook: finish with what you have"}
+
+
+async def test_explore_takes_up_to_twenty_branches_in_one_call():
+    def branches(count):
+        return {"of": "[2]", "branches": [{"title": f"b{i}", "code": f"b{i} = {i}"} for i in range(count)]}
+
+    steps = [("explore", branches(21)), ("explore", branches(20)), ("finish", {"answer": "done"})]
+    results = [{"status": "ok", "branches": [{"status": "ok", "cell": f"[2{chr(98 + i)}]"} for i in range(20)]}]
+    found = await drive(agent.run_events(request(), Whybook(), agent.scripted(steps)), results)
+    outcomes = found[-1]["results"]
+    assert outcomes[0] == {"status": "refused", "error": "at most 20 branches in one explore: compare fewer options, or call explore again for the rest"}
+    # The second call goes to the view.
+    assert [len(event["input"]["branches"]) for event in found if event["type"] == "tool"] == [20]
+    assert agent.TOOLS["explore"]["schema"]["properties"]["branches"]["maxItems"] == agent.MAX_BRANCHES == 20
+
+
 def test_the_branches_of_explore_are_told_to_keep_their_names_apart():
     # The branches run at the same time in subshells of one kernel, which share one namespace.
     prompt = " ".join(request().system_prompt().split())

@@ -129,13 +129,22 @@ class Whybook(Configurable):
         return os.environ.get("WHYBOOK_HUGGINGFACE_CLIENT_ID", "")
 
     agent_max_cells = Int(
-        8,
-        help="The most cells an agent adds for one question, branches included.",
+        200,
+        help=(
+            "The most cells that one agent run adds, in every notebook, branches included: a guard"
+            " against a run that goes wrong, such as one that adds cells in a loop. The prompt asks"
+            " the agent for fewer than 4 cells in most answers, and the analyst's setting"
+            " agentMaxCells can set a lower limit."
+        ),
     ).tag(config=True)
 
     agent_max_turns = Int(
-        30,
-        help="The most turns of one agent run: each tool call and its answer is one.",
+        400,
+        help=(
+            "The most turns of one agent run, each tool call and its answer one: a guard against a"
+            " run that goes wrong. A run that writes an analysis again in another language takes a"
+            " turn for each of its cells."
+        ),
     ).tag(config=True)
 
     agent_budget_usd = Float(

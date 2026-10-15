@@ -107,6 +107,8 @@ export interface IServerStatus {
   };
   /** False when the server's config turns off the table labels by the remote model. */
   describe_tables?: boolean;
+  /** The processors that the server's process may use: as many branches run at once, unless the analyst sets another number. */
+  cpu_count?: number | null;
   /** c.Whybook.claude_model, or null for the default of the remote model's client. */
   remote_model?: string | null;
   local_models?: ILocalModel[];

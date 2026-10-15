@@ -90,11 +90,11 @@
     },
     "subshellCapacity": {
       "title": "Parallel runs",
-      "description": "How many branches can run at the same time, the notebook's own run included. They share the kernel's data without a copy.",
+      "description": "How many branches run at the same time, the notebook's own run included; the others wait their turn. At zero, the default, one runs for each processor of the server's machine.",
       "type": "integer",
-      "minimum": 2,
-      "maximum": 32,
-      "default": 8
+      "minimum": 0,
+      "maximum": 256,
+      "default": 0
     },
     "mapColumns": {
       "title": "Columns of a data node on the map",
@@ -283,6 +283,19 @@
         }
       ],
       "default": "strip"
+    },
+    "agentMaxCells": {
+      "title": "Cells for one answer",
+      "description": "The most cells that an agent adds to answer one question, branches included, except for a rewrite in another language. With no limit, the agent keeps most answers short, and the server stops a run that goes wrong.",
+      "type": "integer",
+      "oneOf": [
+        { "const": 0, "title": "No limit" },
+        { "const": 4, "title": "4" },
+        { "const": 10, "title": "10" },
+        { "const": 20, "title": "20" },
+        { "const": 50, "title": "50" }
+      ],
+      "default": 0
     },
     "showCost": {
       "title": "Cost of AI answers",

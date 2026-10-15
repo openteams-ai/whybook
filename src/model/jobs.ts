@@ -54,7 +54,7 @@ export class JobManager implements IDisposable {
     this._sessionContext = options.sessionContext;
     this._rendermime = options.rendermime;
     this._prepare = options.prepare ?? null;
-    this.capacity = options.capacity ?? 8;
+    this._capacity = options.capacity ?? 8;
     this._sessionContext.kernelChanged.connect(this._onKernelChanged, this);
     this._sessionContext.statusChanged.connect((_, status) => {
       if (
@@ -69,7 +69,21 @@ export class JobManager implements IDisposable {
     this._readSubshells();
   }
 
-  capacity: number;
+  /** How many jobs run at once, the main shell included; the others wait. */
+  get capacity(): number {
+    return this._capacity;
+  }
+
+  set capacity(value: number) {
+    const grew = value > this._capacity;
+    this._capacity = value;
+    // The jobs that wait try again: a larger capacity has room for them.
+    if (grew) {
+      for (const next of this._waiting.splice(0)) {
+        next();
+      }
+    }
+  }
 
   /** The run going on, or the last one, for the kernel's status in the toolbar. */
   readonly tally = new RunTally(() => this._changed.emit());
@@ -436,6 +450,7 @@ export class JobManager implements IDisposable {
   // The connections to new subshells that open now.
   private _opening = 0;
   private _waiting: (() => void)[] = [];
+  private _capacity = 8;
   private _mainRunning = 0;
   // The end of the last branch that runs in the main shell.
   private _mainBranches: Promise<void> = Promise.resolve();

@@ -1,7 +1,7 @@
 import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 import { execFileSync } from 'child_process';
 
-import { expect, test } from './fixtures';
+import { expect, parallelRuns, test } from './fixtures';
 
 /**
  * The view against the sandboxed kernels (whybook/sandbox): the kernelspec
@@ -171,7 +171,9 @@ test('runs a notebook in the sandboxed kernel, with its variables and a branch i
   await openInWhybook(page, file);
   await kernelIdle(page);
   // The kernel in the sandbox has subshells, so branches run in parallel.
-  await expect(page.locator('.jp-Epi-status-runs')).toHaveText('Parallel 0/8');
+  await expect(page.locator('.jp-Epi-status-runs')).toHaveText(
+    `Parallel 0/${await parallelRuns(page)}`
+  );
   await page.locator('.jp-Epi-runall').click();
 
   const cell = (id: string) =>
