@@ -236,7 +236,7 @@ export interface IDeviceSignIn {
  */
 export type JsonCheck = 'fast' | 'standard';
 
-/** A model's type and place for a typed question: the pick and the probability of each option. */
+/** A model's type and place for a user question: the pick and the probability of each option. */
 export interface ISortedQuestion {
   type: { choice: string; probabilities: Record<string, number> } | null;
   place: { choice: string; probabilities: Record<string, number> } | null;

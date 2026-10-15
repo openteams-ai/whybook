@@ -190,7 +190,7 @@ describe('the strip of a run that the analyst starts', () => {
     }
   });
 
-  it('comes into sight for a question about a cell, as for a typed question', async () => {
+  it('comes into sight for a question about a cell, as for a user question', async () => {
     const { model, mounted } = await view();
     const page = layout({ top: 700, bottom: 760 });
     try {

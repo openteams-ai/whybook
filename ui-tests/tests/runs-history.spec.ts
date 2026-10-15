@@ -4,7 +4,7 @@
  *
  * - "Reproduce in R" in the menu of the kernel's name puts the run's strip
  *   at the end of the notebook: the view scrolls to it and outlines it. So
- *   does a typed question whose strip is out of sight. With less motion
+ *   does a user question whose strip is out of sight. With less motion
  *   asked for, the outline holds with no fade.
  * - The notebook keeps each run with its steps and its answer. "Agent runs"
  *   in the Exploration panel lists the runs, and draws a closed run's strip
@@ -267,7 +267,7 @@ test.describe('the strip of a run that the analyst starts', () => {
     expect(requests[0].compare.kernel).toBe(kernel);
   });
 
-  test('a typed question whose strip is out of sight scrolls to it, and the outline holds with no fade for less motion', async ({
+  test('a user question whose strip is out of sight scrolls to it, and the outline holds with no fade for less motion', async ({
     page,
     tmpPath
   }) => {

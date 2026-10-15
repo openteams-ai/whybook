@@ -135,7 +135,7 @@ async function benchOrder(page: IJupyterLabPageFixture): Promise<string[]> {
   );
 }
 
-/** Ask a typed question about a cell, as its follow-up box does. */
+/** Ask a user question about a cell, as its follow-up box does. */
 async function askAbout(
   page: IJupyterLabPageFixture,
   text: string,

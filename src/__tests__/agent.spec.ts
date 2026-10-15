@@ -530,7 +530,7 @@ describe('a run that works in a notebook it made', () => {
 });
 
 describe('the type of a cell of a run', () => {
-  it('reads the type from the title, then the why, then the code, by the rules of typed questions', () => {
+  it('reads the type from the title, then the why, then the code, by the rules of user questions', () => {
     // Cells of the NHEFS demo, which all showed the type of their question.
     expect(
       stepType(

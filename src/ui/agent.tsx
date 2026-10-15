@@ -215,7 +215,7 @@ export function AgentRunView(props: {
               <button
                 key={item}
                 className="jp-Epi-agentrun-followup"
-                title="Ask this, as a typed question"
+                title="Ask this, as a user question"
                 // The question keeps the type that its button shows.
                 onClick={() => void model.askOwn(text, 'notebook', { type })}
               >

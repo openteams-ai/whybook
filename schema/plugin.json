@@ -405,7 +405,7 @@
           "type": "string"
         },
         "typed": {
-          "title": "Typed questions",
+          "title": "User questions",
           "type": "string",
           "description": "rules, jev, a local model such as gemma-4-e2b, or custom: and the name of a custom local model in lower case, with dashes for other characters",
           "default": "rules"

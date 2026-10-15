@@ -898,7 +898,7 @@ def _softmax(scores: list[float]) -> list[float]:
 
 
 def classify(model: LocalModel, text: str, threads: int) -> dict[str, Any]:
-    """The probability of each type of a typed question, read where the answer starts.
+    """The probability of each type of a user question, read where the answer starts.
 
     The prompt lists the types, each with a letter and a meaning, with one
     solved example per type, and ends with "Answer: (", so that the next token

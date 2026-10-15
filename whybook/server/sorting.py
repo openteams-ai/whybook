@@ -37,7 +37,7 @@ TYPES = {
 }
 
 # One solved example per type, from the view's own questions: none of them is
-# among the 120 typed questions of the measurement.
+# among the 120 user questions of the measurement.
 TYPE_EXAMPLES = [
     ("How many observations fall in each level of site?", "descriptive"),
     ("Does pain_score differ between the levels of treatment_arm?", "association"),

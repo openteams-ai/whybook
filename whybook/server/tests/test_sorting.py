@@ -1,4 +1,4 @@
-"""Typed questions sorted by a model, and more questions from a local model.
+"""User questions sorted by a model, and more questions from a local model.
 
 Jev is answered by a fake fetch, and the local models by a fake llama_cpp:
 nothing leaves the machine and no model loads.

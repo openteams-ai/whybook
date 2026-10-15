@@ -18,7 +18,7 @@ import { AgentRunView } from '../ui/agent';
 import { benchModel } from './fakes/bench-fake';
 import { mount, step } from './fakes/bench-render';
 
-describe('the keywords of a typed question', () => {
+describe('the keywords of a user question', () => {
   it('type a question that names a causal method or an adjusted effect as causal', () => {
     const texts = [
       // The two branches of the video.

@@ -30,7 +30,7 @@ export type Snippet = string;
  *   analyze_cells;
  * - plots: questions about the rows behind a region of a plot, from
  *   region_summary;
- * - questions: offered and typed questions, which ask about the variables
+ * - questions: offered questions and user questions, which ask about the variables
  *   that inspect_variables lists. The templates' code is Python: in a kernel
  *   of another language the server sends their questions without code, and a
  *   model writes the cells in the kernel's language.

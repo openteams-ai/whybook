@@ -1279,7 +1279,7 @@ export class EpiModel implements IDisposable {
       this._sorted.set(question, sorted);
     } catch (error) {
       // The box keeps the keywords' type; the text is not asked again.
-      console.warn('Could not sort the typed question', error);
+      console.warn('Could not sort the user question', error);
     }
     // The texts of the last questions typed are enough.
     for (const old of Array.from(this._sorted.keys()).slice(0, -50)) {
@@ -5235,7 +5235,7 @@ export class EpiModel implements IDisposable {
   }
 
   /**
-   * The places a typed question's cell can go in a request, the default first:
+   * The places a user question's cell can go in a request, the default first:
    * a new cell below the cell the request is about, an edit of it, a branch
    * of it, or a preview that the notebook does not keep. A new cell is
    * labelled with where it goes now (./placement.ts), and two new cells that
@@ -5300,7 +5300,7 @@ export class EpiModel implements IDisposable {
         return [];
       }
       const places = around(ask.target.cellId);
-      // Shift+drop branches every option, and the typed question too.
+      // Shift+drop branches every option, and the user question too.
       const branch = places.find(place => place.kind === 'branch');
       return ask.modifiers.branch && branch
         ? [branch, ...places.filter(place => place !== branch)]

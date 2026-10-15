@@ -65,7 +65,7 @@ describe('Api, for the requests that a local model may answer', () => {
 describe('Api, with the data kept on this machine', () => {
   /**
    * Each method whose request the server may pass to a model outside this
-   * machine: the connected model, or Jev from TypeSafe for a typed question.
+   * machine: the connected model, or Jev from TypeSafe for a user question.
    * With the data kept here, the body carries keep_data_local, and the
    * server cuts the prompt back (whybook/server/privacy.py).
    */
@@ -359,7 +359,7 @@ describe('Api, for what each model call cost', () => {
     ]);
   });
 
-  it('tells what sorting a typed question cost', async () => {
+  it('tells what sorting a user question cost', async () => {
     const calls: IModelCall[] = [];
     request.mockResolvedValue({
       type: null,

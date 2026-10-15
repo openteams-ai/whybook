@@ -510,7 +510,7 @@ export function cellByLabel(
 
 /**
  * The type of a cell that a step of an agent's run wrote, by the rules that
- * type a typed question (./own.ts): the type that the words of the cell's
+ * type a user question (./own.ts): the type that the words of the cell's
  * title give, else those of the step's why, else those of its code, else
  * descriptive. "Read NHEFS data" is descriptive, "Prepare complete-case
  * analysis" is data quality, and a cell that calls .fit() is a model check.

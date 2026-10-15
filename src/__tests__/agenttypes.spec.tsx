@@ -1,7 +1,7 @@
 /**
  * The type on each cell of an agent's run. A cell shows the type of its own
  * step, from its title, its step's why and its code, by the rules that type
- * a typed question; the cell that holds the answer shows the question's
+ * a user question; the cell that holds the answer shows the question's
  * type once the run ends. The Exploration panel counts the question once,
  * by its type, whatever its cells show. No kernel runs: a cell's run is
  * faked, with its count and its outputs.

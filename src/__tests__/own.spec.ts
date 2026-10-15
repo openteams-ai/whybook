@@ -8,7 +8,7 @@ import {
 import type { IPlacement } from '../tokens';
 
 describe('guessType', () => {
-  it('sorts a typed question by its words', () => {
+  it('sorts a user question by its words', () => {
     expect(guessType('Does the tariff cause the drop in peak use?')).toBe(
       'causal'
     );

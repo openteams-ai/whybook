@@ -265,7 +265,7 @@ export const TASKS: {
   },
   {
     id: 'typed',
-    label: 'Typed questions',
+    label: 'User questions',
     help: 'Gives a question typed in a "Your own question" box its type: descriptive, association, causal, model check or data quality. The type shows on the question, counts in Questions asked, and goes to the model that writes the cell. With the keywords alone, words such as "cause", "missing" or "residual" set the type, and a question without them counts as descriptive. A local model reads the question when no keyword matches, and Jev also chooses where its cell goes.',
     sends: 'the question you type, and the first 20 lines of its cell',
     local: true,
@@ -314,7 +314,7 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
 /**
  * Local models that the view no longer offers, and the one that takes the
  * choice. Qwen3.5 0.8B is no longer offered: it described 2 of 12
- * held-out tables right (research/local-models.md), and typed questions
+ * held-out tables right (research/local-models.md), and user questions
  * gained 4 points with it over the keywords.
  */
 const DROPPED: Record<string, string> = { 'qwen3.5-0.8b': 'minicpm5-2b' };

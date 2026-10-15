@@ -1553,7 +1553,7 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
   const help = panel.locator('.jp-Epi-help');
   await expect(help).toHaveCount(9);
   const typed = panel.locator(
-    '.jp-Epi-help[aria-label="What Typed questions controls"]'
+    '.jp-Epi-help[aria-label="What User questions controls"]'
   );
   await expect(typed).toHaveAttribute('title', /counts as descriptive/);
   await typed.click();
@@ -1639,7 +1639,7 @@ test('chooses the model of each task from the toolbar, and in the settings', asy
     )
     .toContain('"labels": "minicpm5-2b"');
 
-  // With AI off for cells, a typed question cannot be asked.
+  // With AI off for cells, a user question cannot be asked.
   await select('cells').selectOption('off');
   await page.locator('.lm-TabBar-tab', { hasText: 'models.ipynb' }).click();
   await expect(page.locator('.jp-Epi-own textarea').first()).toHaveAttribute(
@@ -2048,7 +2048,7 @@ test('asks a question typed beside the questions offered', async ({
     'What is four times x?'
   ]);
 
-  // Alt+drop: a typed question joins the checklist of branches.
+  // Alt+drop: a user question joins the checklist of branches.
   await drag(
     page,
     page.locator('.jp-Epi-variable', { hasText: /^x/ }).first(),
@@ -2262,7 +2262,7 @@ test('says which branches of a parallel exploration failed, and keeps the done o
     page.locator('.jp-Epi-cell').first(),
     { alt: true }
   );
-  // The offered question needs AI, and the AI fails to write it; a typed
+  // The offered question needs AI, and the AI fails to write it; a user
   // question joins the checklist, and the AI writes it.
   const own = popover(page).locator('.jp-Epi-own textarea');
   await own.fill('Is x even?');
@@ -2436,7 +2436,7 @@ test('answers a question in the right sidebar, with what the AI is doing', async
   await expect(right).not.toHaveClass(/jp-mod-split/);
 });
 
-test('asks for a guess while a typed question runs, counts it, and offers no questions at 0', async ({
+test('asks for a guess while a user question runs, counts it, and offers no questions at 0', async ({
   page,
   tmpPath
 }) => {
@@ -2517,7 +2517,7 @@ test('asks for a guess while a typed question runs, counts it, and offers no que
     await expect(answer.locator('.jp-Epi-guess-chip')).toHaveText(
       'expected higher'
     );
-    // The Exploration panel counts the guess, and the typed question apart.
+    // The Exploration panel counts the guess, and the user question apart.
     const numbers = page.locator('.jp-Epi-right .jp-Epi-numbers');
     // One guess, in the singular.
     const guesses = numbers.locator(
@@ -2907,7 +2907,7 @@ test('closes the questions and the Ask menu when a click or focus goes elsewhere
   await expect(popover(page)).toHaveCount(0);
 });
 
-test('sorts a typed question with the model chosen for typed questions', async ({
+test('sorts a user question with the model chosen for user questions', async ({
   page,
   tmpPath
 }) => {
@@ -3173,7 +3173,7 @@ test('orders the questions offered with the model chosen for question order', as
   await expect(texts).toHaveText(rules);
 });
 
-test('answers a typed question with an agent that adds and runs cells and side explorations', async ({
+test('answers a user question with an agent that adds and runs cells and side explorations', async ({
   page,
   tmpPath
 }) => {

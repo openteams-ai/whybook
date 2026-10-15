@@ -1037,7 +1037,7 @@ export function OwnQuestion(props: {
     write: setText,
     focus: () => input()?.focus()
   });
-  // The model chosen for typed questions sorts the text once the typing stops.
+  // The model chosen for user questions sorts the text once the typing stops.
   const kinds = places.map(place => place.kind).join(' ');
   React.useEffect(() => {
     if (!question) {
@@ -1209,7 +1209,7 @@ export function OwnQuestion(props: {
   );
 }
 
-/** How a typed question is asked: the place of its cell, or in parallel. */
+/** How a user question is asked: the place of its cell, or in parallel. */
 export interface IAskHow {
   place?: IPlacement | null;
   parallel?: boolean;
