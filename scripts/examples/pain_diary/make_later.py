@@ -11,11 +11,9 @@ metadata. The notebook then opens with its map and panels before anything
 runs. The labels of the large tables are written here, from the numbers of
 each table, where the view would ask Claude for them.
 
-    python scripts/examples/pain_diary/make_later.py [--root]
+    python scripts/examples/pain_diary/make_later.py
 
-With --root it writes pain_diary_demo_6h.ipynb in the repository root instead,
-importing prep as examples.pain_diary.prep. It runs every cell, which takes a
-minute or two.
+It runs every cell, which takes a minute or two.
 """
 
 from __future__ import annotations
@@ -28,7 +26,7 @@ from pathlib import Path
 import nbformat
 from nbformat.v4 import new_notebook
 
-from make_notebook import CELLS, EXAMPLE, NOTEBOOK_EPI, REPO, code, markdown, question
+from make_notebook import CELLS, EXAMPLE, NOTEBOOK_EPI, code, markdown, question
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent))
@@ -383,13 +381,9 @@ def labels(facts: dict) -> dict[str, list[tuple[str, str]]]:
 
 
 def main() -> None:
-    root = "--root" in sys.argv
-    cells = copy.deepcopy(CELLS) + copy.deepcopy(LATER)
     # The questions of the first notebook came first.
-    if root:
-        imports = next(cell for cell in cells if cell["id"] == "imports")
-        imports["source"] = imports["source"].replace("from prep import", "from examples.pain_diary.prep import")
-    path, run_in = (REPO / "pain_diary_demo_6h.ipynb", REPO) if root else (EXAMPLE / "pain_diary_cohort_6h.ipynb", EXAMPLE)
+    cells = copy.deepcopy(CELLS) + copy.deepcopy(LATER)
+    path = EXAMPLE / "pain_diary_cohort_6h.ipynb"
     epi_meta = copy.deepcopy(NOTEBOOK_EPI)
     asked = [cell["metadata"]["whybook"]["question"] for cell in cells if cell.cell_type == "code" and "question" in cell["metadata"].get("whybook", {})]
     epi_meta["exploration"]["asked"] = [
@@ -414,7 +408,7 @@ def main() -> None:
         },
     )
     # Run it, and keep what the view keeps after a run.
-    facts = run_and_keep(notebook, run_in, FACTS)
+    facts = run_and_keep(notebook, EXAMPLE, FACTS)
     labelled = label_tables(notebook.cells, labels(facts), "scripts/examples/pain_diary/make_later.py")
     next(cell for cell in notebook.cells if cell["id"] == "summary")["source"] = summary(facts)
     nbformat.validate(notebook)

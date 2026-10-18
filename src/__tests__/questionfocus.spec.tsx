@@ -207,7 +207,7 @@ describe('the focus when the questions close, with a Whybook notebook opened ear
     setup: (model: EpiModel) => void = () => undefined
   ) {
     const other = benchModel(first, { path: 'Untitled.ipynb' }).model;
-    const asking = benchModel(DEMO, { path: 'pain_diary_demo.ipynb' }).model;
+    const asking = benchModel(DEMO, { path: 'pain_diary_cohort.ipynb' }).model;
     setup(other);
     setup(asking);
     const view = (model: EpiModel) => (

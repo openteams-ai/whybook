@@ -1,9 +1,6 @@
 """Write examples/pain_diary/pain_diary_cohort.ipynb, the demo notebook, with its whybook metadata.
 
-    python scripts/examples/pain_diary/make_notebook.py [--execute] [--root]
-
-With --root it writes pain_diary_demo.ipynb in the repository root instead,
-the same notebook importing prep as examples.pain_diary.prep.
+    python scripts/examples/pain_diary/make_notebook.py [--execute]
 """
 
 from __future__ import annotations
@@ -159,12 +156,8 @@ NOTEBOOK_EPI = {
 
 
 def main() -> None:
-    root = "--root" in sys.argv
     cells = copy.deepcopy(CELLS)
-    if root:
-        imports = next(cell for cell in cells if cell["id"] == "imports")
-        imports["source"] = imports["source"].replace("from prep import", "from examples.pain_diary.prep import")
-    path, run_in = (REPO / "pain_diary_demo.ipynb", REPO) if root else (EXAMPLE / "pain_diary_cohort.ipynb", EXAMPLE)
+    path = EXAMPLE / "pain_diary_cohort.ipynb"
     notebook = new_notebook(
         cells=cells,
         metadata={
@@ -176,7 +169,7 @@ def main() -> None:
     if "--execute" in sys.argv:
         from nbclient import NotebookClient
 
-        NotebookClient(notebook, timeout=600, kernel_name="python3", resources={"metadata": {"path": str(run_in)}}).execute()
+        NotebookClient(notebook, timeout=600, kernel_name="python3", resources={"metadata": {"path": str(EXAMPLE)}}).execute()
     nbformat.validate(notebook)
     nbformat.write(notebook, path)
     print(f"wrote {path}")
