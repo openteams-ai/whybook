@@ -1,0 +1,129 @@
+# PyPI's trusted publisher names this file and the environment pypi: renaming either stops the upload.
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      # jlpm comes from jupyter-builder, a build requirement, so the build only needs Node.js.
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+          package-manager-cache: false
+
+      - name: Install the build and check tools
+        run: python -m pip install build==1.6.1 twine==7.0.0 check-wheel-contents==0.6.3 "validate-pyproject[all]==0.26"
+
+      - name: Check pyproject.toml
+        run: validate-pyproject pyproject.toml
+
+      - name: Build the sdist and the wheel
+        run: python -m build
+
+      - name: Read the version
+        id: version
+        run: |
+          set -eux
+          sdist=$(ls dist/*.tar.gz)
+          version=${sdist#dist/whybook-}
+          version=${version%.tar.gz}
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check that the release tag matches the version
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::The release tag is $TAG but package.json builds version $VERSION, so the tag must be v$VERSION."
+            exit 1
+          fi
+
+      - name: Check the metadata and the wheel contents
+        run: |
+          set -eux
+          ls -l dist
+          twine check --strict dist/*
+          check-wheel-contents --config pyproject.toml dist/*.whl
+
+      - name: Install each file in a new environment
+        run: |
+          set -eux
+          for dist in dist/*.whl dist/*.tar.gz; do
+            python -m venv "$RUNNER_TEMP/env"
+            "$RUNNER_TEMP/env/bin/python" -m pip install "$dist"
+            "$RUNNER_TEMP/env/bin/python" -c "import whybook"
+            "$RUNNER_TEMP/env/bin/jupyter" server extension list 2>&1 | grep -ie "whybook.*OK"
+            "$RUNNER_TEMP/env/bin/jupyter" labextension list 2>&1 | grep -ie "whybook.*OK"
+            rm -rf "$RUNNER_TEMP/env"
+          done
+
+      - name: Upload the files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  pypi:
+    name: Upload to PyPI
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/whybook/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write # The OIDC token of trusted publishing and the attestations.
+    steps:
+      - name: Download the files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+  github-release:
+    name: Attach the files to the release
+    needs: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Adds the files to the GitHub release.
+    steps:
+      - name: Download the files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload the files to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY"
