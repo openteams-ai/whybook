@@ -10,6 +10,9 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "whybook/sandbox/codex/LICENSE", "whybook/sandbox/codex/NOTICE"]
 requires-python = ">=3.10"
 classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Framework :: Jupyter",
     "Framework :: Jupyter :: JupyterLab",
     "Framework :: Jupyter :: JupyterLab :: 4",
@@ -124,6 +127,8 @@ source = "nodejs"
 
 [tool.hatch.metadata.hooks.nodejs]
 fields = ["description", "authors", "urls", "keywords"]
+# JupyterLab's extension manager links the repository from "Source Code".
+repository-label = "Source Code"
 
 [tool.hatch.build.targets.sdist]
 artifacts = ["whybook/labextension"]
@@ -141,6 +146,14 @@ exclude = [
 [tool.hatch.build.targets.wheel]
 # whybook holds the notebook helpers and, in whybook.server, the server extension.
 packages = ["whybook"]
+
+# The demo that `python -m whybook.demo` writes (whybook/demo/__init__.py). git
+# keeps one copy, in examples/pain_diary, and the sdist carries that folder. The
+# later demo, pain_diary_cohort_6h.ipynb (1 MB), stays out of the wheel.
+[tool.hatch.build.targets.wheel.force-include]
+"examples/pain_diary/pain_diary_cohort.ipynb" = "whybook/demo/pain_diary/pain_diary_cohort.ipynb"
+"examples/pain_diary/prep.py" = "whybook/demo/pain_diary/prep.py"
+"examples/pain_diary/clinic.sqlite" = "whybook/demo/pain_diary/clinic.sqlite"
 
 [tool.hatch.build.targets.wheel.shared-data]
 "whybook/labextension" = "share/jupyter/labextensions/whybook"

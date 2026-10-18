@@ -7,7 +7,7 @@
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "https://github.com/openteams-ai/whybook",
+    "homepage": "https://whybook.dev",
     "bugs": {
         "url": "https://github.com/openteams-ai/whybook/issues"
     },

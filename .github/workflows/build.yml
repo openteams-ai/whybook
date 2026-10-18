@@ -106,6 +106,9 @@ jobs:
         jupyter labextension list 2>&1 | grep -ie "whybook.*OK"
         python -m jupyterlab.browser_check --no-browser-test
 
+        # This job has no checkout, so the demo's files can come only from the wheel.
+        python -m whybook.demo "$RUNNER_TEMP/whybook-demo"
+
   integration-tests:
     name: Integration tests
     needs: build

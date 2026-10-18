@@ -23,15 +23,26 @@ def test_the_demo_keeps_a_run_without_an_error(name):
 @pytest.mark.demo
 @pytest.mark.parametrize("name", NOTEBOOKS)
 def test_the_demo_runs_from_its_folder(name, tmp_path, monkeypatch):
-    """Run all, as the README asks: a kernel in examples/pain_diary runs every cell. Each notebook takes 10 to 20 s."""
+    """Run all, as the README asks: a kernel in the notebook's folder runs every cell. Each notebook takes 10 to 20 s.
+
+    The first notebook runs in a folder that `python -m whybook.demo` writes,
+    so the files that the command copies are enough to run it. The later one
+    runs in examples/pain_diary.
+    """
     for module in ("nbclient", "ipykernel", "numpy", "pandas", "scipy", "statsmodels"):
         pytest.importorskip(module)
     from nbclient import NotebookClient
 
+    from whybook import demo
+
     # IPython's history in a folder of the test's own: the history file in the
     # home folder is shared with the user's kernels.
     monkeypatch.setenv("IPYTHONDIR", str(tmp_path / "ipython"))
-    notebook = nbformat.read(DEMO / name, 4)
+    folder = DEMO
+    if name == demo.NOTEBOOK:
+        folder = tmp_path / "pain_diary"
+        assert demo.main([str(folder)]) == 0
+    notebook = nbformat.read(folder / name, 4)
     # execute() raises CellExecutionError at the first cell that fails.
-    NotebookClient(notebook, timeout=600, kernel_name="python3", resources={"metadata": {"path": str(DEMO)}}).execute()
+    NotebookClient(notebook, timeout=600, kernel_name="python3", resources={"metadata": {"path": str(folder)}}).execute()
     assert all(cell.execution_count for cell in notebook.cells if cell.cell_type == "code")
