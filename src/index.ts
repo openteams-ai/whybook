@@ -33,6 +33,7 @@ import { checkupPlugin } from './checkup';
 import { addContextMenus } from './contextmenu';
 import { addKernelMenu } from './kernelmenu';
 import { launcherPlugin } from './launcher';
+import { welcomePlugin } from './welcome';
 import {
   EditorSwitch,
   followMain,
@@ -674,12 +675,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
 // The check-up of a notebook is a prototype in a plugin of its own, so that
 // it can go without a trace (design iteration 1.70). So is the agent's work
-// in another notebook, with the trial menu of the kernel (1.68, 1.69), and
-// the launcher's section with a card for each kernel (1.72).
+// in another notebook, with the trial menu of the kernel (1.68, 1.69), the
+// launcher's section with a card for each kernel (1.72), and the screen
+// "Three ways to use models" (1.131).
 export default [
   plugin,
   agentRunsPlugin,
   checkupPlugin,
   reproducePlugin,
-  launcherPlugin
+  launcherPlugin,
+  welcomePlugin
 ];

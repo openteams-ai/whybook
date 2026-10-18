@@ -13,7 +13,9 @@
  *
  * It needs a server that serves a copy of examples/pain_diary, because it
  * edits the notebook it opens, with settings and workspaces directories of
- * its own, and no model: a data folder of its own (WHYBOOK_DATA_DIR) and
+ * its own (with new settings, the screen "Three ways to use models" shows
+ * when Whybook first opens, and the script presses "Decide later"), and no
+ * model: a data folder of its own (WHYBOOK_DATA_DIR) and
  * --Whybook.describe_tables=False. Notebook 7.6 or later:
  *
  *   DEMO=$(mktemp -d)
@@ -186,6 +188,20 @@ async function openEditor(page) {
   await page.waitForSelector('.jp-NotebookPanel .jp-Cell', { timeout: 60000 });
 }
 
+/**
+ * Close the screen "Three ways to use models" with "Decide later", when it
+ * shows: a new user meets it once, when the first notebook opens in Whybook,
+ * and it covers the page until it closes. The settings stay as they are.
+ */
+async function decideLater(page) {
+  const screen = page.locator('.jp-Epi-ways-dialog');
+  await screen.waitFor({ timeout: 10000 }).catch(() => null);
+  if (await screen.isVisible()) {
+    await screen.getByRole('button', { name: 'Decide later' }).click();
+    await screen.waitFor({ state: 'detached' });
+  }
+}
+
 /** Show the notebook in Whybook: Notebook 7's switch, JupyterLab's command. */
 async function toWhybook(page) {
   if (NB7) {
@@ -255,6 +271,7 @@ async function main() {
     await shot('02-editor');
 
     await toWhybook(page);
+    await decideLater(page);
     await eventually(async () => {
       const now = await pageState(page);
       return now.whybook && now.variables && now.exploration;

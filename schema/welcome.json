@@ -1,0 +1,36 @@
+{
+  "jupyter.lab.setting-icon": "whybook:epinotebook",
+  "jupyter.lab.setting-icon-label": "Whybook",
+  "title": "Whybook first run",
+  "description": "The screen Three ways to use models, which asks where models run and what leaves this machine.",
+  "type": "object",
+  "properties": {
+    "when": {
+      "title": "When to ask where models run",
+      "description": "When the screen Three ways to use models shows by itself, once. The command palette and the AI models panel open it at any time.",
+      "type": "string",
+      "oneOf": [
+        {
+          "const": "notebook",
+          "title": "When the first notebook opens in Whybook"
+        },
+        {
+          "const": "call",
+          "title": "Before the first call to a model, which waits"
+        },
+        {
+          "const": "never",
+          "title": "Never: the settings decide"
+        }
+      ],
+      "default": "notebook"
+    },
+    "shown": {
+      "title": "Three ways to use models: shown",
+      "description": "Whybook sets this once the screen has shown by itself, for every browser of this user. Clear it to see the screen again.",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -4,7 +4,9 @@
  * It needs a running JupyterLab that serves a copy of examples/pain_diary,
  * because it edits the notebook it opens. The view saves the Drag or Click
  * choice and the layout as settings, so give that server its own settings and
- * workspaces directories. See TESTING.md for the commands.
+ * workspaces directories. With new settings, the screen "Three ways to use
+ * models" shows when the notebook opens, and the script presses "Decide
+ * later". See TESTING.md for the commands.
  *
  *   PLAYWRIGHT_CORE=<path to playwright-core> node ui-tests/smoke.js [shots-dir]
  *
@@ -98,6 +100,20 @@ async function popover(page) {
   return page.locator('.jp-Epi-popover');
 }
 
+/**
+ * Close the screen "Three ways to use models" with "Decide later", when it
+ * shows: a new user meets it once, when the first notebook opens in Whybook,
+ * and it covers the page until it closes. The settings stay as they are.
+ */
+async function decideLater(page) {
+  const screen = page.locator('.jp-Epi-ways-dialog');
+  await screen.waitFor({ timeout: 10000 }).catch(() => null);
+  if (await screen.isVisible()) {
+    await screen.getByRole('button', { name: 'Decide later' }).click();
+    await screen.waitFor({ state: 'detached' });
+  }
+}
+
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({
@@ -138,6 +154,7 @@ async function main() {
       null,
       { timeout: 60000 }
     );
+    await decideLater(page);
     // Start from the defaults: an earlier run can stop in Click mode.
     await page
       .locator('.jp-Epi-questions .jp-Epi-toggle [data-value="drag"]')

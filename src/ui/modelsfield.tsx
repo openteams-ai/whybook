@@ -36,7 +36,52 @@ export function modelsFieldRenderer(
 }
 
 /** A download in progress: the share done, null while unknown, or the error. */
-type Download = number | null | { error: string };
+export type Download = number | null | { error: string };
+
+/**
+ * The downloads that a form started, by the model's id, and the function
+ * that starts one: a speech engine's model through its own route
+ * (whybook/server/speech.py), any other through models/download. `done`
+ * runs when a download ends well, so that the form reads the status again.
+ */
+export function useDownloads(
+  api: Api,
+  done: () => void
+): [Record<string, Download>, (task: Task, id: string) => void] {
+  const [downloads, setDownloads] = React.useState<Record<string, Download>>(
+    {}
+  );
+  const finished = React.useRef(done);
+  finished.current = done;
+  const download = (task: Task, id: string) => {
+    const set = (value: Download | undefined) =>
+      setDownloads(current => {
+        const next = { ...current };
+        if (value === undefined) {
+          delete next[id];
+        } else {
+          next[id] = value;
+        }
+        return next;
+      });
+    set(null);
+    const fetchModel =
+      task === 'speech'
+        ? api.downloadSpeech.bind(api)
+        : api.downloadModel.bind(api);
+    fetchModel(id, event => {
+      if (event.type === 'progress') {
+        set(event.progress ?? null);
+      } else if (event.type === 'error') {
+        set({ error: event.message ?? 'the download failed' });
+      } else {
+        set(undefined);
+        finished.current();
+      }
+    }).catch(error => set({ error: String(error) }));
+  };
+  return [downloads, download];
+}
 
 function ModelsField(props: IFieldProps & { api: Api }): JSX.Element {
   const { api } = props;
@@ -48,9 +93,6 @@ function ModelsField(props: IFieldProps & { api: Api }): JSX.Element {
     settings.composite.keepDataLocal === true
   );
   const [status, setStatus] = React.useState<IServerStatus | null>(null);
-  const [downloads, setDownloads] = React.useState<Record<string, Download>>(
-    {}
-  );
   // The task whose select opened the list of the provider's models.
   const [picking, setPicking] = React.useState<Task | null>(null);
   const refresh = React.useCallback(() => {
@@ -85,34 +127,7 @@ function ModelsField(props: IFieldProps & { api: Api }): JSX.Element {
     void settings.set('models', next);
   };
 
-  const download = (task: Task, id: string) => {
-    const set = (value: Download | undefined) =>
-      setDownloads(current => {
-        const next = { ...current };
-        if (value === undefined) {
-          delete next[id];
-        } else {
-          next[id] = value;
-        }
-        return next;
-      });
-    set(null);
-    // A speech engine's model comes through its own route: whybook/server/speech.py.
-    const fetchModel =
-      task === 'speech'
-        ? api.downloadSpeech.bind(api)
-        : api.downloadModel.bind(api);
-    fetchModel(id, event => {
-      if (event.type === 'progress') {
-        set(event.progress ?? null);
-      } else if (event.type === 'error') {
-        set({ error: event.message ?? 'the download failed' });
-      } else {
-        set(undefined);
-        refresh();
-      }
-    }).catch(error => set({ error: String(error) }));
-  };
+  const [downloads, download] = useDownloads(api, refresh);
 
   return (
     <fieldset className="jp-Epi-modelsfield">
@@ -183,50 +198,82 @@ function ModelsField(props: IFieldProps & { api: Api }): JSX.Element {
   );
 }
 
-function ChoiceNote(props: {
+/**
+ * The line under a model's select while its file is not on this machine:
+ * Download with its size and where it comes from, then the progress of the
+ * download, or its error. Null for a model that needs no download. Nothing
+ * downloads until the analyst presses Download.
+ */
+export function DownloadLine(props: {
   choice: IModelChoice;
   download: Download | undefined;
   onDownload: () => void;
-}): JSX.Element {
-  const { choice, download } = props;
+  /** The class of the line: the settings editor's, or the AI models panel's. */
+  className: string;
+  /** Marks the button as the step at which the AI models panel opened. */
+  step?: boolean;
+}): JSX.Element | null {
+  const { choice, download, className } = props;
   if (download !== undefined) {
     if (download !== null && typeof download === 'object') {
       return (
-        <div className="jp-Epi-modelsfield-note jp-mod-error">
-          {download.error}
-        </div>
+        <div className={`${className} jp-mod-error`}>{download.error}</div>
       );
     }
     return (
-      <div className="jp-Epi-modelsfield-note">
+      <div className={className}>
         Downloading {choice.label.replace(', local', '')}{' '}
         <ProgressBar value={download} label="Download" />
       </div>
     );
   }
-  if (!choice.available && choice.download !== null) {
-    return (
-      <div className="jp-Epi-modelsfield-note">
-        Not downloaded.{' '}
-        <Button
-          small
-          className="jp-Epi-button jp-mod-styled jp-mod-accept"
-          onClick={props.onDownload}
-        >
-          Download
-          {choice.download === 0
-            ? ''
-            : choice.download >= 1000
-              ? ` ${(choice.download / 1000).toFixed(1)} GB`
-              : ` ${choice.download} MB`}
-        </Button>
-        {choice.from
-          ? ` from ${choice.from}`
-          : choice.source
-            ? ` from ${choice.source} on Hugging Face`
-            : ''}
-      </div>
-    );
+  const size = choice.download;
+  if (choice.available || size === null) {
+    return null;
+  }
+  return (
+    <div className={className}>
+      Not downloaded.{' '}
+      <Button
+        small
+        className="jp-Epi-button jp-mod-styled jp-mod-accept"
+        data-epi-step={props.step ? 'true' : undefined}
+        onClick={props.onDownload}
+      >
+        Download
+        {size === 0
+          ? ''
+          : size >= 1000
+            ? ` ${(size / 1000).toFixed(1)} GB`
+            : ` ${size} MB`}
+      </Button>
+      {choice.from
+        ? ` from ${choice.from}`
+        : choice.source
+          ? ` from ${choice.source} on Hugging Face`
+          : ''}
+    </div>
+  );
+}
+
+/** Whether a model's line is about its download: one that goes on or ended badly, or a file to download. */
+export function showsDownload(
+  choice: IModelChoice,
+  download: Download | undefined
+): boolean {
+  return (
+    download !== undefined || (!choice.available && choice.download !== null)
+  );
+}
+
+function ChoiceNote(props: {
+  choice: IModelChoice;
+  download: Download | undefined;
+  onDownload: () => void;
+}): JSX.Element {
+  const { choice } = props;
+  if (showsDownload(choice, props.download)) {
+    return <DownloadLine {...props} className="jp-Epi-modelsfield-note" />;
   }
   if (choice.waiting) {
     return (

@@ -3,5 +3,8 @@
     "defaultViewers": {
       "notebook": "Whybook"
     }
+  },
+  "whybook:welcome": {
+    "when": "never"
   }
 }

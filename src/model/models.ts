@@ -37,6 +37,15 @@ export const DEFAULT_MODELS: ModelChoices = {
   ranking: 'rules'
 };
 
+/**
+ * The step at which the AI models panel opens, as the screen "Three ways to
+ * use models" leaves it (./ways.ts): `connect` opens the list of providers,
+ * with `here` for a model on this machine; `download` puts the focus on the
+ * Download of a task's model. Without a step, the panel opens at its top.
+ */
+export type ModelsPanelStep =
+  { kind: 'connect'; here: boolean } | { kind: 'download'; task: Task };
+
 /** A task's choice, with the default for one that the choices lack. */
 export function choiceOf(models: ModelChoices, task: Task): string {
   return models[task] ?? DEFAULT_MODELS[task] ?? 'off';

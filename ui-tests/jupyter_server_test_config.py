@@ -4,6 +4,7 @@
 opens the server to the world and provide access to JupyterLab
 JavaScript objects through the global window variable.
 """
+import json
 import os
 from tempfile import mkdtemp
 
@@ -14,6 +15,15 @@ configure_jupyter_server(c)
 # The view saves the Drag or Click choice and the layout as settings: keep the
 # tests' settings out of the user's own settings directory.
 c.LabApp.user_settings_dir = mkdtemp(prefix="galata-settings-")
+
+# The screen "Three ways to use models" would show when the first notebook
+# opens, over every test: the defaults of the test server leave it out, as
+# Binder's do (binder/overrides.json), and its own tests turn it on in their
+# settings.
+app_settings = mkdtemp(prefix="galata-app-settings-")
+with open(os.path.join(app_settings, "overrides.json"), "w", encoding="utf-8") as overrides:
+    json.dump({"whybook:welcome": {"when": "never"}}, overrides)
+c.LabApp.app_settings_dir = app_settings
 
 # The connected model and the keys of the providers (whybook/server/keystore.py):
 # kept out of the user's own Jupyter data folder.

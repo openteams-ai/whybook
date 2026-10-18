@@ -5,7 +5,7 @@ import * as ReactDOM from 'react-dom';
 import type { IConnectionState } from '../model/api';
 import { usesOpenRouter } from '../model/connection';
 import type { EpiModel } from '../model/epimodel';
-import type { Task } from '../model/models';
+import type { ModelsPanelStep, Task } from '../model/models';
 import {
   aiSummary,
   cannotRun,
@@ -15,11 +15,17 @@ import {
   TASKS,
   WAITING
 } from '../model/models';
-import { HelpButton, useDismiss, useModel, viewOf } from './common';
+import { flash, HelpButton, useDismiss, useModel, viewOf } from './common';
 import { ModelOptions } from './modeloptions';
 import { ConnectionSection } from './connection';
-import { DataPolicyToggle, RetentionToggle } from './datapolicy';
+import {
+  DataPolicyToggle,
+  dataPolicyFixed,
+  RetentionToggle
+} from './datapolicy';
+import { viewExtensions } from './extensions';
 import { GuardSection } from './guard';
+import { DownloadLine, showsDownload, useDownloads } from './modelsfield';
 import { TaskModelPicker } from './taskmodels';
 
 /**
@@ -43,18 +49,29 @@ export function AIButton(props: {
   // The element that had the focus when the panel opened, such as the link
   // of a note, takes it back on Escape: the AI button, after its own click.
   const opener = React.useRef<HTMLElement | null>(null);
-  const open = React.useCallback(() => {
-    // A model downloaded since the view opened shows up.
-    model.refreshStatus();
-    const active = document.activeElement;
-    opener.current =
-      active instanceof HTMLElement &&
-      active !== document.body &&
-      !panel.current?.contains(active)
-        ? active
-        : null;
-    setWhere(placeOf(button.current, viewOf(model)));
-  }, [model]);
+  // The step at which the panel opened, such as the Download of a model that
+  // the screen "Three ways to use models" chose: null for the panel's top.
+  const [step, setStep] = React.useState<ModelsPanelStep | null>(null);
+  const open = React.useCallback(
+    (_sender: unknown = null, at: ModelsPanelStep | null = null) => {
+      // A model downloaded since the view opened shows up.
+      model.refreshStatus();
+      const active = document.activeElement;
+      opener.current =
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        !panel.current?.contains(active)
+          ? active
+          : null;
+      setStep(at);
+      setWhere(placeOf(button.current, viewOf(model)));
+    },
+    [model]
+  );
+  const close = React.useCallback(() => {
+    setWhere(null);
+    setStep(null);
+  }, []);
   React.useEffect(() => {
     model.modelsPanelRequested.connect(open);
     return () => {
@@ -62,13 +79,14 @@ export function AIButton(props: {
     };
   }, [model, open]);
   // A dialog that the panel opens, such as the privacy policy's, counts as inside.
-  useDismiss(panel, () => setWhere(null), {
+  useDismiss(panel, close, {
     anchor: button,
     keep: '.jp-Dialog'
   });
   // The panel is a dialog: it takes the focus when it opens, so that the
   // keyboard reaches its choices. With the focus left on the button, Tab
-  // went past the panel, which closed as the focus left it.
+  // went past the panel, which closed as the focus left it. At a step, the
+  // control of the step takes it, and its row is outlined for a moment.
   const opened = where !== null;
   React.useEffect(() => {
     if (!opened) {
@@ -76,9 +94,20 @@ export function AIButton(props: {
     }
     // After the click that opened it: the toolbar activates the document,
     // which takes the focus, when the click leaves the focus outside it.
-    const frame = window.requestAnimationFrame(() => panel.current?.focus());
+    const frame = window.requestAnimationFrame(() => {
+      const target = step
+        ? panel.current?.querySelector<HTMLElement>('[data-epi-step]')
+        : null;
+      if (target) {
+        target.focus();
+        target.scrollIntoView?.({ block: 'nearest' });
+        flash(target.closest('.jp-Epi-aipanel-note') ?? target);
+      } else {
+        panel.current?.focus();
+      }
+    });
     return () => window.cancelAnimationFrame(frame);
-  }, [opened]);
+  }, [opened, step]);
   React.useEffect(() => {
     if (!where) {
       return;
@@ -86,7 +115,7 @@ export function AIButton(props: {
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         const inside = panel.current?.contains(document.activeElement);
-        setWhere(null);
+        close();
         if (inside) {
           const back = opener.current?.isConnected
             ? opener.current
@@ -109,6 +138,10 @@ export function AIButton(props: {
   );
   // The task whose select opened the list of the provider's models.
   const [picking, setPicking] = React.useState<Task | null>(null);
+  // A local model's file goes on downloading while the panel is closed.
+  const [downloads, download] = useDownloads(model.api, () =>
+    model.refreshStatus()
+  );
   return (
     <>
       <button
@@ -117,7 +150,7 @@ export function AIButton(props: {
         aria-haspopup="dialog"
         aria-expanded={where !== null}
         title={`${aiSummary(status, settings.models)}. Choose the model of each task.`}
-        onClick={() => (where ? setWhere(null) : open())}
+        onClick={() => (where ? close() : open())}
       >
         <span>AI</span>
         <caretDownIcon.react tag="span" className="jp-Epi-aibutton-caret" />
@@ -138,7 +171,11 @@ export function AIButton(props: {
             }}
           >
             <div className="jp-Epi-aipanel-title">AI models</div>
-            <ConnectionSection model={model} onState={setConnection} />
+            <ConnectionSection
+              model={model}
+              onState={setConnection}
+              openList={step?.kind === 'connect' ? step : null}
+            />
             {model.jsonCheckWarning && (
               <div className="jp-Epi-aipanel-note jp-mod-warning">
                 {model.jsonCheckWarning}
@@ -149,6 +186,7 @@ export function AIButton(props: {
                 id="jp-Epi-quick-keepDataLocal"
                 checked={settings.keepDataLocal}
                 fixed={model.dataFixed}
+                fixedNote={dataPolicyFixed(model.status)}
                 onChange={value => settings.set('keepDataLocal', value)}
               />
               {/* Only with an OpenRouter connection, whose requests it filters. */}
@@ -199,31 +237,52 @@ export function AIButton(props: {
                     />
                   )}
                   {chosen &&
-                    !chosen.available &&
                     chosen.id !== 'off' &&
-                    (chosen.waiting ? (
-                      <div className="jp-Epi-aipanel-note jp-mod-waiting">
-                        {WAITING}
-                      </div>
+                    // A local model's file downloads here; a speech
+                    // engine's, in the settings editor.
+                    (task.id !== 'speech' &&
+                    showsDownload(chosen, downloads[chosen.id]) ? (
+                      <DownloadLine
+                        choice={chosen}
+                        download={downloads[chosen.id]}
+                        onDownload={() => download(task.id, chosen.id)}
+                        className="jp-Epi-aipanel-note jp-mod-download"
+                        step={
+                          step?.kind === 'download' && step.task === task.id
+                        }
+                      />
                     ) : (
-                      <div className="jp-Epi-aipanel-note">
-                        {chosen.download !== null
-                          ? 'Not downloaded: see all AI settings'
-                          : cannotRun(chosen)}
-                      </div>
+                      !chosen.available &&
+                      (chosen.waiting ? (
+                        <div className="jp-Epi-aipanel-note jp-mod-waiting">
+                          {WAITING}
+                        </div>
+                      ) : (
+                        <div className="jp-Epi-aipanel-note">
+                          {chosen.download !== null
+                            ? 'Not downloaded: see all AI settings'
+                            : cannotRun(chosen)}
+                        </div>
+                      ))
                     ))}
                 </TaskRow>
               );
             })}
-            <button
-              className="jp-Epi-link"
-              onClick={() => {
-                setWhere(null);
-                openSettings();
-              }}
-            >
-              All AI settings
-            </button>
+            <div className="jp-Epi-aipanel-links">
+              <button
+                className="jp-Epi-link"
+                onClick={() => {
+                  close();
+                  openSettings();
+                }}
+              >
+                All AI settings
+              </button>
+              {/* Links that a plugin of its own adds, such as the screen "Three ways to use models". */}
+              {Array.from(viewExtensions.modelsPanel, ([id, link]) => (
+                <React.Fragment key={id}>{link(model, close)}</React.Fragment>
+              ))}
+            </div>
           </div>,
           document.body
         )}

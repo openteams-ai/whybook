@@ -56,7 +56,7 @@ import type {
 import { Api } from './api';
 import type { ICustomLocalModel } from './custommodels';
 import type { ExploredOrder } from './exploredorder';
-import type { ModelChoices, Task } from './models';
+import type { ModelChoices, ModelsPanelStep, Task } from './models';
 import {
   aiReady,
   choiceOf,
@@ -67,6 +67,7 @@ import {
   otherProviderReason,
   withDataPolicy
 } from './models';
+import { modelGate } from './gate';
 import { barFilter, barTest, barsText, identifier } from './bars';
 import type {
   IDecisionValues,
@@ -936,7 +937,10 @@ export class EpiModel implements IDisposable {
       // The review guard: its choices go with each request, and its questions open a dialog.
       guard: () => this._guardBody(),
       onGuard: event => this._askGuard(event),
-      onGuardHeld: event => this._onGuardHeld(event)
+      onGuardHeld: event => this._onGuardHeld(event),
+      // A request that a model reads waits while the screen "Three ways to
+      // use models" is open, or opens it the first time (./gate.ts).
+      beforeModel: () => modelGate.wait(this)
     });
     this._guardDialog = options.askGuard ?? null;
     this._serverSettings = options.serverSettings;
@@ -1482,13 +1486,16 @@ export class EpiModel implements IDisposable {
     };
   }
 
-  /** Asks the view's toolbar to open its panel of AI models. */
-  get modelsPanelRequested(): ISignal<this, void> {
+  /**
+   * Asks the view's toolbar to open its panel of AI models, at a step of its
+   * own, or at its top with null.
+   */
+  get modelsPanelRequested(): ISignal<this, ModelsPanelStep | null> {
     return this._modelsPanelRequested;
   }
 
-  requestModelsPanel(): void {
-    this._modelsPanelRequested.emit();
+  requestModelsPanel(step: ModelsPanelStep | null = null): void {
+    this._modelsPanelRequested.emit(step);
   }
 
   /**
@@ -9817,7 +9824,9 @@ export class EpiModel implements IDisposable {
   private _contentsManager: ContentsManager | null = null;
   // The timers that close finished strips, by the strip's key.
   private _closing = new Map<string, number>();
-  private _modelsPanelRequested = new Signal<this, void>(this);
+  private _modelsPanelRequested = new Signal<this, ModelsPanelStep | null>(
+    this
+  );
   // The values that a model suggested for a constant that no rule knows, by
   // the constant and its cell, and the constants whose values a model
   // suggests now (./rulesfirst.ts). Made when first used.

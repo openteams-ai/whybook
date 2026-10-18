@@ -25,6 +25,7 @@ import {
   SELECT_MODELS
 } from '../model/connection';
 import type { EpiModel } from '../model/epimodel';
+import type { ModelsPanelStep } from '../model/models';
 import { isRemote, TASKS } from '../model/models';
 import { HelpButton } from './common';
 
@@ -201,6 +202,11 @@ export function ConnectionSection(props: {
   model: EpiModel;
   /** Called with each state of the connection that the section reads or gets. */
   onState?: (state: IConnectionState) => void;
+  /**
+   * Opens the list of providers, as "Connect a model" does: the step at
+   * which the panel opened after a way of "Three ways to use models".
+   */
+  openList?: ModelsPanelStep | null;
 }): JSX.Element {
   const { model } = props;
   const { api, signIns } = model;
@@ -226,10 +232,17 @@ export function ConnectionSection(props: {
       onState.current?.(state);
     }
   }, [state]);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(!!props.openList);
   const [help, setHelp] = React.useState(false);
   const [servers, setServers] = React.useState<ILocalServer[] | null>(null);
   const [pick, setPick] = React.useState<IPick | null>(null);
+  // A step that comes while the panel is open opens the list too.
+  React.useEffect(() => {
+    if (props.openList) {
+      setOpen(true);
+      setPick(null);
+    }
+  }, [props.openList]);
   // The provider whose key form is open.
   const [keying, setKeying] = React.useState<string | null>(null);
   // A key typed with a server's URL is being checked: its form is locked.
@@ -450,6 +463,13 @@ export function ConnectionSection(props: {
               the server: pip install "whybook[models]", then restart it.
             </div>
           )}
+          {state.network_only && (
+            <div className="jp-Epi-connection-note jp-Epi-connection-network">
+              Sign-ins and API keys of hosted providers are off on this server
+              (c.Whybook.way_to_use_models = &quot;all-local&quot;). A model
+              server in your network goes under Other, at its URL.
+            </div>
+          )}
           <div className="jp-Epi-connection-group">On this machine</div>
           {servers === null && (
             <div className="jp-Epi-connection-note">
@@ -489,202 +509,217 @@ export function ConnectionSection(props: {
               {pickerFor(server.provider)}
             </React.Fragment>
           ))}
-          <div className="jp-Epi-connection-group">Sign in</div>
-          <ProviderRow
-            provider="openrouter"
-            label="OpenRouter"
-            note={
-              openRouter?.signed_in
-                ? openRouter.refused
-                  ? `${capital(keyWords(openRouter))}: sign in again`
-                  : 'Signed in: your own key, kept on the server'
-                : 'Claude, GPT, Gemini and open models, with a key of your own'
-            }
-            wrong={!!openRouter?.signed_in && !!openRouter.refused}
-          >
-            {openRouter?.signed_in ? (
-              <>
-                <Button
-                  small
-                  minimal
-                  onClick={() => setPick({ provider: 'openrouter' })}
-                >
-                  Models
-                </Button>
-                <Button small minimal onClick={() => signOut('openrouter')}>
-                  Sign out
-                </Button>
-              </>
-            ) : (
-              <Button
-                small
-                minimal
-                onClick={() => void signIns.startOpenRouter()}
+          {!state.network_only && (
+            <>
+              <div className="jp-Epi-connection-group">Sign in</div>
+              <ProviderRow
+                provider="openrouter"
+                label="OpenRouter"
+                note={
+                  openRouter?.signed_in
+                    ? openRouter.refused
+                      ? `${capital(keyWords(openRouter))}: sign in again`
+                      : 'Signed in: your own key, kept on the server'
+                    : 'Claude, GPT, Gemini and open models, with a key of your own'
+                }
+                wrong={!!openRouter?.signed_in && !!openRouter.refused}
               >
-                Sign in
-              </Button>
-            )}
-          </ProviderRow>
-          {pickerFor('openrouter')}
-          {signIns.openRouter?.mode === 'callback' && (
-            <div className="jp-Epi-connection-note">
-              Approve Whybook on openrouter.ai, in the new tab: this panel
-              notices when you are back.
-            </div>
-          )}
-          {signIns.openRouter?.mode === 'code' && <PasteCode model={model} />}
-          <ProviderRow
-            provider="huggingface"
-            label="Hugging Face"
-            note={
-              huggingFace?.signed_in
-                ? huggingFace.key_from === 'typed' || huggingFace.refused
-                  ? `${capital(keyWords(huggingFace, 'token'))}: open models of many companies`
-                  : 'Signed in: open models of many companies'
-                : 'Open models, each served by a company you pick at its price'
-            }
-            wrong={!!huggingFace?.signed_in && !!huggingFace.refused}
-          >
-            {huggingFace?.signed_in ? (
-              <>
-                <Button
-                  small
-                  minimal
-                  onClick={() => setPick({ provider: 'huggingface' })}
-                >
-                  Models
-                </Button>
-                {huggingFace.key_from === 'typed' && (
+                {openRouter?.signed_in ? (
+                  <>
+                    <Button
+                      small
+                      minimal
+                      onClick={() => setPick({ provider: 'openrouter' })}
+                    >
+                      Models
+                    </Button>
+                    <Button small minimal onClick={() => signOut('openrouter')}>
+                      Sign out
+                    </Button>
+                  </>
+                ) : (
                   <Button
                     small
                     minimal
-                    aria-expanded={keying === 'huggingface'}
-                    onClick={() =>
-                      setKeying(keying === 'huggingface' ? null : 'huggingface')
-                    }
-                  >
-                    Replace token
-                  </Button>
-                )}
-                <Button small minimal onClick={() => signOut('huggingface')}>
-                  {huggingFace.key_from === 'typed'
-                    ? 'Forget token'
-                    : 'Sign out'}
-                </Button>
-              </>
-            ) : (
-              <>
-                {state.huggingface_signin && (
-                  <Button
-                    small
-                    minimal
-                    onClick={() => void signIns.startHuggingFace()}
+                    onClick={() => void signIns.startOpenRouter()}
                   >
                     Sign in
                   </Button>
                 )}
-                <Button
-                  small
-                  minimal
-                  aria-expanded={keying === 'huggingface'}
-                  onClick={() =>
-                    setKeying(keying === 'huggingface' ? null : 'huggingface')
-                  }
-                >
-                  Paste a token
-                </Button>
-              </>
-            )}
-          </ProviderRow>
-          {pickerFor('huggingface')}
-          {signIns.huggingFace && (
-            <div className="jp-Epi-devicecode" role="status">
-              Approve the code <code>{signIns.huggingFace.user_code}</code> at{' '}
-              <a
-                href={
-                  signIns.huggingFace.verification_uri_complete ??
-                  signIns.huggingFace.verification_uri
+              </ProviderRow>
+              {pickerFor('openrouter')}
+              {signIns.openRouter?.mode === 'callback' && (
+                <div className="jp-Epi-connection-note">
+                  Approve Whybook on openrouter.ai, in the new tab: this panel
+                  notices when you are back.
+                </div>
+              )}
+              {signIns.openRouter?.mode === 'code' && (
+                <PasteCode model={model} />
+              )}
+              <ProviderRow
+                provider="huggingface"
+                label="Hugging Face"
+                note={
+                  huggingFace?.signed_in
+                    ? huggingFace.key_from === 'typed' || huggingFace.refused
+                      ? `${capital(keyWords(huggingFace, 'token'))}: open models of many companies`
+                      : 'Signed in: open models of many companies'
+                    : 'Open models, each served by a company you pick at its price'
                 }
-                target="_blank"
-                rel="noopener noreferrer"
+                wrong={!!huggingFace?.signed_in && !!huggingFace.refused}
               >
-                {signIns.huggingFace.verification_uri.replace(
-                  /^https:\/\//,
-                  ''
-                )}
-              </a>
-              . This panel notices when it is done.
-            </div>
-          )}
-          {keyForm(huggingFace)}
-          {signIns.error && (
-            <div className="jp-Epi-aipanel-note jp-mod-warning">
-              {signIns.error}
-            </div>
-          )}
-          <div className="jp-Epi-connection-group">With an API key</div>
-          {COMPANIES.map(([id, serves]) => {
-            const company = providerOf(state, id);
-            if (!company) {
-              return null;
-            }
-            return (
-              <React.Fragment key={id}>
-                <ProviderRow
-                  provider={id}
-                  label={company.label}
-                  note={
-                    !company.installed
-                      ? 'Needs its Python package on the server: pip install "whybook[models]"'
-                      : company.signed_in
-                        ? `${serves}: ${keyWords(company)}`
-                        : serves
-                  }
-                  wrong={company.signed_in && !!company.refused}
-                >
-                  {company.signed_in ? (
-                    <>
-                      <Button
-                        small
-                        minimal
-                        disabled={!company.installed}
-                        onClick={() => setPick({ provider: id })}
-                      >
-                        Models
-                      </Button>
-                      {/* A new key is checked before it takes the saved key's place. */}
-                      <Button
-                        small
-                        minimal
-                        disabled={!company.installed}
-                        aria-expanded={keying === id}
-                        onClick={() => setKeying(keying === id ? null : id)}
-                      >
-                        Replace key
-                      </Button>
-                      <Button small minimal onClick={() => signOut(id)}>
-                        Forget key
-                      </Button>
-                    </>
-                  ) : (
+                {huggingFace?.signed_in ? (
+                  <>
                     <Button
                       small
                       minimal
-                      disabled={!company.installed}
-                      aria-expanded={keying === id}
-                      onClick={() => setKeying(keying === id ? null : id)}
+                      onClick={() => setPick({ provider: 'huggingface' })}
                     >
-                      Paste key
+                      Models
                     </Button>
-                  )}
-                </ProviderRow>
-                {pickerFor(id)}
-                {keyForm(company)}
-              </React.Fragment>
-            );
-          })}
+                    {huggingFace.key_from === 'typed' && (
+                      <Button
+                        small
+                        minimal
+                        aria-expanded={keying === 'huggingface'}
+                        onClick={() =>
+                          setKeying(
+                            keying === 'huggingface' ? null : 'huggingface'
+                          )
+                        }
+                      >
+                        Replace token
+                      </Button>
+                    )}
+                    <Button
+                      small
+                      minimal
+                      onClick={() => signOut('huggingface')}
+                    >
+                      {huggingFace.key_from === 'typed'
+                        ? 'Forget token'
+                        : 'Sign out'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {state.huggingface_signin && (
+                      <Button
+                        small
+                        minimal
+                        onClick={() => void signIns.startHuggingFace()}
+                      >
+                        Sign in
+                      </Button>
+                    )}
+                    <Button
+                      small
+                      minimal
+                      aria-expanded={keying === 'huggingface'}
+                      onClick={() =>
+                        setKeying(
+                          keying === 'huggingface' ? null : 'huggingface'
+                        )
+                      }
+                    >
+                      Paste a token
+                    </Button>
+                  </>
+                )}
+              </ProviderRow>
+              {pickerFor('huggingface')}
+              {signIns.huggingFace && (
+                <div className="jp-Epi-devicecode" role="status">
+                  Approve the code <code>{signIns.huggingFace.user_code}</code>{' '}
+                  at{' '}
+                  <a
+                    href={
+                      signIns.huggingFace.verification_uri_complete ??
+                      signIns.huggingFace.verification_uri
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {signIns.huggingFace.verification_uri.replace(
+                      /^https:\/\//,
+                      ''
+                    )}
+                  </a>
+                  . This panel notices when it is done.
+                </div>
+              )}
+              {keyForm(huggingFace)}
+              {signIns.error && (
+                <div className="jp-Epi-aipanel-note jp-mod-warning">
+                  {signIns.error}
+                </div>
+              )}
+              <div className="jp-Epi-connection-group">With an API key</div>
+              {COMPANIES.map(([id, serves]) => {
+                const company = providerOf(state, id);
+                if (!company) {
+                  return null;
+                }
+                return (
+                  <React.Fragment key={id}>
+                    <ProviderRow
+                      provider={id}
+                      label={company.label}
+                      note={
+                        !company.installed
+                          ? 'Needs its Python package on the server: pip install "whybook[models]"'
+                          : company.signed_in
+                            ? `${serves}: ${keyWords(company)}`
+                            : serves
+                      }
+                      wrong={company.signed_in && !!company.refused}
+                    >
+                      {company.signed_in ? (
+                        <>
+                          <Button
+                            small
+                            minimal
+                            disabled={!company.installed}
+                            onClick={() => setPick({ provider: id })}
+                          >
+                            Models
+                          </Button>
+                          {/* A new key is checked before it takes the saved key's place. */}
+                          <Button
+                            small
+                            minimal
+                            disabled={!company.installed}
+                            aria-expanded={keying === id}
+                            onClick={() => setKeying(keying === id ? null : id)}
+                          >
+                            Replace key
+                          </Button>
+                          <Button small minimal onClick={() => signOut(id)}>
+                            Forget key
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          small
+                          minimal
+                          disabled={!company.installed}
+                          aria-expanded={keying === id}
+                          onClick={() => setKeying(keying === id ? null : id)}
+                        >
+                          Paste key
+                        </Button>
+                      )}
+                    </ProviderRow>
+                    {pickerFor(id)}
+                    {keyForm(company)}
+                  </React.Fragment>
+                );
+              })}
+            </>
+          )}
           <div className="jp-Epi-connection-group">Other</div>
-          {claudeCode && (
+          {claudeCode && !state.network_only && (
             <ProviderRow
               provider="claude-code"
               label="Claude, with the Claude Code login"

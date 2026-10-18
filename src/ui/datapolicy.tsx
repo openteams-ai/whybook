@@ -16,6 +16,17 @@ export const DATA_POLICY_HELP =
 export const DATA_POLICY_FIXED =
   'Fixed on the server: c.Whybook.keep_data_local';
 
+/**
+ * Why the setting cannot change, by the setting of the server that fixes
+ * it: a way to use models that keeps the data here, else keep_data_local.
+ */
+export function dataPolicyFixed(status: IServerStatus | null): string {
+  const way = status?.way_to_use_models;
+  return way === 'data-stays-here' || way === 'all-local'
+    ? `Fixed on the server: c.Whybook.way_to_use_models = "${way}"`
+    : DATA_POLICY_FIXED;
+}
+
 /** The name of the setting zeroDataRetention, as its schema titles it. */
 export const RETENTION_LABEL = 'Zero data retention (OpenRouter)';
 
@@ -37,6 +48,8 @@ interface IToggleProps {
   onChange: (value: boolean) => void;
   /** False where the description shows under the box anyway, as in the settings editor. */
   help?: boolean;
+  /** Why the server fixes it, in place of the setting's own words. */
+  fixedNote?: string;
 }
 
 /**
@@ -93,7 +106,8 @@ function PolicyToggle(
 
 /**
  * "Keep data on this machine": checked and greyed when the server keeps the
- * data on the machine for every user (c.Whybook.keep_data_local).
+ * data on the machine for every user (c.Whybook.keep_data_local, or
+ * c.Whybook.way_to_use_models at "data-stays-here" or "all-local").
  */
 export function DataPolicyToggle(props: IToggleProps): JSX.Element {
   return (
@@ -102,7 +116,7 @@ export function DataPolicyToggle(props: IToggleProps): JSX.Element {
       className="jp-Epi-datapolicy"
       label="Keep data on this machine"
       text={DATA_POLICY_HELP}
-      fixedNote={DATA_POLICY_FIXED}
+      fixedNote={props.fixedNote ?? DATA_POLICY_FIXED}
     />
   );
 }
@@ -137,6 +151,8 @@ interface IPolicyField {
   className: string;
   /** Whether the server fixes it, from the status. */
   fixed: (status: IServerStatus | null) => boolean;
+  /** Why the server fixes it, from the status, when the toggle's own words do not say. */
+  note?: (status: IServerStatus | null) => string;
   toggle: (props: IToggleProps) => JSX.Element;
 }
 
@@ -145,6 +161,7 @@ const DATA_POLICY_FIELD: IPolicyField = {
   byDefault: false,
   className: 'jp-Epi-datapolicyfield',
   fixed: status => !!status?.keep_data_local,
+  note: dataPolicyFixed,
   toggle: DataPolicyToggle
 };
 
@@ -211,6 +228,7 @@ function PolicyField(
         id={`jp-Epi-settings-${field.key}`}
         checked={checked}
         fixed={field.fixed(status)}
+        fixedNote={field.note?.(status)}
         help={false}
         onChange={value => {
           setChecked(value);

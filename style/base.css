@@ -4583,6 +4583,29 @@ button.jp-Epi-textoutput:hover,
   justify-self: start;
 }
 
+/* The links at the end of the panel: All AI settings, then those of other plugins. */
+.jp-Epi-aipanel-links {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 4px 16px;
+}
+
+/*
+ * A local model's file to download, or its download: nothing is wrong, so
+ * not red. The room around it keeps its words clear of the outline that
+ * marks it as the step at which the panel opened.
+ */
+.jp-Epi-aipanel-note.jp-mod-download {
+  margin: 0 -6px;
+  padding: 4px 6px;
+  border-radius: var(--jp-border-radius);
+}
+
+.jp-Epi-aipanel-note.jp-mod-download:not(.jp-mod-error) {
+  color: var(--jp-ui-font-color2);
+}
+
 /*
  * "Keep data on this machine", with "Zero data retention (OpenRouter)" under
  * it when OpenRouter is connected, spans the panel above the tasks. A lock by

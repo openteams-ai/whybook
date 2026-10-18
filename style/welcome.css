@@ -1,0 +1,208 @@
+/*
+ * The screen "Three ways to use models" (src/ui/ways.tsx), in a JupyterLab
+ * dialog: three large buttons side by side, one under the other in a narrow
+ * window. The colours are JupyterLab's theme variables, so the screen follows
+ * the light and the dark theme. The local ways draw their machine in the
+ * brand colour, as on the website.
+ */
+
+.jp-Epi-ways-dialog .jp-Dialog-content {
+  width: min(1040px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100vh - 32px);
+}
+
+.jp-Epi-ways {
+  --epi-way-tint: color-mix(in srgb, var(--jp-brand-color1) 8%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  line-height: 1.4;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-Epi-ways-lead {
+  margin: 0;
+}
+
+.jp-Epi-ways-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (width <= 760px) {
+  .jp-Epi-ways-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.jp-Epi-way {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: var(--jp-border-width) solid var(--jp-border-color2);
+  border-radius: 8px;
+  background: var(--jp-layout-color0);
+}
+
+.jp-Epi-way:not(.jp-mod-blocked):hover {
+  border-color: var(--jp-brand-color1);
+  background: var(--epi-way-tint);
+}
+
+.jp-Epi-way:has(.jp-Epi-way-button:focus-visible) {
+  outline: var(--jp-focus-outline-width) solid var(--jp-focus-outline-color);
+  outline-offset: 2px;
+}
+
+.jp-Epi-way.jp-mod-blocked {
+  background: var(--jp-layout-color1);
+}
+
+.jp-Epi-way-machine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-way-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-way-icon circle {
+  fill: currentcolor;
+  stroke: none;
+}
+
+.jp-Epi-way[data-way='data-stays-here'] .jp-Epi-way-icon,
+.jp-Epi-way[data-way='all-local'] .jp-Epi-way-icon {
+  color: var(--jp-brand-color1);
+}
+
+.jp-Epi-way-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* Two classes, over JupyterLab's rules for every button. */
+.jp-Epi-way .jp-Epi-way-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size3);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--jp-ui-font-color0);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The whole card takes the click of its button. */
+.jp-Epi-way-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+}
+
+.jp-Epi-way .jp-Epi-way-button:focus-visible {
+  outline: none;
+}
+
+.jp-Epi-way .jp-Epi-way-button:disabled {
+  color: var(--jp-ui-font-color2);
+  cursor: default;
+}
+
+/* A way that cannot be chosen keeps its text selectable, such as the line that installs. */
+.jp-Epi-way-button:disabled::after {
+  display: none;
+}
+
+/* The way of the settings as they are, at the end of the machine's line. */
+.jp-Epi-way-mark {
+  margin-left: auto;
+  padding: 0 8px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 999px;
+  background: var(--jp-layout-color2);
+  font-size: var(--jp-ui-font-size0);
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+  white-space: nowrap;
+}
+
+.jp-Epi-ways-note {
+  margin: 0;
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-way-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jp-Epi-way-summary {
+  margin: 0;
+}
+
+.jp-Epi-way-facts dl {
+  margin: 0;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-Epi-way-facts dt {
+  font-weight: 600;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-way-facts dd {
+  margin: 0 0 6px;
+}
+
+.jp-Epi-way-facts dd:last-child {
+  margin-bottom: 0;
+}
+
+.jp-Epi-way-facts ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.jp-Epi-way-blocked {
+  margin: auto 0 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--jp-warn-color1);
+  background: color-mix(in srgb, var(--jp-warn-color1) 12%, transparent);
+  font-size: var(--jp-ui-font-size0);
+  overflow-wrap: anywhere;
+}
+
+/* Two classes, over JupyterLab's size of code in its themed container. */
+.jp-Epi-way .jp-Epi-way-blocked code {
+  font-family: var(--jp-code-font-family);
+  font-size: 1em;
+  white-space: nowrap;
+}

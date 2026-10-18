@@ -116,6 +116,14 @@ export interface IServerStatus {
   speech_engines?: IServerSpeechEngine[];
   /** Why local models use the standard JSON check although the fast one was chosen, if they do. */
   json_check_warning?: string | null;
+  /** Whether llama-cpp-python, of the `local` extra, is installed, so that the local models can run. */
+  local_runtime?: boolean;
+  /**
+   * The way to use models that the server sets for every user
+   * (c.Whybook.way_to_use_models): 'remote', 'data-stays-here' or
+   * 'all-local', else ''.
+   */
+  way_to_use_models?: string;
   /**
    * The decision models by id, with each one's label, and whether it can run
    * and why not: whybook/server/decision_models.py.
@@ -202,6 +210,12 @@ export interface IConnectionState {
   huggingface_signin: boolean;
   /** Whether pydantic-ai-slim is installed, which every provider but the Claude Code login needs. */
   models_installed: boolean;
+  /**
+   * Whether the server refuses every model outside this machine and its
+   * network (c.Whybook.way_to_use_models = "all-local"): hosted providers
+   * and the Claude Code login are off.
+   */
+  network_only?: boolean;
 }
 
 /** A model that a provider lists: its id, a name, and a note such as its price or size. */
@@ -368,12 +382,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'decision/values',
-      this._settings,
-      this._guarded(this._local(body)),
-      this._cost('decision/values', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'decision/values',
+        this._settings,
+        this._guarded(this._local(body)),
+        this._cost('decision/values', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -397,15 +413,17 @@ export class Api {
     signal?: AbortSignal
   ): Promise<void> {
     const counted = this._cost('defaults/ask', body, this._watch(onEvent));
-    return streamAPI(
-      'defaults/ask',
-      this._settings,
-      this._guarded(this._local(body), true),
-      event =>
-        event.type === 'result' && event.kept === true
-          ? onEvent(event)
-          : counted(event),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'defaults/ask',
+        this._settings,
+        this._guarded(this._local(body), true),
+        event =>
+          event.type === 'result' && event.kept === true
+            ? onEvent(event)
+            : counted(event),
+        signal
+      )
     );
   }
 
@@ -418,18 +436,22 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'solve',
-      this._settings,
-      this._guarded(this._policy(body)),
-      this._cost('solve', body, onEvent),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'solve',
+        this._settings,
+        this._guarded(this._policy(body)),
+        this._cost('solve', body, onEvent),
+        signal
+      )
     );
   }
 
   /** The type, and with a decision model the place, of a question the analyst types. */
   async sortQuestion(body: unknown): Promise<ISortedQuestion> {
-    const sorted = await this._post<ISortedQuestion>('questions/sort', body);
+    const sorted = await this._held(() =>
+      this._post<ISortedQuestion>('questions/sort', body)
+    );
     this._options.onCall?.({
       route: 'questions/sort',
       usd: typeof sorted.cost_usd === 'number' ? sorted.cost_usd : null,
@@ -446,9 +468,8 @@ export class Api {
    * from the model of More questions (design iteration 1.126).
    */
   async splitQuestion(body: unknown): Promise<ISplitQuestion> {
-    const split = await this._post<ISplitQuestion>(
-      'questions/split',
-      this._local(body)
+    const split = await this._held(() =>
+      this._post<ISplitQuestion>('questions/split', this._local(body))
     );
     this._options.onCall?.({
       route: 'questions/split',
@@ -466,12 +487,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'questions/claude',
-      this._settings,
-      this._guarded(this._local(body), true),
-      this._cost('questions/claude', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'questions/claude',
+        this._settings,
+        this._guarded(this._local(body), true),
+        this._cost('questions/claude', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -485,12 +508,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'questions/review',
-      this._settings,
-      this._guarded(this._local(body)),
-      this._cost('questions/review', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'questions/review',
+        this._settings,
+        this._guarded(this._local(body)),
+        this._cost('questions/review', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -504,12 +529,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'questions/rank',
-      this._settings,
-      this._guarded(this._policy(body), true),
-      this._cost('questions/rank', body, onEvent),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'questions/rank',
+        this._settings,
+        this._guarded(this._policy(body), true),
+        this._cost('questions/rank', body, onEvent),
+        signal
+      )
     );
   }
 
@@ -523,12 +550,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'agent',
-      this._settings,
-      this._guarded(this._policy(body)),
-      this._cost('agent', body, onEvent),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'agent',
+        this._settings,
+        this._guarded(this._policy(body)),
+        this._cost('agent', body, onEvent),
+        signal
+      )
     );
   }
 
@@ -588,12 +617,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'dependencies/claude',
-      this._settings,
-      this._guarded(this._policy(body)),
-      this._cost('dependencies/claude', body, onEvent),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'dependencies/claude',
+        this._settings,
+        this._guarded(this._policy(body)),
+        this._cost('dependencies/claude', body, onEvent),
+        signal
+      )
     );
   }
 
@@ -602,12 +633,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'tables/describe',
-      this._settings,
-      this._guarded(this._local(body), true),
-      this._cost('tables/describe', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'tables/describe',
+        this._settings,
+        this._guarded(this._local(body), true),
+        this._cost('tables/describe', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -616,12 +649,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'frames/describe',
-      this._settings,
-      this._guarded(this._local(body), true),
-      this._cost('frames/describe', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'frames/describe',
+        this._settings,
+        this._guarded(this._local(body), true),
+        this._cost('frames/describe', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -631,12 +666,14 @@ export class Api {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    return streamAPI(
-      'cells/title',
-      this._settings,
-      this._guarded(this._local(body), true),
-      this._cost('cells/title', body, this._watch(onEvent)),
-      signal
+    return this._held(() =>
+      streamAPI(
+        'cells/title',
+        this._settings,
+        this._guarded(this._local(body), true),
+        this._cost('cells/title', body, this._watch(onEvent)),
+        signal
+      )
     );
   }
 
@@ -829,6 +866,16 @@ export class Api {
     });
   }
 
+  /**
+   * Send a request that a model reads, once `beforeModel` lets it go. The
+   * body is made when it goes, so that it carries the settings of that
+   * moment, such as "Keep data on this machine" turned on meanwhile.
+   */
+  private _held<T>(send: () => Promise<T>): Promise<T> {
+    const wait = this._options.beforeModel?.() ?? null;
+    return wait ? wait.then(send) : send();
+  }
+
   /** The body of a request that a local model may answer, with the JSON check of the settings. */
   private _local(body: unknown): unknown {
     const check = this._options.jsonCheck?.();
@@ -1000,5 +1047,10 @@ export namespace Api {
     ) => Promise<{ answer: GuardAnswer; note: string }>;
     /** Told what the guard held back in reject mode. */
     onGuardHeld?: (event: IGuardHeld) => void;
+    /**
+     * Asked before each request that a model reads: null lets it go at once,
+     * and a promise holds it until the promise resolves (./gate.ts).
+     */
+    beforeModel?: () => Promise<void> | null;
   }
 }

@@ -129,8 +129,11 @@ export default defineConfig([
           // menu at start, as the notebook's do. On an edit page of Jupyter
           // Notebook 7 the plugin registers the rule that sends the page to
           // the notebook's page (./notebook7) before the router runs, which
-          // an await import() could miss. The rule checks every other
-          // import.
+          // an await import() could miss. The plugin of the screen "Three
+          // ways to use models" (./welcome.ts) reads its settings at start,
+          // to hold the first request that a model reads when they ask for
+          // that, with ./model/ways, whose own imports the view loads at
+          // start anyway. The rule checks every other import.
           ignoreImports: [
             './contextmenu',
             './databases',
@@ -141,6 +144,7 @@ export default defineConfig([
             './model/epimodel',
             './model/libraries',
             './model/settings',
+            './model/ways',
             './notebook7',
             './ui/checkup',
             './ui/datapolicy',
