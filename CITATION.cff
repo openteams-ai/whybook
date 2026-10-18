@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use Whybook in your work, please cite it as below."
+title: "Whybook: a question-driven view of Jupyter notebooks"
+type: software
+authors:
+  - family-names: Krassowski
+    given-names: Michał
+license: Apache-2.0
+repository-code: "https://github.com/openteams-ai/whybook"
+url: "https://whybook.dev"
+abstract: >-
+  Whybook is a JupyterLab extension: a view of a Jupyter notebook for asking
+  questions about data and understanding every result. The analyst picks one of
+  the questions it offers, or asks their own; the answer becomes an ordinary
+  notebook cell, and every constant, default and choice behind the result shows
+  on the cell.
+keywords:
+  - jupyter
+  - jupyterlab
+  - exploratory data analysis
+  - statistics
+  - human-in-the-loop
