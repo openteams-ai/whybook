@@ -1,20 +1,17 @@
 # Whybook
 
-Whybook is a research prototype for the future of Jupyter interfaces.
-
 [![Github Actions Status](https://github.com/openteams-ai/whybook/actions/workflows/build.yml/badge.svg)](https://github.com/openteams-ai/whybook/actions/workflows/build.yml)
 [![Sandbox](https://github.com/openteams-ai/whybook/actions/workflows/sandbox.yml/badge.svg)](https://github.com/openteams-ai/whybook/actions/workflows/sandbox.yml)
 [![PyPI](https://img.shields.io/pypi/v/whybook)](https://pypi.org/project/whybook/)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb)
+
+Whybook is a research prototype for the future of Jupyter interfaces. For a high-level description, see [whybook.dev](https://whybook.dev).
 
 ## You ask the questions. Agents write the code.
 
 Whybook is a JupyterLab extension: a view of a Jupyter notebook for asking questions about data and understanding every result. It has no chat box. The analyst picks one of the questions it offers, or types or says their own. The offers follow what the analyst points at (a column dragged onto a cell or clicked in Click mode, a region of a plot, a chip on a cell). The code comes from a template or from the AI model of the analyst's choice, and Whybook places the cell and runs it. Every constant, default and choice that Whybook finds behind the result is shown on the cell, where the analyst can question it.
 
 Any `.ipynb` file opens in Whybook and stays an ordinary notebook: the questions, choices and assumptions go into its metadata. Whybook opens next to JupyterLab's notebook editor, and both share one notebook model and one kernel, so an edit in one shows in the other.
-
-> [!NOTE]
-> Whybook is a research prototype for the future of Jupyter interfaces: [whybook.dev](https://whybook.dev) describes the idea. Its features, settings and notebook metadata can change between releases without deprecation.
 
 Three videos show Whybook at work:
 
@@ -27,6 +24,9 @@ Three videos show Whybook at work:
 ![Whybook showing the demo notebook in JupyterLab after Run all. Cell [4] carries the chips MIN_DAYS 14, inner join, ci bootstrap and n_boot 1000, and the Exploration panel counts the questions asked by type.](https://raw.githubusercontent.com/openteams-ai/whybook/main/screenshots/bench-chips.png)
 
 ## What it does
+
+> [!NOTE]
+> Whybook's features, settings and notebook metadata can change without deprecation while it remains in the prototype phase.
 
 - **Ask by pointing at the data.** The analyst drags a variable, a column, a file or a table of a SQLite file onto a cell, or clicks the two in Click mode. Whybook then offers up to 12 ranked questions of five types (descriptive, data quality, association, causal and model check), each with a place in the notebook. Most of them run code from a template at once, with no model call.
 - **Every choice in plain sight.** After a cell runs, Whybook reads its code against the live kernel and shows each value that it finds the result depends on as a chip, such as `MIN_DAYS 14`, or `inner join ×2` for two merges that keep pandas' default. A constant defined in an imported file shows on the cell that uses it.
