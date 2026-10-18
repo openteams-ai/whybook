@@ -5099,7 +5099,7 @@ test('questions the text of a markdown cell, and words selected in it', async ({
   await summary.locator('button', { hasText: 'Question this text' }).click();
   // The numbers of the text, each with the outputs that show it.
   await expect(popover(page)).toContainText('[5] shows -0.318');
-  await expect(popover(page)).toContainText('[9] shows 0.26');
+  await expect(popover(page)).toContainText('[10] shows 0.26');
   await expect(popover(page)).toContainText('Not checked: 12.');
   const recompute = popover(page).locator('.jp-Epi-option', {
     hasText: 'Can each number in this text be recomputed from the data?'

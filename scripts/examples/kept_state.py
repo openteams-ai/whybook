@@ -10,7 +10,6 @@ rest on, as the view does after a run.
 
 from __future__ import annotations
 
-import datetime
 import json
 from pathlib import Path
 
@@ -79,7 +78,9 @@ def label_tables(cells: list, by_cell: dict[str, list[tuple[str, str]]], script:
     The labels record that ``script`` wrote them from the numbers of each
     table, where the view would ask a model, so that the view says so.
     """
-    by = {"choice": "script", "model": script, "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")}
+    # No time: a label that a script writes is the same at every run, so the
+    # notebook does not change when it is generated again.
+    by = {"choice": "script", "model": script, "at": ""}
     count = 0
     for cell in cells:
         tables = [html for html in (html_of(o) for o in cell.get("outputs", [])) if html and "<table" in html]
