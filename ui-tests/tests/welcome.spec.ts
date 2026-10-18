@@ -356,12 +356,19 @@ test.describe('With the screen off, as on Binder', () => {
     await item.click();
     const screen = page.locator(SCREEN);
     await expect(screen).toBeVisible();
+    // The dialog gives "Decide later" the focus as it opens. Wait for that, so
+    // that the focus moved to a way below is not taken back before Enter.
+    await expect(
+      screen.getByRole('button', { name: 'Decide later' })
+    ).toBeFocused();
 
     // Enter on a way presses it: no model is connected, so the AI models
     // panel opens at the list of providers.
-    await screen
-      .getByRole('button', { name: 'Frontier models for everything' })
-      .focus();
+    const frontier = screen.getByRole('button', {
+      name: 'Frontier models for everything'
+    });
+    await frontier.focus();
+    await expect(frontier).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(screen).toHaveCount(0);
     const panel = page.locator('.jp-Epi-aipanel');
