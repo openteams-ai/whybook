@@ -137,7 +137,7 @@ OUTPUT_FIELDS = ("kind", "rows", "cols", "columns", "lines", "description", "hea
 
 def keep_local(config: Whybook, body: Any) -> bool:
     """Whether the data stays on this machine for this request: the server's choice, or the view's setting."""
-    if config.keep_data_local:
+    if config.data_stays_here:
         return True
     if not isinstance(body, dict):
         return False

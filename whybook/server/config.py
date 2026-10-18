@@ -173,6 +173,33 @@ class Whybook(Configurable):
         ),
     ).tag(config=True)
 
+    way_to_use_models = Enum(
+        ["", "remote", "data-stays-here", "all-local"],
+        default_value="",
+        help=(
+            "Set the way to use models for every user, so that Whybook does not ask"
+            " with its screen 'Three ways to use models'. 'remote': a hosted model"
+            " reads what each task needs and writes the code. 'data-stays-here': only"
+            " models on this machine read outputs and variables, as with"
+            " keep_data_local = True, and a hosted model writes the code. 'all-local':"
+            " the data stays as with 'data-stays-here', and the server refuses every"
+            " model that does not run on this machine or in its network: a model"
+            " server whose address is a loopback, private or link-local one, or a host"
+            " name with only such addresses (network.py). When empty, each user"
+            " chooses on that screen or in the settings."
+        ),
+    ).tag(config=True)
+
+    @property
+    def data_stays_here(self) -> bool:
+        """Whether the data stays on this machine for every user: keep_data_local, or a way to use models that keeps it here."""
+        return self.keep_data_local or self.way_to_use_models in ("data-stays-here", "all-local")
+
+    @property
+    def network_only(self) -> bool:
+        """Whether the server refuses every model that does not run on this machine or in its network."""
+        return self.way_to_use_models == "all-local"
+
     review_guard = Enum(
         ["", "ask", "reject"],
         default_value="",

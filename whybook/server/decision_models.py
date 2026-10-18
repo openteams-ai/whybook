@@ -8,7 +8,10 @@ the AI models panel. With zero data retention on, the default, OpenRouter
 sends the request only to an endpoint that keeps nothing, and a model with no
 such endpoint is not offered. A model that its maker also serves through an
 API of its own, such as Jev through TypeSafe's, goes there when the server
-holds that API's key and there is no OpenRouter key.
+holds that API's key and there is no OpenRouter key. With
+``c.Whybook.way_to_use_models = "all-local"`` a decision model runs only
+through that API, and only when its URL is on this machine or in its network
+(``network.py``): OpenRouter is outside.
 
 research/choice-classifiers.md measured each model on Whybook's tasks.
 """
@@ -22,6 +25,7 @@ from typing import Any, Awaitable, Callable
 
 from tornado.httpclient import AsyncHTTPClient
 
+from . import network
 from .config import Whybook
 
 ENDPOINT = "https://openrouter.ai/api/v1/systemone"
@@ -76,8 +80,16 @@ def openrouter_key() -> str | None:
     return KeyStore().get("openrouter")
 
 
+# Why a decision model cannot run when the server allows only models on this machine or in its network.
+OUTSIDE = 'runs outside this machine and its network, and the server allows only models there (c.Whybook.way_to_use_models = "all-local")'
+
+
 def reason_of(model: DecisionModel, config: Whybook, key: str | None) -> str | None:
     """Why the model cannot run, or None."""
+    if config.network_only:
+        if model.typesafe and config.typesafe_api_key and network.on_network(config.typesafe_base_url):
+            return None
+        return OUTSIDE
     if key:
         if config.zdr and not model.zdr:
             return "OpenRouter lists no endpoint of it with zero data retention, which the AI models panel asks for"
@@ -103,7 +115,7 @@ async def ask(model: DecisionModel, body: dict[str, Any], config: Whybook, fetch
     reason = reason_of(model, config, key)
     if reason:
         raise ValueError(f"{model.label} {reason}")
-    if key:
+    if key and not config.network_only:
         url, token, payload = ENDPOINT, key, {**body, "model": model.openrouter}
         if config.zdr:
             payload["provider"] = {"zdr": True}

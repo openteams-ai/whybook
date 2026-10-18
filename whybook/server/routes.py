@@ -144,7 +144,13 @@ class StatusHandler(BaseHandler):
             "local_models": local_models.status(),
             "speech_engines": speech.status(),
             "json_check_warning": local_models.fast_check_warning(),
-            "keep_data_local": config.keep_data_local,
+            # Whether llama-cpp-python, of the `local` extra, can run the local models.
+            "local_runtime": local_models.runtime_available(),
+            # True when the server keeps the data on this machine for every user:
+            # keep_data_local, or a way to use models that keeps it here.
+            "keep_data_local": config.data_stays_here,
+            # The way to use models that the server sets for every user, else "".
+            "way_to_use_models": config.way_to_use_models,
             # The mode of the review guard when the server fixes it for every user, else "".
             "review_guard": config.review_guard,
             "guard_models": guard.models.status(),
@@ -770,7 +776,25 @@ def connection_state(config: Whybook) -> dict[str, Any]:
         ],
         "huggingface_signin": bool(config.huggingface_client_id),
         "models_installed": model_client.is_installed(),
+        # True when the server refuses every model outside this machine and its network: c.Whybook.way_to_use_models = "all-local".
+        "network_only": config.network_only,
     }
+
+
+async def refuse_outside(chosen: connection.Connection, config: Whybook) -> None:
+    """Refuse with 403 a connection whose model runs outside this machine and its network, when the server allows only those.
+
+    The address of a host name is looked up away from the event loop.
+    """
+    refused = await asyncio.to_thread(connection.outside, chosen, config)
+    if refused:
+        raise HTTPError(403, f"{refused}. {connection.ONLY_NETWORK}")
+
+
+def refuse_hosted(provider: str, config: Whybook) -> None:
+    """Refuse with 403 a sign-in or a key of a hosted provider, when the server allows only models on this machine or in its network."""
+    if config.network_only:
+        raise HTTPError(403, f"{connection.PROVIDERS[provider].label} runs outside this machine and its network. {connection.ONLY_NETWORK}")
 
 
 def typed_key(body: Any, provider: str) -> str | None:
@@ -815,6 +839,7 @@ class ConnectionHandler(BaseHandler):
             raise HTTPError(400, str(error)) from error
         if chosen.provider == "claude-code" and not self.future_config.claude_code_login:
             raise HTTPError(400, f"The Claude Code login is for development only, under Anthropic's terms. {connection.SETUP_DEV_ONLY}")
+        await refuse_outside(chosen, self.future_config)
         keys = KeyStore()
         name = connection.key_name(chosen)
         typed = typed_key(body, chosen.provider)
@@ -876,6 +901,7 @@ class ConnectionModelsHandler(BaseHandler):
             chosen = connection.Connection.from_json({"provider": provider, "base_url": body.get("base_url") or None})
         except ValueError as error:
             raise HTTPError(400, str(error)) from error
+        await refuse_outside(chosen, self.future_config)
         keys = KeyStore()
         name = connection.key_name(chosen)
         typed = typed_key(body, provider)
@@ -910,6 +936,7 @@ class OpenRouterSignInHandler(BaseHandler):
 
     @tornado.web.authenticated
     def post(self):
+        refuse_hosted("openrouter", self.future_config)
         body = self.get_json_body()
         callback = body.get("callback_base") if isinstance(body, dict) else None
         self.finish(json.dumps(signin.openrouter_start(callback if isinstance(callback, str) else None)))
@@ -920,6 +947,7 @@ class OpenRouterCodeHandler(BaseHandler):
 
     @tornado.web.authenticated
     async def post(self):
+        refuse_hosted("openrouter", self.future_config)
         body = self.get_json_body()
         if not isinstance(body, dict) or not isinstance(body.get("state"), str) or not isinstance(body.get("code"), str):
             raise HTTPError(400, "the body needs the state and the code")
@@ -948,6 +976,8 @@ class OpenRouterCallbackHandler(JupyterHandler):
     async def get(self, state: str):
         code = self.get_query_argument("code", "")
         try:
+            if self.future_config.network_only:
+                raise signin.SignInError(f"OpenRouter runs outside this machine and its network. {connection.ONLY_NETWORK}")
             await signin.openrouter_exchange(state, code)
             message = "Signed in to OpenRouter. The AI models panel now lists its models."
         except signin.SignInError as error:
@@ -962,6 +992,7 @@ class HuggingFaceSignInHandler(BaseHandler):
 
     @tornado.web.authenticated
     async def post(self):
+        refuse_hosted("huggingface", self.future_config)
         try:
             started = await signin.huggingface_start(self.future_config.huggingface_client_id)
         except signin.SignInError as error:
@@ -974,6 +1005,7 @@ class HuggingFacePollHandler(BaseHandler):
 
     @tornado.web.authenticated
     async def post(self):
+        refuse_hosted("huggingface", self.future_config)
         body = self.get_json_body()
         if not isinstance(body, dict) or not isinstance(body.get("flow"), str):
             raise HTTPError(400, "the body needs the flow")
@@ -1001,6 +1033,7 @@ class KeyHandler(BaseHandler):
         key = body.get("key") if isinstance(body, dict) else None
         if provider not in connection.PASTED_KEYS:
             raise HTTPError(400, f"{provider!r} takes no pasted key")
+        refuse_hosted(provider, self.future_config)
         if not isinstance(key, str) or not key.strip() or len(key) > 500:
             raise HTTPError(400, "paste the key")
         problem = providers.key_problem(key.strip())

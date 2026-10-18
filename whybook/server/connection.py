@@ -20,6 +20,11 @@ by provider:
 - ``openai-compatible``: any other server with an OpenAI-compatible API, at a
   URL the analyst types, which says whether it runs on this machine.
 
+With ``c.Whybook.way_to_use_models = "all-local"`` the server refuses every
+connection whose model runs outside this machine and its network
+(``outside``): the Claude Code login, the hosted providers, and a server whose
+URL has another address (``network.py``).
+
 Every provider but the Claude Code login goes through Pydantic AI (``model_client.py``).
 The choice is kept in ``connection.json`` in Whybook's data folder, so a
 sign-in or a new model takes effect without a restart. Whether the model runs
@@ -35,7 +40,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, AsyncIterator
 
-from . import claude, model_client, signin, tiers
+from . import claude, model_client, network, signin, tiers
 from .config import Whybook
 from .keystore import KeyStore, data_dir, read_json, write_private
 
@@ -81,6 +86,10 @@ TYPED_KEYS = ("openai-compatible", "lmstudio", "llamacpp", "vllm")
 SETUP_CONNECT = "Connect one in the AI models panel."
 DEV_ONLY = "the Claude Code login is for development only, under Anthropic's terms"
 SETUP_DEV_ONLY = "Start the server with --Whybook.claude_code_login=True, or connect another model in the AI models panel."
+ALL_LOCAL = 'c.Whybook.way_to_use_models = "all-local"'
+SETUP_ALL_LOCAL = f"The server sets {ALL_LOCAL}: in the AI models panel, connect a model server on this machine or in its network."
+# Why the server refuses a sign-in, a key or a connection of a model outside.
+ONLY_NETWORK = f"The server allows only models on this machine or in its network: {ALL_LOCAL}."
 
 
 @dataclass(frozen=True)
@@ -154,10 +163,30 @@ def load(config: Whybook | None = None) -> Connection:
     return Connection(provider="claude-code") if config is not None and config.claude_code_login else Connection()
 
 
+def outside(connection: Connection, config: Whybook) -> str | None:
+    """Why the server refuses the connection when it allows only models on this machine or in its network, or None.
+
+    A hosted provider and the Claude Code login are outside. A server on this
+    machine, or one at a URL that the analyst typed, is outside when the
+    address of its URL is (``network.on_network``), whatever the analyst said
+    of where it runs.
+    """
+    if not config.network_only or connection.provider == "none":
+        return None
+    provider = PROVIDERS[connection.provider]
+    if provider.local is False or not network.on_network(connection.url):
+        name = {"openai-compatible": "The server at " + (connection.url or ""), "claude-code": "Claude"}.get(connection.provider, provider.label)
+        return f"{name} runs outside this machine and its network"
+    return None
+
+
 def unavailable(connection: Connection, config: Whybook) -> tuple[str, str] | None:
-    """Why the connection cannot be used at all, and what to do, or None: no model, or a login the server does not offer."""
+    """Why the connection cannot be used at all, and what to do, or None: no model, a model that the server refuses, or a login the server does not offer."""
     if connection.provider == "none":
         return "no model is connected", SETUP_CONNECT
+    refused = outside(connection, config)
+    if refused:
+        return refused, SETUP_ALL_LOCAL
     if connection.provider == "claude-code" and not config.claude_code_login:
         return DEV_ONLY, SETUP_DEV_ONLY
     return None
