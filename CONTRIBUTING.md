@@ -8,7 +8,7 @@ Pull requests are welcome. For a change larger than a fix, open an issue first t
 
 ## Report a security problem
 
-Report a security problem privately, never in a public issue. On the [Security tab](https://github.com/openteams-ai/whybook/security) of this repository, press "Report a vulnerability".
+Report a security problem privately, never in a public issue: [SECURITY.md](SECURITY.md) says how, and what is in scope.
 
 ## Full install
 
