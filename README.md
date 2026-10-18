@@ -1,18 +1,26 @@
 # Whybook
 
+Whybook is a research prototype for the future of Jupyter interfaces.
+
 [![Github Actions Status](https://github.com/openteams-ai/whybook/actions/workflows/build.yml/badge.svg)](https://github.com/openteams-ai/whybook/actions/workflows/build.yml)
 [![Sandbox](https://github.com/openteams-ai/whybook/actions/workflows/sandbox.yml/badge.svg)](https://github.com/openteams-ai/whybook/actions/workflows/sandbox.yml)
 [![PyPI](https://img.shields.io/pypi/v/whybook)](https://pypi.org/project/whybook/)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb)
-
-> [!WARNING]
-> **Research prototype.** Whybook is a research prototype for the future of Jupyter interfaces: [whybook.dev](https://whybook.dev) describes the idea. Its features, settings and notebook metadata can change between releases without deprecation.
 
 ## You ask the questions. Agents write the code.
 
 Whybook is a JupyterLab extension: a view of a Jupyter notebook for asking questions about data and understanding every result. It has no chat box. The analyst picks one of the questions it offers, or types or says their own. The offers follow what the analyst points at (a column dragged onto a cell or clicked in Click mode, a region of a plot, a chip on a cell). The code comes from a template or from the AI model of the analyst's choice, and Whybook places the cell and runs it. Every constant, default and choice that Whybook finds behind the result is shown on the cell, where the analyst can question it.
 
 Any `.ipynb` file opens in Whybook and stays an ordinary notebook: the questions, choices and assumptions go into its metadata. Whybook opens next to JupyterLab's notebook editor, and both share one notebook model and one kernel, so an edit in one shows in the other.
+
+> [!NOTE]
+> Whybook is a research prototype for the future of Jupyter interfaces: [whybook.dev](https://whybook.dev) describes the idea. Its features, settings and notebook metadata can change between releases without deprecation.
+
+Three videos show Whybook at work:
+
+- [Why do Python and R disagree on a credit scorecard?](https://vimeo.com/1234468170) (4:27)
+- [Does quitting smoking make you gain weight?](https://vimeo.com/1234460461) (12:11)
+- [Does social media make teens sad?](https://vimeo.com/1234465929) (10:43)
 
 [whybook.dev](https://whybook.dev) also gives the evidence behind the idea, and [the roadmap](https://whybook.dev/roadmap.html) sets out the path to v1.
 
@@ -58,15 +66,23 @@ Whybook also runs in Jupyter Notebook 7: on a notebook's page, the switch Notebo
 
 ## Try the demo
 
-Clone this repository and open `examples/pain_diary/pain_diary_cohort.ipynb` in Whybook, then press Run all: the notebook imports its helpers and data from `prep.py` in the same folder. `examples/pain_diary/pain_diary_cohort_6h.ipynb` is the same analysis after six more hours of work.
+[Open the demo on Binder](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb): it runs in the browser and needs no install and no AI model.
+
+To run it on this machine, install Whybook as above, then clone this repository and open the notebook:
+
+```bash
+git clone https://github.com/openteams-ai/whybook
+cd whybook/examples/pain_diary
+jupyter lab pain_diary_cohort.ipynb
+```
+
+In JupyterLab, choose "Open Notebook in Whybook" in the command palette, then press Run all. The notebook imports its helpers and data from `prep.py` in the same folder, and `pain_diary_cohort_6h.ipynb` beside it is the same analysis after six more hours of work.
 
 The questions from templates work with no AI model. Questions marked needs AI, and questions that the analyst types, need a model connected in the AI models panel: OpenRouter after a sign-in, a Hugging Face access token, an API key of Anthropic, OpenAI, Google or Mistral AI, or a model server on this machine.
 
-To try it without installing, [open the demo on Binder](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb), with no AI model connected.
-
 ## What leaves the machine
 
-Once a remote AI model is connected, Whybook sends it each table that it shows as a tile, to get a label, and asks it for more questions each time the analyst drags or clicks. With the setting "Keep data on this machine", no values, tables or pictures leave the machine, and `c.Whybook.keep_data_local = True` turns it on for every user of a Jupyter server.
+Nothing leaves the machine until a remote AI model is connected. With `c.Whybook.way_to_use_models = "all-local"`, Whybook refuses every model outside the machine and its network, so no prompt leaves them. With the setting "Keep data on this machine", only models on this machine read the data, and no tables, printed outputs or pictures leave it; `c.Whybook.keep_data_local = True` enforces the setting for every user. Otherwise a connected remote model receives the code of the cells and what each task needs, such as the tables shown as tiles, to label them. [Every use of AI in Whybook](https://whybook.dev/#ai-uses) lists what each task sends.
 
 ## Report a problem or contribute
 
