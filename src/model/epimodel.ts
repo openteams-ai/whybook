@@ -1125,7 +1125,11 @@ export class EpiModel implements IDisposable {
       ?.sandboxed;
   }
 
-  /** Whether the notebook says that its data is synthetic: the guard then lets identifiers and values go. */
+  /**
+   * Whether the notebook says that its data is synthetic: the guard then
+   * lets identifiers and values go, unless the server fixes the guard, which
+   * reads the data of every notebook as real.
+   */
   get guardSynthetic(): boolean {
     return notebookMeta(this.notebook).guard?.synthetic === true;
   }

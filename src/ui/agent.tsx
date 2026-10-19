@@ -293,7 +293,8 @@ function StepNotes(props: {
 /**
  * What the review guard held back in a run, in reject mode: the words, and
  * "Allow for this session" when the guard flagged parts that a later check
- * can match.
+ * can match. A mode that the server sets holds back for every user, so its
+ * items have no such button.
  */
 function HeldLine(props: { model: EpiModel; held: IGuardHeld }): JSX.Element {
   const { model, held } = props;
@@ -304,6 +305,7 @@ function HeldLine(props: { model: EpiModel; held: IGuardHeld }): JSX.Element {
       <span className="jp-Epi-agentrun-heldkind">Guard</span>
       <span className="jp-Epi-agentrun-heldtext">{heldWords(held)}</span>
       {parts.length > 0 &&
+        !model.guardFixed &&
         (allowed ? (
           <span className="jp-Epi-agentrun-heldallowed">
             Allowed for this session

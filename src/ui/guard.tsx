@@ -417,12 +417,20 @@ export function GuardSection(props: { model: EpiModel }): JSX.Element {
           detail="It reads what the rules cannot, such as an ID written out in words, and takes a few seconds for each prompt."
           model={model}
         />
+        {/* A mode that the server sets reads the data of every notebook as
+            real: the notebook keeps its mark, which counts again on a server
+            that does not fix the mode. */}
         <Check
           id="jp-Epi-guard-synthetic"
-          checked={model.guardSynthetic}
+          checked={model.guardSynthetic && !model.guardFixed}
+          disabled={model.guardFixed}
           onChange={value => model.setGuardSynthetic(value)}
           label="The data of this notebook is synthetic: its identifiers and values may leave this machine."
-          detail="Kept in the notebook. The guard then checks prompts only for keys and passwords."
+          detail={
+            model.guardFixed
+              ? 'Fixed on the server: c.Whybook.review_guard treats the data of every notebook as real.'
+              : 'Kept in the notebook. The guard then checks prompts only for keys and passwords.'
+          }
         />
         <button className="jp-Epi-link" onClick={() => void editPolicy(model)}>
           {guard.policy.trim()
@@ -529,7 +537,8 @@ export function GuardSection(props: { model: EpiModel }): JSX.Element {
                   masked: item.masked
                 })}
               </span>
-              {item.flags.some(flag => flag.text) && (
+              {/* A mode that the server sets holds back for every user. */}
+              {!model.guardFixed && item.flags.some(flag => flag.text) && (
                 <button
                   className="jp-Epi-link"
                   onClick={() =>

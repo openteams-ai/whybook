@@ -724,7 +724,10 @@ class GuardAnswerHandler(BaseHandler):
 
 class GuardSessionHandler(BaseHandler):
     """What the review guard keeps for a session: the answers allowed and the items held back. ``{"session"}``,
-    with ``"forget"`` an index or ``"all"``, or with ``"allow"`` the flags of a held item and a note."""
+    with ``"forget"`` an index or ``"all"``, or with ``"allow"`` the flags of a held item and a note.
+
+    A guard that the server fixes (``c.Whybook.review_guard``) refuses ``allow`` with 403: what it holds back
+    stays held back for every user."""
 
     @tornado.web.authenticated
     def post(self):
@@ -732,10 +735,12 @@ class GuardSessionHandler(BaseHandler):
         session = body.get("session") if isinstance(body, dict) else None
         if not isinstance(session, str) or not session.strip() or len(session) > 80:
             raise HTTPError(400, "the body needs the session")
+        allow = body.get("allow")
+        if allow is not None and self.future_config.review_guard:
+            raise HTTPError(403, f"The server fixes the review guard (c.Whybook.review_guard = {self.future_config.review_guard!r}): nothing it holds back can be allowed for the session")
         forget = body.get("forget")
         if forget is not None and not guard.forget(session, None if forget == "all" else forget if isinstance(forget, int) else -1):
             raise HTTPError(404, "no such answer in this session")
-        allow = body.get("allow")
         if isinstance(allow, dict) and not guard.remember_flags(session, allow.get("guard"), allow.get("flags"), allow.get("note")):
             raise HTTPError(400, "allow needs the guard and the flags of a held item")
         self.finish(json.dumps(guard.memory(session).to_json()))

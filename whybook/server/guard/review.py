@@ -3,7 +3,9 @@
 The view sends its choices with each request (``Settings.from_body``): the
 mode, which guards run, the policy, whether the notebook's kernel runs in the
 sandbox, and what the notebook says of its data. The server's
-``c.Whybook.review_guard`` can fix the mode for every user.
+``c.Whybook.review_guard`` can fix the mode for every user. A guard that the
+server fixes reads the data of every notebook as real, with or without the
+notebook's mark of synthetic data, and refuses "Allow for this session".
 
 A check runs the rules, then the guard model that the analyst chose, the
 stricter answer winning. What happens next depends on the mode:
@@ -78,20 +80,28 @@ class Settings:
     session: str = ""
     # A request that nobody waits on, such as a table's labels: ask mode holds it back as reject mode does.
     background: bool = False
+    # The server fixes the mode (c.Whybook.review_guard): the data of every notebook counts as real, and
+    # what "Allow for this session" allowed lets nothing go.
+    enforced: bool = False
 
     @classmethod
     def from_body(cls, body: Any, fixed: str = "") -> Settings:
         """The settings of a request: ``body["guard"]``, or the guard off when the request has none.
 
         ``fixed`` is the server's mode (``c.Whybook.review_guard``), which wins and keeps both guards on.
+        It also reads the notebook's data as real: the notebook's mark of synthetic data is the
+        analyst's choice, and a mode that the server fixes overrides the analyst's choices.
         """
         data = body.get("guard") if isinstance(body, dict) else None
-        if not isinstance(data, dict):
-            return cls(mode=fixed) if fixed in MODES else cls()
-        mode = data.get("mode") if data.get("mode") in MODES else "ask"
         enforced = fixed in ("ask", "reject")
+        if not isinstance(data, dict):
+            return cls(mode=fixed, enforced=enforced) if fixed in MODES else cls()
+        mode = data.get("mode") if data.get("mode") in MODES else "ask"
         if enforced:
             mode = fixed
+        dataset = data.get("dataset")
+        if enforced and isinstance(dataset, dict):
+            dataset = {**dataset, "synthetic": False}
 
         def text(key: str, limit: int) -> str | None:
             value = data.get(key)
@@ -109,9 +119,10 @@ class Settings:
             sandboxed=data.get("sandboxed") is True,
             folder=text("folder", 300) or "the notebook's folder",
             language=text("language", 40) or "Python",
-            dataset=Dataset.from_json(data.get("dataset")),
+            dataset=Dataset.from_json(dataset),
             session=text("session", 80) or "",
             background=data.get("background") is True,
+            enforced=enforced,
         )
 
     @property
@@ -129,7 +140,8 @@ class Settings:
 def settings_of(config: Any) -> Settings:
     """The guard's settings that ``connection.for_request`` put on a request's config, or the guard off."""
     found = getattr(config, "guard_settings", None)
-    return found if isinstance(found, Settings) else Settings(mode=getattr(config, "review_guard", "") or "none")
+    fixed = getattr(config, "review_guard", "")
+    return found if isinstance(found, Settings) else Settings(mode=fixed or "none", enforced=fixed in ("ask", "reject"))
 
 
 def without_guard(config: Any) -> Any:
@@ -149,6 +161,8 @@ class Answer:
     answer: str
     note: str | None
     time: float
+    # The analyst's "Allow for this session" on a held item, rather than an answer in the dialog.
+    of_held: bool = False
 
 
 @dataclass
@@ -172,11 +186,20 @@ class Memory:
     def notes(self, guard: str) -> list[str]:
         return [answer.note for answer in self.answers if answer.guard == guard and answer.answer == "allow" and answer.note]
 
-    def allows(self, guard: str, finding: Finding) -> bool:
-        """Whether the analyst allowed every flag of a rule before, in this session. A flag of a model has no text, and needs a question."""
+    def allows(self, guard: str, finding: Finding, enforced: bool = False) -> bool:
+        """Whether the analyst allowed every flag of a rule before, in this session. A flag of a model has no text, and needs a question.
+
+        Under a guard that the server fixes (``enforced``), only the answers in the dialog of ask mode count,
+        and not what "Allow for this session" allowed.
+        """
         if not finding.flags or any(not flag.text for flag in finding.flags):
             return False
-        allowed = {pair for answer in self.answers if answer.guard == guard and answer.answer == "allow" for pair in answer.flags}
+        allowed = {
+            pair
+            for answer in self.answers
+            if answer.guard == guard and answer.answer == "allow" and not (enforced and answer.of_held)
+            for pair in answer.flags
+        }
         return all((flag.kind, flag.text) in allowed for flag in finding.flags)
 
     def to_json(self) -> dict[str, Any]:
@@ -216,7 +239,7 @@ def remember_flags(session: str, guard: str, flags: Any, note: Any) -> bool:
         return False
     clean = note.strip()[:MAX_NOTE] if isinstance(note, str) and note.strip() else None
     kept = memory(session)
-    kept.answers.append(Answer(guard, pairs, "allow", clean, time.time()))
+    kept.answers.append(Answer(guard, pairs, "allow", clean, time.time(), of_held=True))
     del kept.answers[:-MAX_KEPT]
     return True
 
@@ -341,7 +364,7 @@ async def _decide(
     kept = memory(settings.session)
     if finding.decision == "allow":
         return Outcome(True, text, finding)
-    if kept.allows(guard, finding):
+    if kept.allows(guard, finding, settings.enforced):
         return Outcome(True, text, finding, by="memory")
     masked = mask(text, finding) if maskable else None
     can_mask = masked is not None and masked != text and all(flag.text for flag in finding.flags)
