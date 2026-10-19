@@ -120,6 +120,23 @@ export class JobManager implements IDisposable {
   }
 
   /**
+   * The finished jobs of a cell go at once, as its outputs do when the cell
+   * is cleared: its card shows no error of an earlier run.
+   */
+  clear(cellId: string): void {
+    let cleared = false;
+    for (const job of this.jobs) {
+      if (job.cellId === cellId && job.finished !== null) {
+        this._jobs.delete(job.id);
+        cleared = true;
+      }
+    }
+    if (cleared) {
+      this._changed.emit();
+    }
+  }
+
+  /**
    * Busy slots: the main shell when the kernel is busy, and running subshell jobs.
    */
   get busy(): number {

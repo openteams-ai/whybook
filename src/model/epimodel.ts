@@ -3233,7 +3233,10 @@ export class EpiModel implements IDisposable {
     const running: { defs: string[] | null; done: Promise<void> }[] = [];
     const cells = this.codeCells();
     // The toolbar counts the cells of the run from its first: "1/5 cells".
-    this.jobs.tally.plan(cells.length);
+    // An empty cell does not run (_run), so it does not count.
+    this.jobs.tally.plan(
+      cells.filter(cell => cell.model.sharedModel.getSource().trim()).length
+    );
     for (const cell of cells) {
       const source = cell.model.sharedModel.getSource();
       const before = running.filter(
@@ -6148,6 +6151,15 @@ export class EpiModel implements IDisposable {
     text: string,
     subshell: boolean
   ) {
+    // A cell of whitespace alone does not go to the kernel, as in
+    // JupyterLab's notebook: IPython answers it with the count of the last
+    // execution, which its label would show. Its count, its outputs and its
+    // finished jobs go instead.
+    if (!cell.sharedModel.getSource().trim()) {
+      cell.sharedModel.transact(() => cell.clearExecution(), false);
+      this.jobs.clear(cell.id);
+      return { ok: true };
+    }
     // A new cell goes after the cells that ran in this kernel (./placement.ts).
     // While it waits and runs, the cell has no count, and until the next
     // listing of the kernel the bridge does not count its code as run.
