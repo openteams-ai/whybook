@@ -13,44 +13,29 @@ each request, in the thread of that request.
 
 import base64
 import io
-import json
 import os
 import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 
-import IPython.display
 import numpy as np
 import pytest
+
+# call writes the code that the view sends for a kernel program (PYTHON.call in src/model/languages.ts).
+from .kernel_call import call
+from .kernel_call import run as run_program
 
 matplotlib = pytest.importorskip("matplotlib")
 Image = pytest.importorskip("PIL.Image")
 
-KERNEL_CODE = Path(__file__).resolve().parents[1] / "kernel_code"
 RESULT_MIME = "application/vnd.whybook.result+json"
 AXES_MIME = "application/vnd.whybook.axes+json"
 
 
-def call(name, args):
-    """The code that the view sends for a kernel program (PYTHON.call in src/model/languages.ts)."""
-    source = (KERNEL_CODE / f"{name}.py").read_text()
-    return f"{source}\ntry:\n    _whybook_{name}(__import__('json').loads({json.dumps(json.dumps(args))}))\nfinally:\n    del _whybook_{name}\n"
-
-
 def hooks(shell, args=None):
     """Run the kernel program as the view does, and return its report."""
-    shown = []
-    original = IPython.display.display
-    IPython.display.display = lambda data, raw=False, **kw: shown.append(data)
-    try:
-        code = call("plot_hooks", args or {})
-        result = shell.run_cell(code, silent=True)
-        assert result.success, result.error_in_exec
-    finally:
-        IPython.display.display = original
-    return next(item[RESULT_MIME] for item in reversed(shown) if RESULT_MIME in item)["hooks"]
+    return run_program(shell, "plot_hooks", args or {})["hooks"]
 
 
 @pytest.fixture

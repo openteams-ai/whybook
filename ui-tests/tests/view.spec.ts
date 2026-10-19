@@ -648,7 +648,9 @@ function recordKernelRequests(): void {
       const message = decode(data);
       if (message?.header?.msg_type === 'execute_request') {
         const code: string = message.content.code;
-        const program = /\n {4}_whybook_(\w+)\(__import__/.exec(code);
+        // A program goes with its call, `_whybook_<name>(_whybook_args)`, to
+        // `exec` in globals of its own (PYTHON.call in src/model/languages.ts).
+        const program = /_whybook_(\w+)\(_whybook_args\)/.exec(code);
         state.epiExecutes.push(program ? program[1] : code);
       }
       super.send(data);

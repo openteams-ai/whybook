@@ -1,0 +1,22 @@
+{
+ "about": "What the view sends to run a program of kernel_code/ in a Python kernel (PYTHON.call in src/model/languages.ts), for one program and its arguments. The program runs in globals of its own: a name that the notebook binds does not reach it, and nothing that it defines stays in the notebook. src/__tests__/future.spec.ts checks the view against this file, and test_kernel_globals.py checks the code that the Python tests run (kernel_call.py) and runs this code.",
+ "name": "probe",
+ "program": "\"\"\"A program that says where it runs, with a \"quote\", a \\\\ backslash and café in its text.\"\"\"\n\n\ndef _whybook_probe(args):\n    import builtins\n\n    from IPython import get_ipython\n    from IPython.display import display\n\n    found = {\n        \"args\": args,\n        \"in_notebook\": globals() is get_ipython().user_ns,\n        \"builtins\": len is builtins.len and type is builtins.type and zip is builtins.zip,\n        \"names\": sorted(name for name in globals() if not name.startswith(\"__\")),\n    }\n    display({\"application/vnd.whybook.result+json\": found}, raw=True)\n",
+ "args": {
+  "known": {
+   "df": "x\"y"
+  },
+  "names": [
+   "it's",
+   "a\\b",
+   "café 😀"
+  ],
+  "cells": [
+   {
+    "id": "c1",
+    "source": "type = \"linear\"\nwith zipfile.ZipFile(path) as zip:\n    pass"
+   }
+  ]
+ },
+ "code": "__import__(\"builtins\").exec(\"\\\"\\\"\\\"A program that says where it runs, with a \\\"quote\\\", a \\\\\\\\ backslash and café in its text.\\\"\\\"\\\"\\n\\n\\ndef _whybook_probe(args):\\n    import builtins\\n\\n    from IPython import get_ipython\\n    from IPython.display import display\\n\\n    found = {\\n        \\\"args\\\": args,\\n        \\\"in_notebook\\\": globals() is get_ipython().user_ns,\\n        \\\"builtins\\\": len is builtins.len and type is builtins.type and zip is builtins.zip,\\n        \\\"names\\\": sorted(name for name in globals() if not name.startswith(\\\"__\\\")),\\n    }\\n    display({\\\"application/vnd.whybook.result+json\\\": found}, raw=True)\\n\\n_whybook_probe(_whybook_args)\\n\", {\"_whybook_args\": __import__(\"json\").loads(\"{\\\"known\\\":{\\\"df\\\":\\\"x\\\\\\\"y\\\"},\\\"names\\\":[\\\"it's\\\",\\\"a\\\\\\\\b\\\",\\\"café 😀\\\"],\\\"cells\\\":[{\\\"id\\\":\\\"c1\\\",\\\"source\\\":\\\"type = \\\\\\\"linear\\\\\\\"\\\\nwith zipfile.ZipFile(path) as zip:\\\\n    pass\\\"}]}\")})\n"
+}

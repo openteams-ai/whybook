@@ -45,8 +45,9 @@ export interface ILanguage {
   /** The code of each program it has, by the program's name. */
   snippets: Record<Snippet, string>;
   /**
-   * Code that defines a program's function, calls it with JSON arguments and
-   * removes it again, or null when the language lacks the program.
+   * Code that runs a program with JSON arguments and leaves none of its
+   * names in the kernel's namespace, or null when the language lacks the
+   * program.
    */
   call(name: Snippet, args: unknown): string | null;
   /** Code that evaluates to a column of a frame: `df['age']` in Python. */
@@ -89,9 +90,17 @@ export const PYTHON: ILanguage = {
     if (!code) {
       return null;
     }
-    const fn = `_whybook_${name}`;
+    // The program and its call run in globals of their own, which hold the
+    // builtins and the arguments: a builtin that the notebook binds, as
+    // `type = "linear"` or `with ZipFile(path) as zip:` do, does not reach
+    // them, and none of their names stays in the notebook. The programs read
+    // the notebook's names from get_ipython().user_ns. Python reads a JSON
+    // string as a string literal.
+    const program = JSON.stringify(
+      `${code}\n_whybook_${name}(_whybook_args)\n`
+    );
     const payload = JSON.stringify(JSON.stringify(args));
-    return `${code}\ntry:\n    ${fn}(__import__("json").loads(${payload}))\nfinally:\n    del ${fn}\n`;
+    return `__import__("builtins").exec(${program}, {"_whybook_args": __import__("json").loads(${payload})})\n`;
   },
   column: (frame, label) => `${frame}[${pythonString(label)}]`,
   subshells: true,

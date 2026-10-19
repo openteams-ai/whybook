@@ -4,6 +4,7 @@ import { join } from 'path';
 
 import * as kernelCode from '../kernelCode';
 import { snippetCall } from '../model/kernel';
+import { PYTHON } from '../model/languages';
 import { cellMeta, editMeta, lineDiff, setCellMeta } from '../model/notebook';
 import type { IEpiCellMeta, IPlotPayload } from '../tokens';
 import { plotXValues } from '../ui/plot';
@@ -39,14 +40,33 @@ describe('kernel code', () => {
 });
 
 describe('snippetCall', () => {
-  it('calls the snippet with the arguments and removes it after', () => {
+  it('runs the snippet and its call in globals of their own, which hold the arguments', () => {
     const args = { known: { df: 'x"y' }, names: ["it's", 'a\\b'] };
     const code = snippetCall('inspect_variables', args);
-    expect(code.startsWith(kernelCode.inspectVariables)).toBe(true);
-    expect(code).toContain('finally:\n    del _whybook_inspect_variables\n');
-    const payload = code.match(/json"\)\.loads\((.*)\)\)\n/)![1];
-    // Python reads the payload as a string literal, then as JSON.
-    expect(JSON.parse(JSON.parse(payload))).toEqual(args);
+    // One statement, which names no variable of the notebook: `type =
+    // "linear"` there does not reach the snippet, and the snippet's own
+    // names do not stay there.
+    const match =
+      /^__import__\("builtins"\)\.exec\((".*"), \{"_whybook_args": __import__\("json"\)\.loads\((".*")\)\}\)\n$/.exec(
+        code
+      );
+    expect(match).not.toBeNull();
+    // Python reads each literal as a string, as JSON does.
+    expect(JSON.parse(match![1])).toBe(
+      `${kernelCode.inspectVariables}\n_whybook_inspect_variables(_whybook_args)\n`
+    );
+    expect(JSON.parse(JSON.parse(match![2]))).toEqual(args);
+  });
+
+  it('sends the code of whybook/server/tests/data/kernel_call.json, which the Python tests run', () => {
+    const { name, program, args, code } = JSON.parse(
+      readFileSync(
+        join(KERNEL_CODE, '..', 'tests', 'data', 'kernel_call.json'),
+        'utf8'
+      )
+    );
+    const language = { ...PYTHON, snippets: { [name]: program } };
+    expect(language.call(name, args)).toBe(code);
   });
 });
 

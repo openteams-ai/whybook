@@ -9,6 +9,7 @@ from whybook.server import agent, claude, privacy
 from whybook.server.config import Whybook
 from whybook.server.questions.models import InvalidRequest
 
+from .kernel_call import run
 from .test_agent import body, drive, request
 
 KERNELS = [
@@ -260,10 +261,6 @@ async def test_an_agent_on_another_model_makes_a_notebook_works_there_and_finish
     assert found[-1]["comparison"] == comparison
 
 
-KERNEL_CODE = __import__("pathlib").Path(__file__).resolve().parents[1] / "kernel_code"
-RESULT_MIME = "application/vnd.whybook.result+json"
-
-
 @pytest.fixture
 def shell(tmp_path, monkeypatch):
     """An IPython shell whose folder is the notebook's, with its history in memory."""
@@ -285,20 +282,9 @@ def shell(tmp_path, monkeypatch):
 
 def program(shell, name, args):
     """Run a kernel program as the view does (PYTHON.call in src/model/languages.ts), and return its result."""
-    import IPython.display
-
-    shown = []
-    original = IPython.display.display
-    IPython.display.display = lambda data, raw=False, **kw: shown.append(data)
-    try:
-        source = (KERNEL_CODE / f"{name}.py").read_text()
-        code = f"{source}\ntry:\n    _whybook_{name}(__import__('json').loads({json.dumps(json.dumps(args))}))\nfinally:\n    del _whybook_{name}\n"
-        result = shell.run_cell(code, silent=True)
-        assert result.success, result.error_in_exec
-    finally:
-        IPython.display.display = original
+    found = run(shell, name, args)
     assert f"_whybook_{name}" not in shell.user_ns
-    return next(item[RESULT_MIME] for item in reversed(shown) if RESULT_MIME in item)
+    return found
 
 
 def test_write_frames_writes_each_frame_as_csv_with_its_keys_and_no_row_places(shell, tmp_path):
