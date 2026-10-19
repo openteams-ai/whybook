@@ -558,6 +558,12 @@ export class KernelBridge implements IDisposable {
     if (stale.length === 0) {
       return;
     }
+    // A cell that ends while the kernel analyses marks every cell for
+    // another pass (invalidateAnalysis): the kernel made this analysis
+    // before the cell made its names. That cell counts as run only from the
+    // next listing, so the next pass is also the first analysis of it that
+    // the notebook keeps (`_keep` in ./epimodel.ts).
+    const invalidated = this._invalidated;
     // Without the setting, the request is the one of before.
     const result = await this.run<{
       cells?: Record<string, ICellAnalysis & { signatures?: ISignature[] }>;
@@ -579,7 +585,7 @@ export class KernelBridge implements IDisposable {
           // A cell that the kernel could not parse comes back as its error
           // alone: it reads as a cell that defines, uses and decides nothing.
           result: rest.error ? { ...UNREAD, error: rest.error } : rest,
-          stale: false,
+          stale: this._invalidated !== invalidated,
           // A cell that the kernel could not parse lists none.
           signatures: signatures ? (read ?? []) : null
         });
@@ -592,6 +598,7 @@ export class KernelBridge implements IDisposable {
    * The analysis depends on the namespace too: mark every cell for another pass.
    */
   invalidateAnalysis(): void {
+    this._invalidated++;
     for (const entry of this._analysis.values()) {
       entry.stale = true;
     }
@@ -832,6 +839,8 @@ export class KernelBridge implements IDisposable {
       signatures: ISignature[] | null;
     }
   >();
+  // How many times every cell was marked for another pass of the analysis.
+  private _invalidated = 0;
   private _own = new Set<string>();
   private _ranCode = new Set<string>();
   // The kernel whose history of its session the bridge read.
