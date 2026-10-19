@@ -1,5 +1,7 @@
 import type { ISessionContext } from '@jupyterlab/apputils';
 import type { ICodeCellModel } from '@jupyterlab/cells';
+import type * as nbformat from '@jupyterlab/nbformat';
+import type { IOutputAreaModel } from '@jupyterlab/outputarea';
 import { OutputArea } from '@jupyterlab/outputarea';
 import type { IRenderMimeRegistry } from '@jupyterlab/rendermime';
 import type { Kernel } from '@jupyterlab/services';
@@ -36,6 +38,17 @@ export interface IJob {
 export interface IRunResult {
   ok: boolean;
   error?: string;
+}
+
+/** The last error among a cell's outputs, or null. */
+function lastError(outputs: IOutputAreaModel): nbformat.IError | null {
+  for (let index = outputs.length - 1; index >= 0; index--) {
+    const output = outputs.get(index);
+    if (output.type === 'error') {
+      return output.toJSON() as nbformat.IError;
+    }
+  }
+  return null;
 }
 
 /**
@@ -329,7 +342,13 @@ export class JobManager implements IDisposable {
       const reply = await future.done;
       cell.executionCount = reply?.content.execution_count ?? null;
       if (reply?.content.status === 'error') {
-        const content = reply.content;
+        // An error raised while an output is drawn, as by a pandas Styler
+        // whose _repr_html_ raises, is an error output of the cell. The
+        // reply then has the status "error" and no exception: its name and
+        // message read "NoneType: None".
+        const shown =
+          reply.content.ename === 'NoneType' ? lastError(cell.outputs) : null;
+        const content = shown ?? reply.content;
         const error = [
           `${content.ename}: ${content.evalue}`,
           ...content.traceback
