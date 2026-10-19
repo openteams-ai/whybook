@@ -214,11 +214,20 @@ def key_for(connection: Connection, keys: KeyStore | None = None) -> str | None:
 
 
 def key_state(connection: Connection, keys: KeyStore | None = None) -> dict[str, Any] | None:
-    """What the panel shows of the connection's saved key: when it was saved, whether a provider checked it, and when one last refused it."""
+    """What the panel shows of the connection's saved key: when it was saved, whether a provider checked it, and when one last refused it.
+
+    ``typed_for`` is the URL that a server's key was typed for, which Forget key under the connected model
+    sends back to ``auth/signout``; None for a provider's key, which the buttons of the provider's own row delete.
+    """
     meta = (keys or KeyStore()).meta(key_name(connection))
     if not meta:
         return None
-    return {"saved": meta.get("saved"), "checked": meta.get("checked") is not False, "refused": meta.get("refused")}
+    return {
+        "saved": meta.get("saved"),
+        "checked": meta.get("checked") is not False,
+        "refused": meta.get("refused"),
+        "typed_for": connection.url if connection.provider in TYPED_KEYS else None,
+    }
 
 
 def note_check(connection: Connection, key: str | None, took: bool) -> None:

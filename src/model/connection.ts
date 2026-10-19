@@ -413,6 +413,24 @@ export function connectedKeyLine(
   return null;
 }
 
+/**
+ * The line under the connected model for a key typed with a server's URL,
+ * beside its Forget key: "Key saved on 18 Oct". Null for a provider's key,
+ * which the provider's own row shows with Sign out or Forget key, and for
+ * no key.
+ */
+export function serverKeyWords(
+  state: IConnectionState,
+  now?: Date
+): string | null {
+  const key = state.connected_key;
+  if (!key?.typed_for) {
+    return null;
+  }
+  const day = dayOf(key.saved, now);
+  return `Key saved ${day ? `on ${day}` : 'on the server'}`;
+}
+
 /** Past this many models, the panel offers a field that filters them rather than a select. */
 export const SELECT_MODELS = 30;
 

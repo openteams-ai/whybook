@@ -190,6 +190,8 @@ export interface IKeyState {
   checked: boolean;
   /** When a provider last refused it. */
   refused: string | null;
+  /** The URL that a server's key was typed for; null for a provider's key, which the buttons of the provider's row delete. */
+  typed_for?: string | null;
 }
 
 /** The saved choice of the connected model. */
@@ -851,11 +853,19 @@ export class Api {
     });
   }
 
-  /** Forget the key of a provider on the server. */
-  signOut(provider: string): Promise<IConnectionState> {
+  /**
+   * Forget the key of a provider on the server, or with `baseUrl` the key
+   * typed for that server's URL.
+   */
+  signOut(
+    provider: string,
+    baseUrl?: string | null
+  ): Promise<IConnectionState> {
     return requestAPI<IConnectionState>('auth/signout', this._settings, {
       method: 'POST',
-      body: JSON.stringify({ provider })
+      body: JSON.stringify(
+        baseUrl ? { provider, base_url: baseUrl } : { provider }
+      )
     });
   }
 

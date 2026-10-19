@@ -1058,7 +1058,12 @@ class KeyHandler(BaseHandler):
 
 
 class SignOutHandler(BaseHandler):
-    """Forget the key of a provider: ``{"provider"}``. The provider still accepts it until it is revoked there."""
+    """Forget the key of a provider: ``{"provider"}``. The provider still accepts it until it is revoked there.
+
+    A key typed for a server is kept under the server's URL (``connection.key_name``): ``{"provider",
+    "base_url"}`` forgets it, and a server on this machine without ``base_url`` forgets the key of its
+    default URL. A URL that names no server of the provider is refused with 400.
+    """
 
     @tornado.web.authenticated
     def post(self):
@@ -1066,7 +1071,14 @@ class SignOutHandler(BaseHandler):
         provider = body.get("provider") if isinstance(body, dict) else None
         if provider not in connection.PROVIDERS:
             raise HTTPError(400, f"unknown provider {provider!r}")
-        KeyStore().delete(provider)
+        keys = KeyStore()
+        if provider in connection.TYPED_KEYS:
+            try:
+                server = connection.Connection.from_json({"provider": provider, "base_url": body.get("base_url") or None})
+            except ValueError as error:
+                raise HTTPError(400, str(error)) from error
+            keys.delete(connection.key_name(server))
+        keys.delete(provider)
         self.finish(json.dumps(connection_state(self.future_config)))
 
 

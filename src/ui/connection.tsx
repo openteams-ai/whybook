@@ -22,7 +22,8 @@ import {
   messageOf,
   providerOf,
   savedKey,
-  SELECT_MODELS
+  SELECT_MODELS,
+  serverKeyWords
 } from '../model/connection';
 import type { EpiModel } from '../model/epimodel';
 import type { ModelsPanelStep } from '../model/models';
@@ -381,6 +382,16 @@ export function ConnectionSection(props: {
       />
     );
   const keyLine = connectedKeyLine(state);
+  // A key typed for the connected server has no provider's row: its line
+  // under the model has the button that deletes it. The server stays
+  // connected, and its calls go without a key; the focus goes to the button
+  // that changes the model.
+  const serverKey = serverKeyWords(state);
+  const typedFor = state.connected_key?.typed_for;
+  const forgetServerKey = () => {
+    refocus(toggle);
+    void api.signOut(state.connection.provider, typedFor).then(setState);
+  };
   return (
     <div className="jp-Epi-connection" aria-label="Connected model" ref={node}>
       <div className="jp-Epi-connection-head">
@@ -432,6 +443,18 @@ export function ConnectionSection(props: {
       >
         {readiness.label}
       </div>
+      {serverKey && (
+        <div className="jp-Epi-provider jp-Epi-connection-key">
+          <div className="jp-Epi-provider-text">
+            <span className="jp-Epi-provider-note">{serverKey}</span>
+          </div>
+          <div className="jp-Epi-provider-actions">
+            <Button small minimal onClick={forgetServerKey}>
+              Forget key
+            </Button>
+          </div>
+        </div>
+      )}
       {keyLine && (
         <div
           className={
