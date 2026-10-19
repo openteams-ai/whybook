@@ -1761,6 +1761,9 @@
 .jp-Epi-title {
   flex: 1 1 14em;
   min-width: 0;
+
+  /* A long word, such as a URL, breaks inside the title's box, clear of the actions. */
+  overflow-wrap: anywhere;
   font-family: var(--jp-content-font-family);
   font-size: calc(var(--jp-content-font-size1) * 1.2);
   font-weight: var(--jp-content-heading-font-weight);
