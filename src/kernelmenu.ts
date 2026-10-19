@@ -22,6 +22,7 @@ import {
 import type { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import type { Widget } from '@lumino/widgets';
 
+import { interruptKernel } from './model/interrupts';
 import type { EpiPanel } from './widgets';
 
 /** The commands that the menus run for a Whybook view. */
@@ -72,8 +73,12 @@ export function addKernelMenu(
     caption: 'Interrupt the kernel of this notebook',
     describedBy: NO_ARGS,
     isEnabled,
+    // A Run all of the notebook stops at the interrupt (design iteration 1.135).
     execute: async args => {
-      await viewOf(args)?.context.sessionContext.session?.kernel?.interrupt();
+      const sessionContext = viewOf(args)?.context.sessionContext;
+      if (sessionContext) {
+        await interruptKernel(sessionContext);
+      }
     }
   });
   // True when the kernel restarted: Restart and Run All runs the cells then.

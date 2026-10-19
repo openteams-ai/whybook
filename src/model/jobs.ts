@@ -38,6 +38,8 @@ export interface IJob {
 export interface IRunResult {
   ok: boolean;
   error?: string;
+  /** The cell stopped at an interrupt of the kernel: a KeyboardInterrupt. */
+  interrupted?: boolean;
 }
 
 /** The last error among a cell's outputs, or null. */
@@ -357,7 +359,11 @@ export class JobManager implements IDisposable {
           // Remove the colours from the traceback.
           // eslint-disable-next-line no-control-regex
           .replace(/\x1b\[[0-9;]*m/g, '');
-        return { ok: false, error };
+        return {
+          ok: false,
+          error,
+          interrupted: reply.content.ename === 'KeyboardInterrupt'
+        };
       }
       return { ok: reply?.content.status === 'ok' };
     } finally {

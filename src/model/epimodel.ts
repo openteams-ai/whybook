@@ -92,6 +92,7 @@ import {
 } from './inferred';
 import type { INumbersInText, ISourceText } from './claims';
 import { checkNumbers, htmlText } from './claims';
+import { countInterrupt, interruptsOf } from './interrupts';
 import type { IRunResult } from './jobs';
 import { JobManager } from './jobs';
 import { KernelBridge } from './kernel';
@@ -3237,6 +3238,14 @@ export class EpiModel implements IDisposable {
     this.jobs.tally.plan(
       cells.filter(cell => cell.model.sharedModel.getSource().trim()).length
     );
+    // An interrupt of the kernel stops the run, as it stops Run All Cells of
+    // JupyterLab's notebook: the cells after the interrupted one stay not
+    // run (design iteration 1.135). It is Interrupt Kernel of a view of this
+    // notebook, or a KeyboardInterrupt in a cell, which an interrupt from
+    // another client gives (_run). A branch in a subshell runs to its end,
+    // since an interrupt reaches the main thread only.
+    const interrupts = interruptsOf(this.sessionContext);
+    const stopped = () => interruptsOf(this.sessionContext) !== interrupts;
     for (const cell of cells) {
       const source = cell.model.sharedModel.getSource();
       const before = running.filter(
@@ -3245,6 +3254,9 @@ export class EpiModel implements IDisposable {
           branch.defs.some(name => namesIn(source, name))
       );
       await Promise.all(before.map(branch => branch.done));
+      if (stopped()) {
+        break;
+      }
       // The cells of Run all are not the cell the analyst worked on last.
       if (cell.branchOf) {
         running.push({
@@ -3255,6 +3267,10 @@ export class EpiModel implements IDisposable {
       } else {
         await this.runCell(cell.id, { acted: false });
       }
+    }
+    if (stopped()) {
+      // The toolbar counts the cells that started: "Executed 2 cells".
+      this.jobs.tally.plan(0);
     }
     await Promise.all(running.map(branch => branch.done));
   }
@@ -6174,6 +6190,11 @@ export class EpiModel implements IDisposable {
       } else {
         runs.set(cell.id, cell.executionCount);
       }
+    }
+    // A KeyboardInterrupt stops a Run all of the notebook, wherever the
+    // interrupt came from (_runAllCells).
+    if (result.interrupted) {
+      countInterrupt(this.sessionContext);
     }
     // Its decisions are saved with the cell once the analysis catches up.
     this._ran.add(cell.id);
