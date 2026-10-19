@@ -70,10 +70,14 @@ describe('lineDiff', () => {
 });
 
 describe('editMeta', () => {
-  /** A cell model with only the metadata calls that the helpers make. */
+  /**
+   * A cell model with only the metadata calls that the helpers make, in no
+   * notebook.
+   */
   function fakeCell(whybook?: IEpiCellMeta): any {
     const metadata: Record<string, any> = whybook ? { whybook } : {};
     return {
+      sharedModel: { notebook: null },
       getMetadata: (key: string) =>
         metadata[key] === undefined
           ? undefined

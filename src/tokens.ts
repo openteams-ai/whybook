@@ -528,6 +528,8 @@ export interface IInferredMeta {
 }
 
 export interface IEpiNotebookMeta {
+  /** The version of the layout of this metadata (METADATA_FORMAT). */
+  format?: number;
   /** The column that the analysis explains, set by hand, as the demos do. */
   outcome?: string;
   /** The column whose values name what the rows repeat over, set by hand. */
@@ -762,6 +764,18 @@ export type StreamEvent = IProgressEvent | IErrorEvent | IResultEvent;
 
 /** The key of the view's metadata in a notebook and in its cells. */
 export const METADATA_KEY = 'whybook';
+
+/**
+ * The version of the layout of the metadata under METADATA_KEY, which every
+ * write that changes it puts on the notebook as `format`. A release that
+ * changes the layout in a way that an older release reads wrong raises the
+ * number, and migrates a notebook with a lower number when it opens. A
+ * notebook saved before the number has the layout of version 0. How the
+ * version is written, a number as now, a string such as "0.1", or two
+ * numbers as nbformat and nbformat_minor, is to be settled before the
+ * metadata format v1 of the roadmap.
+ */
+export const METADATA_FORMAT = 0;
 
 export const RESULT_MIME = 'application/vnd.whybook.result+json';
 export const PLOT_MIME = 'application/vnd.whybook.plot+json';

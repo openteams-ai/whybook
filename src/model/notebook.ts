@@ -2,11 +2,31 @@ import type { ICellModel, ICodeCellModel } from '@jupyterlab/cells';
 import type { INotebookModel } from '@jupyterlab/notebook';
 import type { IOutputModel } from '@jupyterlab/rendermime';
 import type { PartialJSONObject } from '@lumino/coreutils';
+import { JSONExt } from '@lumino/coreutils';
 
 import type { IEpiCellMeta, IEpiNotebookMeta } from '../tokens';
 import { codeKey } from './handedit';
 import type { ILanguage } from './languages';
-import { METADATA_KEY, PLOT_MIME, PROGRESS_MIME } from '../tokens';
+import {
+  METADATA_FORMAT,
+  METADATA_KEY,
+  PLOT_MIME,
+  PROGRESS_MIME
+} from '../tokens';
+
+/**
+ * Put the version of the layout of Whybook's metadata on a notebook that now
+ * holds some of it. A higher number, which a later release wrote, stays.
+ */
+function markFormat(notebook: INotebookModel['sharedModel'] | null): void {
+  if (!notebook) {
+    return;
+  }
+  const meta = (notebook.getMetadata(METADATA_KEY) ?? {}) as PartialJSONObject;
+  if (typeof meta.format !== 'number' || meta.format < METADATA_FORMAT) {
+    notebook.setMetadata(METADATA_KEY, { ...meta, format: METADATA_FORMAT });
+  }
+}
 
 export function cellMeta(cell: ICellModel): IEpiCellMeta {
   return (cell.getMetadata(METADATA_KEY) as IEpiCellMeta | undefined) ?? {};
@@ -16,13 +36,22 @@ export function setCellMeta(
   cell: ICellModel,
   patch: Partial<IEpiCellMeta>
 ): void {
-  const next = { ...cellMeta(cell), ...patch };
+  const before = cellMeta(cell);
+  const next = { ...before, ...patch };
   for (const key of Object.keys(next) as (keyof IEpiCellMeta)[]) {
     if (next[key] === undefined) {
       delete next[key];
     }
   }
+  // A write that changes nothing leaves the notebook unchanged, as
+  // JupyterLab's own write does.
+  if (
+    JSONExt.deepEqual(before as PartialJSONObject, next as PartialJSONObject)
+  ) {
+    return;
+  }
   cell.setMetadata(METADATA_KEY, next);
+  markFormat(cell.sharedModel.notebook);
 }
 
 /**
@@ -85,11 +114,20 @@ export function setNotebookMeta(
   patch: Partial<IEpiNotebookMeta>
 ): void {
   // A key set to undefined leaves the metadata, as in setCellMeta.
-  const next = { ...notebookMeta(model), ...patch };
+  const before = notebookMeta(model);
+  const next = { ...before, ...patch };
   for (const key of Object.keys(next) as (keyof IEpiNotebookMeta)[]) {
     if (next[key] === undefined) {
       delete next[key];
     }
+  }
+  if (
+    JSONExt.deepEqual(before as PartialJSONObject, next as PartialJSONObject)
+  ) {
+    return;
+  }
+  if (typeof next.format !== 'number' || next.format < METADATA_FORMAT) {
+    next.format = METADATA_FORMAT;
   }
   model.setMetadata(METADATA_KEY, next);
 }
@@ -138,6 +176,7 @@ export function insertCodeCell(
     source,
     metadata: { [METADATA_KEY]: kept as PartialJSONObject }
   });
+  markFormat(model.sharedModel);
   return model.cells.get(index) as ICodeCellModel;
 }
 
