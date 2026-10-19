@@ -379,17 +379,26 @@ def _whybook_inspect_variables(args):
             params = value.params
             ci = value.conf_int()
             pvalues = getattr(value, "pvalues", None)
+            # A model fitted on arrays keeps its parameters in arrays: its terms take the names that the model gives as many
+            # of as it has parameters, a time series model's param_names, else the names of its columns.
+            named = hasattr(params, "index")
+            if named:
+                names = list(params.index)
+            else:
+                lists = [getattr(model, "param_names", None), getattr(model, "exog_names", None)]
+                names = next((list(found) for found in lists if found is not None and len(found) == len(params)), [f"x{i}" for i in range(len(params))])
             terms = []
-            for term in list(params.index)[:40]:
-                row = {"term": str(term), "coef": clean(params[term])}
+            for position, term in enumerate(names[:40]):
+                row = {"term": str(term), "coef": clean(params[term] if named else params[position])}
                 try:
-                    row["lo"] = clean(ci.loc[term].iloc[0])
-                    row["hi"] = clean(ci.loc[term].iloc[1])
+                    bounds = ci.loc[term].iloc if hasattr(ci, "loc") else ci[position]
+                    row["lo"] = clean(bounds[0])
+                    row["hi"] = clean(bounds[1])
                 except Exception:
                     pass
                 if pvalues is not None:
                     try:
-                        row["p"] = clean(pvalues[term])
+                        row["p"] = clean(pvalues[term] if hasattr(pvalues, "index") else pvalues[position])
                     except Exception:
                         pass
                 terms.append(row)

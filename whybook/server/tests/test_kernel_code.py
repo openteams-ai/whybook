@@ -41,6 +41,32 @@ def test_fitted_model_lists_its_terms(demo):
     assert "treatment_arm[T.B]:month" in [term["term"] for term in model["terms"]]
 
 
+def test_a_model_fitted_on_arrays_lists_its_terms_by_their_names(demo):
+    import numpy as np
+    import statsmodels.api as sm
+
+    rng = np.random.default_rng(0)
+    exog = sm.add_constant(rng.normal(size=(40, 2)))
+    endog = (exog @ [0.2, 1.0, -0.5] + rng.normal(size=40) > 0).astype(float)
+    from statsmodels.tsa.arima.model import ARIMA
+
+    ns = demo.shell.user_ns
+    ns["array_fit"] = sm.GLM(endog, exog, family=sm.families.Binomial()).fit()
+    # A time series model names its parameters apart from its columns: exog_names is ["const"] for four parameters.
+    ns["series_fit"] = ARIMA(rng.normal(size=60).cumsum(), order=(1, 0, 1)).fit()
+    try:
+        listing = {v["name"]: v for v in demo.kernel("inspect_variables", {})["variables"]}
+    finally:
+        ns.pop("array_fit", None)
+        ns.pop("series_fit", None)
+    # Its parameters are an array with no index: the listing kept the error and no term.
+    model = listing["array_fit"]
+    assert "error" not in model
+    assert [term["term"] for term in model["terms"]] == ["const", "x1", "x2"]
+    assert all({"coef", "lo", "hi", "p"} <= set(term) for term in model["terms"])
+    assert [term["term"] for term in listing["series_fit"]["terms"]] == ["const", "ar.L1", "ma.L1", "sigma2"]
+
+
 def test_unchanged_frames_are_sent_as_stubs(demo):
     known = {v["name"]: v["fingerprint"] for v in demo.snapshot["variables"] if v.get("fingerprint")}
     second = demo.kernel("inspect_variables", {"known": known})
