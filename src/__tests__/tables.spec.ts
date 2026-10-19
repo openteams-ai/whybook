@@ -101,7 +101,7 @@ describe('tableInfo', () => {
 
 describe('tableLevel', () => {
   const small = { rows: INLINE_ROWS, columns: 10, tables: 1 };
-  const coefficients = { rows: 8, columns: 6, tables: 1 };
+  const coefficients = { rows: 12, columns: 6, tables: 1 };
   // 13 px text shrinks to 8 px at most: a scale of 8/13.
   const readable = 8 / 13;
 
@@ -123,6 +123,42 @@ describe('tableLevel', () => {
       level: 'tile',
       scale: readable
     });
+  });
+
+  it('shows a table of up to ten rows in full when it fits, as the 7 values of groups.explode("ages") in Polars\' chapter 12', () => {
+    // What polars writes for that frame: its shape above the table, and a
+    // row of dtypes under the header. A miniature of it cut the 7th row.
+    const rows = [18, 21, 30, 40, 50, 42, 69]
+      .map(age => `<tr><td>${age}</td></tr>`)
+      .join('');
+    const seven = tableInfo(
+      `<div><small>shape: (7, 1)</small><table border="1" class="dataframe"><thead><tr><th>ages</th></tr><tr><td>i64</td></tr></thead><tbody>${rows}</tbody></table></div>`
+    );
+    expect(seven).toEqual({
+      rows: 7,
+      columns: 1,
+      tables: 1,
+      sizeLine: 'above'
+    });
+    expect(
+      tableLevel(seven, { width: 60, height: 309, fontPx: 13 }, 600)
+    ).toEqual({ level: 'inline', scale: 1 });
+    const ten = { rows: 10, columns: 6, tables: 1 };
+    expect(
+      tableLevel(ten, { width: 500, height: 330, fontPx: 13 }, 900).level
+    ).toBe('inline');
+    // Eleven rows make a miniature.
+    expect(
+      tableLevel(
+        { ...ten, rows: 11 },
+        { width: 500, height: 360, fontPx: 13 },
+        900
+      ).level
+    ).toBe('miniature');
+    // Ten rows too wide for the card shrink, as five rows do.
+    expect(
+      tableLevel(ten, { width: 700, height: 330, fontPx: 13 }, 600).level
+    ).toBe('miniature');
   });
 
   it('shrinks a table with more rows to the height of a miniature', () => {

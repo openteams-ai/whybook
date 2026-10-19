@@ -27,8 +27,13 @@ export interface ITableInfo {
 
 export type TableLevel = 'inline' | 'miniature' | 'tile';
 
-/** A table this small shows in full, when it fits the width. */
-export const INLINE_ROWS = 5;
+/**
+ * A table this small shows in full, when it fits the width. A miniature of
+ * more rows shrinks its text to the smallest readable size and is cut at its
+ * height: the 7 values of a polars frame showed 6 rows and part of the 7th
+ * (design iteration 1.138).
+ */
+export const INLINE_ROWS = 10;
 export const INLINE_COLUMNS = 20;
 /** A miniature does not shrink its text below this size, in pixels. */
 export const READABLE_PX = 8;

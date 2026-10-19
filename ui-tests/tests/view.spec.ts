@@ -1312,7 +1312,7 @@ test('shows a table in full, as a miniature or as a tile, by its room', async ({
 
   await expect(table('small')).toHaveClass(/jp-mod-inline/);
   await expect(table('small').locator('table')).toBeVisible();
-  // More than five rows: shrunk, and cut at the height of a miniature.
+  // More than ten rows: shrunk, and cut at the height of a miniature.
   await expect(table('long')).toHaveClass(/jp-mod-miniature/);
   await expect(table('long').locator('.jp-Epi-tableoutput-fade')).toBeVisible();
   await expect(table('long')).toContainText('12 × 5');

@@ -320,10 +320,11 @@ test('asks from a table in the cell details, and says what its rows are', async 
   tmpPath
 }) => {
   await openNotebook(page, `${tmpPath}/describe.ipynb`, [
-    FRAME.replace('df.head()', 'df.describe()')
+    FRAME.replace('df.head()', 'df.describe(include="all")')
   ]);
   await runAll(page, ['df']);
-  // Eight rows: a miniature on the bench, which a click shows in full.
+  // Eleven rows, with the levels of arm: a miniature on the bench, which a
+  // click shows in full.
   await page
     .locator('[data-cell-id="cell-0"] .jp-Epi-tableoutput-frame[role="button"]')
     .click();
