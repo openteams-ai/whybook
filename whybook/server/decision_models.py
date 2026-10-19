@@ -18,6 +18,7 @@ research/choice-classifiers.md measured each model on Whybook's tasks.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import time
 from dataclasses import dataclass
@@ -109,6 +110,26 @@ def status(config: Whybook) -> dict[str, dict[str, Any]]:
     return found
 
 
+async def check_request(model: DecisionModel, body: dict[str, Any], config: Whybook, to: str) -> None:
+    """The privacy guard on a request before it leaves this machine: a ValueError when the guard holds it back.
+
+    Nobody waits on a decision model, so the guard asks no question, and the
+    request goes only as it is: a mask can break its JSON. The callers then
+    keep what the rules give, the keywords' type or the rules' order.
+    """
+    from . import guard
+
+    settings = guard.settings_of(config)
+    if not settings.checks_prompts:
+        return
+    text = json.dumps(body)
+    held = await guard.check_prompt(
+        text, dataclasses.replace(settings, background=True), lambda event: None, to=to, what=f"a request to {model.label}", threads=config.local_threads
+    )
+    if not held.go or held.text != text:
+        raise ValueError(f"{model.label} got no request: the review guard held it back ({held.reason})")
+
+
 async def ask(model: DecisionModel, body: dict[str, Any], config: Whybook, fetch: Fetch | None = None) -> dict[str, Any]:
     """A model's answers to a request of a state and its questions, with the model that answered, the cost and the seconds."""
     key = openrouter_key()
@@ -122,6 +143,8 @@ async def ask(model: DecisionModel, body: dict[str, Any], config: Whybook, fetch
     else:
         url = config.typesafe_base_url.rstrip("/") + "/v1/systemone"
         token, payload = config.typesafe_api_key, {**body, "model": config.typesafe_model}
+    if not config.network_only:
+        await check_request(model, body, config, "OpenRouter" if url == ENDPOINT else "TypeSafe")
     start = time.monotonic()
     response = await (fetch or AsyncHTTPClient().fetch)(
         url,
