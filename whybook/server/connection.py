@@ -259,8 +259,19 @@ def priced(connection: Connection) -> bool:
 
 
 def runs_locally(config: Whybook | None = None) -> bool:
-    """Whether the connected model runs on this machine, so that it may read the data when it stays here."""
-    return load(config).local
+    """Whether the connected model runs on this machine, so that it may read the data when it stays here.
+
+    That a server at a URL runs here is the analyst's word: the panel's box,
+    or a provider such as vLLM, which runs here by default. When the server
+    keeps the data here for every user, or sends no table to a remote model
+    (``describe_tables``), the address of the URL decides too, as for
+    "all-local" (``network.on_network``), so the analyst's word cannot send
+    the data to a server outside.
+    """
+    connection = load(config)
+    if connection.local and config is not None and (config.data_stays_here or not config.describe_tables):
+        return network.on_network(connection.url)
+    return connection.local
 
 
 def for_request(config: Whybook, body: Any) -> Whybook:
