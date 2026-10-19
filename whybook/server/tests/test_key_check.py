@@ -117,7 +117,7 @@ async def test_the_models_of_a_new_server_are_listed_with_the_typed_key_and_noth
     code, state = await post(jp_fetch, "connection", provider="openai-compatible", model="qwen3-32b", base_url=GPU, key="good-key", local=True)
     assert code == 200 and state["connection"] == {"provider": "openai-compatible", "model": "qwen3-32b", "base_url": GPU, "local": True}
     assert KeyStore().get(f"openai-compatible {GPU}") == "good-key"
-    assert state["connected_key"] == {"saved": KeyStore().meta(f"openai-compatible {GPU}")["saved"], "checked": True, "refused": None}
+    assert state["connected_key"] == {"saved": KeyStore().meta(f"openai-compatible {GPU}")["saved"], "checked": True, "refused": None, "typed_for": GPU}
     # A company's key is pasted for its row, not typed with a URL.
     code, answer = await post(jp_fetch, "connection", "models", provider="mistral", key="k")
     assert code == 400
@@ -171,7 +171,7 @@ async def test_save_anyway_keeps_the_key_marked_as_not_checked(jp_fetch, provide
     code, state = await post(jp_fetch, "connection", provider="openai-compatible", model="qwen3-32b", base_url=GPU, key="gpu-key", check=False)
     assert code == 200 and provider.sent == []
     assert state["connection"]["model"] == "qwen3-32b"
-    assert state["connected_key"] == {"saved": KeyStore().meta(f"openai-compatible {GPU}")["saved"], "checked": False, "refused": None}
+    assert state["connected_key"] == {"saved": KeyStore().meta(f"openai-compatible {GPU}")["saved"], "checked": False, "refused": None, "typed_for": GPU}
     # Without a typed key there is no key to save anyway: the model is checked as before.
     code, answer = await post(jp_fetch, "connection", provider="mistral", model="mistral-medium-latest", check=False)
     assert code == 409 and answer["check"] == "unchecked" and provider.sent == [(providers.MISTRAL_MODELS, "new-key")]
