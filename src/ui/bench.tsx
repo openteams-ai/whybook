@@ -1693,24 +1693,33 @@ function SectionBlock(
       : (gone.get(section.id) ?? []);
   return (
     <div className="jp-Epi-sectionblock">
-      <button
-        className="jp-Epi-sectionhead"
-        onClick={() => model.toggleSection(section.id)}
-        aria-expanded={!collapsed}
-      >
-        <span className="jp-Epi-label">§{section.number}</span>
-        <span className="jp-Epi-sectiontitle">{section.title}</span>
-        <span className="jp-Epi-sectioncount">
-          {code.length === 0 && section.cells.length > 0
-            ? 'text'
-            : `${code.length} cell${code.length === 1 ? '' : 's'}`}
-        </span>
-        {collapsed ? (
-          <caretRightIcon.react className="jp-Epi-chevron" tag="span" />
-        ) : (
-          <caretDownIcon.react className="jp-Epi-chevron" tag="span" />
-        )}
-      </button>
+      {section.cells.length === 0 ? (
+        // A heading followed at once by another heading: the head alone, with
+        // no count and nothing to fold (design iteration 1.142).
+        <div className="jp-Epi-sectionhead jp-mod-empty">
+          <span className="jp-Epi-label">§{section.number}</span>
+          <span className="jp-Epi-sectiontitle">{section.title}</span>
+        </div>
+      ) : (
+        <button
+          className="jp-Epi-sectionhead"
+          onClick={() => model.toggleSection(section.id)}
+          aria-expanded={!collapsed}
+        >
+          <span className="jp-Epi-label">§{section.number}</span>
+          <span className="jp-Epi-sectiontitle">{section.title}</span>
+          <span className="jp-Epi-sectioncount">
+            {code.length === 0
+              ? 'text'
+              : `${code.length} cell${code.length === 1 ? '' : 's'}`}
+          </span>
+          {collapsed ? (
+            <caretRightIcon.react className="jp-Epi-chevron" tag="span" />
+          ) : (
+            <caretDownIcon.react className="jp-Epi-chevron" tag="span" />
+          )}
+        </button>
+      )}
       <GoneStrips model={model} strips={headed} />
       {!collapsed &&
         items.map(item =>

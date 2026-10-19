@@ -1686,6 +1686,15 @@
   background: var(--jp-layout-color2);
 }
 
+/* A section with no cells: its head alone, which folds nothing. */
+.jp-Epi-sectionhead.jp-mod-empty {
+  cursor: default;
+}
+
+.jp-Epi-sectionhead.jp-mod-empty:hover {
+  background: transparent;
+}
+
 .jp-Epi-sectionhead .jp-Epi-label {
   color: var(--jp-ui-font-color2);
 }
