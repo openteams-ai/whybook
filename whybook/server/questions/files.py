@@ -75,7 +75,11 @@ def _inside(root: str | None, path: str) -> str | None:
     if root is None:
         return None
     base = os.path.realpath(root)
-    full = os.path.realpath(os.path.join(base, path))
+    try:
+        full = os.path.realpath(os.path.join(base, path))
+    except ValueError:
+        # A NUL byte, which no file's name holds.
+        return None
     return full if full.startswith(base + os.sep) and os.path.isfile(full) else None
 
 
