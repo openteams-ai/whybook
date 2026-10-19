@@ -83,19 +83,27 @@ test.describe('1.133 a key typed for a model server', () => {
       );
       await key.getByRole('button', { name: 'Forget key' }).click();
       await expect(key).toHaveCount(0);
-      // The server stays connected, without a key, and the focus goes to Change.
+      // The server stays connected, without a key, and the focus goes to the
+      // button that changes the model.
       await expect(section.locator('.jp-Epi-connection-now')).toHaveText(
         `Server at ${SERVER}: qwen3-8b`
       );
       await expect(section).not.toContainText('The saved key');
-      await expect(
-        section.locator('.jp-Epi-connection-head button', { hasText: 'Change' })
-      ).toBeFocused();
       const state = await (
         await page.request.get('/whybook/connection')
       ).json();
       expect(state.connection.base_url).toBe(SERVER);
       expect(state.connected_key).toBeNull();
+      // The button reads Change when the server can call the model, and
+      // Connect a model when it cannot: CI installs whybook without the
+      // models extra, so its server has no pydantic-ai-slim.
+      const toggle = section.locator(
+        '.jp-Epi-connection-head > button:not(.jp-Epi-help)'
+      );
+      await expect(toggle).toBeFocused();
+      await expect(toggle).toHaveText(
+        state.readiness.available ? 'Change' : 'Connect a model'
+      );
     } finally {
       // The other tests of the run were written for the Claude Code login.
       await page.request.post('/whybook/auth/signout', {
