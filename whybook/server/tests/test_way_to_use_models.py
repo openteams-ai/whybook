@@ -89,6 +89,31 @@ def test_the_remote_way_leaves_the_choice_to_each_request():
     assert privacy.keep_local(Whybook(way_to_use_models="remote"), {"keep_data_local": True}) is True
 
 
+LOCKS = {
+    "keep_data_local": Whybook(keep_data_local=True),
+    "data-stays-here": Whybook(way_to_use_models="data-stays-here"),
+    "describe_tables": Whybook(describe_tables=False),
+}
+
+
+@pytest.mark.parametrize("lock", list(LOCKS))
+def test_a_lock_on_the_data_takes_the_address_of_a_server_called_local(resolver, lock):
+    # The panel's box "It runs on this machine or in this network" is the analyst's word, and so is vLLM's URL.
+    resolver.update({"api.example.com": ["203.0.113.5"], "gpu.lan": ["10.0.0.7"]})
+    for saved, here in (
+        (Connection(provider="openai-compatible", base_url="https://api.example.com/v1", local=True, model="m"), False),
+        (Connection(provider="vllm", base_url="https://api.example.com/v1", local=True, model="m"), False),
+        (Connection(provider="openai-compatible", base_url="http://gpu.lan:8000/v1", local=True, model="m"), True),
+        (Connection(provider="ollama", local=True, model="m"), True),
+    ):
+        connection.save(saved)
+        assert connection.runs_locally(LOCKS[lock]) is here, saved.url
+        # With no lock, the analyst's word decides.
+        assert connection.runs_locally(Whybook()) is True
+    connection.save(Connection(provider="openai-compatible", base_url="https://api.example.com/v1", local=True, model="m"))
+    assert privacy.keep_local_for_remote(LOCKS[lock], {"keep_data_local": True}) is True
+
+
 async def test_the_status_says_that_each_user_chooses(jp_fetch):
     found = await status(jp_fetch)
     assert found["way_to_use_models"] == ""

@@ -1,12 +1,14 @@
 """SQLite files for the Databases panel, and the options for a dropped table."""
 
+import os
 import sqlite3
+import threading
 from contextlib import closing
 
 import pytest
 
 from whybook.server import databases
-from whybook.server.questions.tables import TableDrop, table_options
+from whybook.server.questions.tables import TableDrop, sample_rows, table_options
 
 
 def make_db(path, tables):
@@ -49,6 +51,41 @@ def test_connections_are_read_only(tmp_path):
     make_db(tmp_path / "c.db", {"t": (["a"], [(1,)])})
     with closing(databases.connect(str(tmp_path / "c.db"))) as db, pytest.raises(sqlite3.OperationalError):
         db.execute("INSERT INTO t VALUES (2)")
+
+
+def within(seconds, function, *args):
+    """What ``function`` returned or raised, or "hangs" after ``seconds``: in a daemon thread, so that a hang fails the test and the run goes on."""
+    found = []
+
+    def call():
+        try:
+            found.append(function(*args))
+        except Exception as error:  # noqa: BLE001  the test reads it
+            found.append(error)
+
+    thread = threading.Thread(target=call, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    return found[0] if found else "hangs"
+
+
+def test_a_fifo_named_like_a_database_is_never_opened(tmp_path):
+    # Opening a FIFO waits for a writer, and held a thread of the server until it was killed.
+    make_db(tmp_path / "clinic.db", {"t": (["a"], [(1,)])})
+    os.mkfifo(tmp_path / "pipe.db")
+    found = within(5, databases.discover, str(tmp_path))
+    assert found != "hangs" and [d["path"] for d in found["databases"]] == ["clinic.db"]
+    assert isinstance(within(5, databases.describe, str(tmp_path), "pipe.db"), ValueError)
+    assert isinstance(within(5, databases.distinct, str(tmp_path), "pipe.db", "t", ["a"]), ValueError)
+
+
+def test_a_view_whose_rows_never_come_gives_no_sample(tmp_path):
+    # A drop of this view onto a new notebook held a core of the server until it was killed.
+    make_db(tmp_path / "c.db", {"t": (["a"], [(1,)])})
+    with closing(sqlite3.connect(tmp_path / "c.db")) as db:
+        db.execute("CREATE VIEW endless AS WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT max(x) AS x FROM c")
+    assert within(10, sample_rows, str(tmp_path), "c.db", "endless") is None
+    assert list(within(10, sample_rows, str(tmp_path), "c.db", "t")["a"]) == [1]
 
 
 @pytest.mark.demo

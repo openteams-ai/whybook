@@ -17,6 +17,8 @@ def whybook_data(tmp_path, monkeypatch):
     folder = tmp_path / "whybook-data"
     monkeypatch.setenv("WHYBOOK_DATA_DIR", str(folder))
     monkeypatch.setenv("WHYBOOK_CLAUDE_CODE_LOGIN", "1")
+    # The server reads TypeSafe's key when it starts: a key of the developer's environment would reach the tests.
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
     return folder
 
 

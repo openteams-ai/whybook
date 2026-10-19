@@ -92,6 +92,12 @@ async def test_drop_needs_a_target(jp_fetch):
     assert error.value.code == 400
 
 
+async def test_a_dropped_file_whose_path_holds_a_nul_byte_names_no_file(jp_fetch):
+    # Python refuses such a path with a ValueError, which the server answered with 500.
+    payload = await post(jp_fetch, "drop", body={"source": {"kind": "file", "path": "data\u0000.csv", "label": "data.csv"}, "cells": [], "context": {}})
+    assert isinstance(payload["options"], list)
+
+
 async def test_cell_questions_need_a_cell(jp_fetch):
     with pytest.raises(HTTPClientError) as error:
         await post(jp_fetch, "cell-questions", body={"cells": []})

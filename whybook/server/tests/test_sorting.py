@@ -6,6 +6,7 @@ fake llama_cpp: nothing leaves the machine and no model loads.
 
 import importlib.machinery
 import json
+import os
 import sys
 import types
 
@@ -136,6 +137,18 @@ async def test_the_route_refuses_a_decision_model_without_a_key_and_unknown_mode
     assert error.value.code == 400
     status = json.loads((await jp_fetch("whybook", "status")).body)
     assert status["decision_models"]["jev"]["available"] is False
+
+
+@pytest.fixture
+def typesafe_key_in_the_environment(monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "ts-test-0000")
+
+
+async def test_the_typesafe_key_of_the_environment_reaches_no_kernel(typesafe_key_in_the_environment, jp_fetch):
+    # Every kernel that the server starts inherits its environment: the server keeps the key and takes it out.
+    status = json.loads((await jp_fetch("whybook", "status")).body)
+    assert status["decision_models"]["jev"]["available"] is True
+    assert "TYPESAFE_API_KEY" not in os.environ
 
 
 class FakeContext:
