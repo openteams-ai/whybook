@@ -28,6 +28,22 @@ function markFormat(notebook: INotebookModel['sharedModel'] | null): void {
   }
 }
 
+/**
+ * Raise a notebook older than nbformat 4.5 to 4.5, as Whybook writes its
+ * metadata to it, so that JupyterLab saves the ids of its cells. Whybook
+ * keys the cell of each kept variable and the parent of each branch by cell
+ * id, and JupyterLab gives the cells of an older notebook new ids at each
+ * load. Only a write that changes something calls this, so opening a
+ * notebook does not mark it as changed.
+ */
+function keepCellIds(notebook: INotebookModel['sharedModel'] | null): void {
+  if (notebook && notebook.nbformat === 4 && notebook.nbformat_minor < 5) {
+    // The interface lists the version as read-only; JupyterLab's shared
+    // notebook, YNotebook of @jupyter/ydoc, sets it.
+    (notebook as { nbformat_minor: number }).nbformat_minor = 5;
+  }
+}
+
 export function cellMeta(cell: ICellModel): IEpiCellMeta {
   return (cell.getMetadata(METADATA_KEY) as IEpiCellMeta | undefined) ?? {};
 }
@@ -52,6 +68,7 @@ export function setCellMeta(
   }
   cell.setMetadata(METADATA_KEY, next);
   markFormat(cell.sharedModel.notebook);
+  keepCellIds(cell.sharedModel.notebook);
 }
 
 /**
@@ -130,6 +147,7 @@ export function setNotebookMeta(
     next.format = METADATA_FORMAT;
   }
   model.setMetadata(METADATA_KEY, next);
+  keepCellIds(model.sharedModel);
 }
 
 export function cellsOf(model: INotebookModel): ICellModel[] {
@@ -177,6 +195,7 @@ export function insertCodeCell(
     metadata: { [METADATA_KEY]: kept as PartialJSONObject }
   });
   markFormat(model.sharedModel);
+  keepCellIds(model.sharedModel);
   return model.cells.get(index) as ICodeCellModel;
 }
 
