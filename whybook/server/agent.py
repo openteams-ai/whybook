@@ -1054,6 +1054,17 @@ class Run:
             self.track(name, tool_input, result, fixing)
         return await self.guard_result(name, privacy.tool_result(result, self.keep_local))
 
+    def code_language(self, name: str, tool_input: dict[str, Any]) -> str:
+        """The language of the kernel that runs a tool's code, for the guard's rules: a module's by its extension, a cell's by its notebook.
+
+        Read as Python, R code does not compile, and the rules let a cell go that runs no line, so an R cell or module
+        would reach its kernel unread.
+        """
+        if name == "write_file":
+            return "R" if str(tool_input.get("path") or "").lower().endswith(".r") else "Python"
+        made = self.languages.get(notebook_key(tool_input.get("notebook")))
+        return languages.language(made).name if made else self.guard_settings.language
+
     async def guard_code(self, name: str, tool_input: dict[str, Any]) -> dict[str, Any] | None:
         """The execution guard on the code of a tool before the view runs it: None lets it run, else what the agent reads instead."""
         if not self.guard_settings.checks_code:
@@ -1067,13 +1078,14 @@ class Run:
             cells = [str(branch.get("code") or "") for branch in branches if isinstance(branch, dict)]
             code = "\n\n".join(cells)
             what = "the branches of a cell"
-        elif name == "write_file" and str(tool_input.get("path") or "").endswith(".py"):
+        elif name == "write_file" and str(tool_input.get("path") or "").lower().endswith((".py", ".r")):
             code, what = str(tool_input.get("content") or ""), f"the file {str(tool_input.get('path'))[:120]}"
         else:
             return None
         if not code.strip():
             return None
-        outcome = await guard.review_code(code, self.guard_settings, self.emit, what=what, threads=self.threads, review=self.review, cells=cells)
+        settings = dataclasses.replace(self.guard_settings, language=self.code_language(name, tool_input))
+        outcome = await guard.review_code(code, settings, self.emit, what=what, threads=self.threads, review=self.review, cells=cells)
         if outcome.go:
             return None
         if outcome.by == "analyst":
