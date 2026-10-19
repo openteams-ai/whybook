@@ -375,7 +375,11 @@ export function noteBody(source: string): string {
 /**
  * The first line of a cell's source without leading `#` characters. With the
  * language of a code cell, a comment in that language gives its text: the
- * SAS comment `* Load the visits;` gives "Load the visits".
+ * SAS comment `* Load the visits;` gives "Load the visits". A line of code
+ * that leaves a bracket open, as a call written over several lines does,
+ * closes it after an ellipsis: `corpus = pl.DataFrame(` gives
+ * "corpus = pl.DataFrame(…)" (design iteration 1.137). The cut at 100
+ * characters counts too.
  */
 export function firstLine(
   source: string,
@@ -388,6 +392,51 @@ export function firstLine(
   if (!line) {
     return '';
   }
-  const text = language?.commentText(line) ?? line.replace(/^#+/, '').trim();
-  return text.slice(0, 100);
+  const comment = language?.commentText(line) ?? null;
+  const text = (comment ?? line.replace(/^#+/, '').trim()).slice(0, 100);
+  return language && comment === null ? closeBrackets(text) : text;
+}
+
+/** The bracket that closes each opening one. */
+const CLOSERS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
+
+/**
+ * A line of code with the brackets that it leaves open closed after an
+ * ellipsis, before the comment at its end: `f(a, [1,  # first` gives
+ * "f(a, [1,…])  # first". A bracket in a string or in the comment does not
+ * count.
+ */
+function closeBrackets(line: string): string {
+  const open: string[] = [];
+  let end = line.length;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '#') {
+      end = i;
+      break;
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      // A string ends at its quote, or at the end of the line. A triple
+      // quote of Python ends at the next triple quote.
+      const quote = line.startsWith(char.repeat(3), i) ? char.repeat(3) : char;
+      let next = i + quote.length;
+      while (next < line.length && !line.startsWith(quote, next)) {
+        next += line[next] === '\\' ? 2 : 1;
+      }
+      i = next + quote.length - 1;
+    } else if (CLOSERS[char]) {
+      open.push(CLOSERS[char]);
+    } else if (char === open[open.length - 1]) {
+      open.pop();
+    }
+  }
+  if (!open.length) {
+    return line;
+  }
+  const code = line.slice(0, end).trimEnd();
+  // The spaces before the comment, and the comment.
+  const comment = line.slice(code.length);
+  // A backslash at the end continues the line, as the ellipsis says.
+  const shown = code.replace(/\s*\\$/, '');
+  return `${shown}…${open.reverse().join('')}${comment}`;
 }
