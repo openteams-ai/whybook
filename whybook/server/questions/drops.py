@@ -773,6 +773,10 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
             numbers = [v for v in (a, b) if v.kind == "numeric"]
             both = len(numbers) == 2
             unit = f", within or between {unit_noun(unit_here)}s" if unit_here and both else ""
+            # A number and a column of many levels, such as 3,239 dates stored
+            # as text, get no question about its levels, as the catalogue's
+            # template does not (design iteration 1.140).
+            many = False
             # The catalogue's own questions for a category, answered here with code.
             if both:
                 text = f"Are {a.label} and {b.label} associated{unit}?"
@@ -780,6 +784,7 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 number = numbers[0]
                 level = b if number is a else a
                 text = f"Does {number.label} differ between the levels of {level.label}?"
+                many = not templates.few_levels(level)
                 answered.add("group_difference")
             else:
                 text = f"Are {a.label} and {b.label} independent?"
@@ -788,7 +793,7 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
             # categories counted once per unit, when they stay the same within
             # each unit: the tariff and the car of a home (design iteration 1.85).
             per_unit = unit_here if not both and unit_here not in (a.label, b.label) else None
-            if plan:
+            if plan and not many:
                 if plan.notes:
                     note = plan.notes[0] + "."
                 first, second = codegen.literal(a.label), codegen.literal(b.label)
@@ -814,7 +819,8 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 lines = [codegen.comment(text), *imports, ""] + plan.lines + [call]
                 code = "\n".join(line for i, line in enumerate(lines) if line or i != 1)
             uses = {"unit": unit_here} if unit or per_unit else None
-            options.append(_option(text, "association", 0.7, home, code, "Question · joins frames if needed", a.name, b.name, uses=uses))
+            if not many:
+                options.append(_option(text, "association", 0.7, home, code, "Question · joins frames if needed", a.name, b.name, uses=uses))
             # A descriptive look at both columns: the analysts of public
             # notebooks asked one after 38 of the 82 drops of two variables
             # that offered no question of their type (research/order-none.md).

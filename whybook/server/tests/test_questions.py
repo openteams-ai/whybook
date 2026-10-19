@@ -32,6 +32,20 @@ def test_pair_follows_the_template_order_whichever_is_clicked_first():
     assert "Does income differ between the levels of school?" in texts(Selection(SCHOOL, INCOME))
 
 
+def test_a_category_of_more_than_20_levels_is_not_asked_whether_a_number_differs_between_them():
+    # Dates stored as text, 3,239 of them, or a category of 27 levels (design iteration 1.140).
+    for levels in (3239, 27, 21):
+        dates = Variable("df['dt']", "dt", "categorical", parent="df", rows=3239, unique=levels)
+        assert "group_difference" not in template_ids(Selection(dates, INCOME))
+        assert "group_difference" not in template_ids(Selection(INCOME, dates))
+    # The other questions about its levels stay.
+    assert "equal_spread" in template_ids(Selection(dates, INCOME))
+    # 20 levels, or a count that the listing does not give.
+    for levels in (20, None):
+        twenty = Variable("df['site']", "site", "categorical", parent="df", rows=3239, unique=levels)
+        assert "Does income differ between the levels of site?" in texts(Selection(twenty, INCOME))
+
+
 def test_symmetric_template_has_the_same_id_in_both_orders():
     forward = {c.id for c in templates.generate(Selection(AGE, INCOME)) if c.template == "association"}
     backward = {c.id for c in templates.generate(Selection(INCOME, AGE)) if c.template == "association"}

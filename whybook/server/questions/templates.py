@@ -64,6 +64,21 @@ def _enough_levels_for_random_effect(a: Variable, b: Variable | None) -> bool:
     return (a.unique or 0) >= 5
 
 
+# A column of more levels than this is not asked whether a number differs
+# between its levels: the sweep of public notebooks offered the question for
+# 27 to 3,239 levels, mostly dates stored as text (design iteration 1.140).
+MAX_GROUP_LEVELS = 20
+
+
+def few_levels(variable: Variable) -> bool:
+    """Whether a column has at most MAX_GROUP_LEVELS levels; a column whose count the listing does not give counts as few."""
+    return variable.unique is None or variable.unique <= MAX_GROUP_LEVELS
+
+
+def _few_levels(a: Variable, b: Variable | None) -> bool:
+    return few_levels(a)
+
+
 def _different_tables(a: Variable, b: Variable | None) -> bool:
     return b is not None and a.parent is not None and b.parent is not None and a.parent != b.parent
 
@@ -104,7 +119,7 @@ TEMPLATES: tuple[Template, ...] = (
     Template("confounding", "Could another variable explain the link between {a} and {b}?", "causal", ("column", "column"), 0.45),
     Template("direction", "Does {a} influence {b}, or the other way round?", "causal", ("column", "column"), 0.35),
     Template("cross_table", "Can {a} and {b} be compared when they come from different tables?", "quality", ("column", "column"), 0.50, _different_tables),
-    Template("group_difference", "Does {b} differ between the levels of {a}?", "association", ("categorical", "numeric"), 0.75),
+    Template("group_difference", "Does {b} differ between the levels of {a}?", "association", ("categorical", "numeric"), 0.75, _few_levels),
     Template("equal_spread", "Is the spread of {b} similar across the levels of {a}?", "model", ("categorical", "numeric"), 0.40),
     Template("random_effect", "Should {a} enter a model of {b} as a random effect?", "model", ("categorical", "numeric"), 0.35, _enough_levels_for_random_effect),
     Template("independence", "Are {a} and {b} independent?", "association", ("categorical", "categorical"), 0.65),

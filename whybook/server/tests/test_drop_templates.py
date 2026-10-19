@@ -74,6 +74,26 @@ def test_a_number_and_a_category_compare_the_number_across_the_levels(capsys):
     assert "over the 2 levels of arm, one mean per patient.\nOne-way analysis of variance: F = " in capsys.readouterr().out
 
 
+def test_a_number_and_a_column_of_more_than_20_levels_are_not_asked_about_its_levels():
+    # AverageTemperature dropped onto dt, 3,239 dates stored as text in
+    # Berkeley Earth's temperatures of Germany, offered "Does
+    # AverageTemperature differ between the levels of dt?" (design iteration 1.140).
+    for kind, levels in (("text", 3239), ("categorical", 27), ("categorical", 21)):
+        site = {**column("site", kind), "unique": levels}
+        for source, target in ((column("pain", "numeric"), site), (site, column("pain", "numeric"))):
+            texts = [o["text"] for o in options(source, {"item": target})]
+            assert not [text for text in texts if "differ between the levels" in text], (kind, levels, texts)
+            # The quick look at both stays, and so do the questions that need AI.
+            assert "Summarise pain and site: distribution and missingness" in texts or "Summarise site and pain: distribution and missingness" in texts
+            assert "Is the spread of pain similar across the levels of site?" in texts or kind == "text"
+    # 20 levels and fewer, or a count that the listing does not give: the question, with its code.
+    for levels in (20, None):
+        site = {**column("site", "categorical"), "unique": levels}
+        [pair] = [o for o in options(column("pain", "numeric"), {"item": site}) if o["type"] == "association"]
+        assert pair["text"] == "Does pain differ between the levels of site?"
+        assert 'whybook.compare_levels(visits, "pain", "site"' in pair["code"]
+
+
 def test_two_categories_show_a_table_of_their_levels():
     [pair] = [o for o in options(column("arm", "categorical"), {"item": column("site", "categorical")}) if o["type"] == "association"]
     assert pair["text"] == "Are arm and site independent?"

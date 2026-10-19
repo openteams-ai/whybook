@@ -129,7 +129,9 @@ def test_the_unit_of_the_analysis_counts_as_an_id_without_the_tag():
     found = {candidate.template for candidate in templates.generate(Selection(subject, pain), context)}
     assert not found & {"group_difference", "equal_spread", "confounding", "direction"}
     assert "random_effect" in found
-    assert "group_difference" in {candidate.template for candidate in templates.generate(Selection(subject, pain))}
+    # Without the context, subject is a category: its 300 levels are too many
+    # to compare pain between them, and the spread across them is asked.
+    assert "equal_spread" in {candidate.template for candidate in templates.generate(Selection(subject, pain))}
 
 
 @pytest.mark.parametrize("name", ["week", "visit", "study_day", "week_num", "visit_number", "timepoint", "t"])
