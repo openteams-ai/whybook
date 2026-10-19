@@ -7,7 +7,7 @@ import {
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-import { helpIcon, microphoneIcon } from '../icons';
+import { githubIcon, helpIcon, microphoneIcon } from '../icons';
 import type { EpiModel, IEpiCell } from '../model/epimodel';
 import type { IChip } from '../model/decisions';
 import { decisionChips, decisionKey } from '../model/decisions';
@@ -447,19 +447,22 @@ export function pointerOn(
  * signature keeps the warning colour, since nobody chose it, and has no AI
  * tag: the model chose to show the chip, and the popover says so (design
  * iteration 1.86). A value that an agent wrote into code keeps its AI tag.
+ * A URL shows its words, with the GitHub mark before those of a GitHub URL,
+ * and its branch, tag or commit in the colour of the target (design
+ * iteration 1.143).
  */
 export function DecisionChip(props: {
   chip: IChip;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }): JSX.Element {
   const { chip } = props;
-  const { decision } = chip;
+  const { decision, url } = chip;
   const open =
     decision.provenance === 'defaulted' ||
     decision.provenance === 'library_default';
   const agent = decision.provenance === 'agent';
   const found = decision.found;
-  const text = chip.count > 1 ? `${chip.text} ×${chip.count}` : chip.text;
+  const count = chip.count > 1 ? ` ×${chip.count}` : '';
   const tooltip = useTooltip(chip.tooltip.split('\n'), { code: true });
   return (
     <button
@@ -470,7 +473,23 @@ export function DecisionChip(props: {
         props.onClick?.(event);
       }}
     >
-      <code className={agent ? 'jp-Epi-ai' : undefined}>{text}</code>
+      <code className={agent ? 'jp-Epi-ai' : undefined}>
+        {url ? (
+          <>
+            {`${decision.name} `}
+            {url.site === 'github' && (
+              <githubIcon.react tag="span" className="jp-Epi-chip-mark" />
+            )}
+            {url.text}
+            {url.ref && (
+              <span className="jp-Epi-chip-ref">{` @${url.ref}`}</span>
+            )}
+            {count}
+          </>
+        ) : (
+          `${chip.text}${count}`
+        )}
+      </code>
       {chip.target && (
         <span className="jp-Epi-chip-target"> · {chip.target}</span>
       )}

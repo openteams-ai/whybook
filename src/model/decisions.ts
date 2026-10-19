@@ -258,6 +258,117 @@ export interface IChip {
    * popover that a click on the chip opens (design iteration 1.86).
    */
   tooltip: string;
+  /**
+   * The value as the words of a URL, which `text` holds after the name: the
+   * site, whose mark the chip draws for GitHub, the words, and the branch,
+   * tag or commit (design iteration 1.143).
+   */
+  url?: IUrlView;
+}
+
+/**
+ * A URL by what matters in it (design iteration 1.143). A GitHub URL shows
+ * its owner, repository and path, and the branch, tag or commit that it
+ * names, but HEAD, the default branch: the URL does not say whether another
+ * branch is the default, so the branch shows. A record of Zenodo shows its
+ * number, as its DOI ends, `zenodo.1234567`, and the file: each version of a
+ * record has a number of its own. Any other URL shows its host, path and
+ * query, without the scheme. The file name shows whole.
+ */
+export interface IUrlView {
+  site: 'github' | 'zenodo' | 'web';
+  /** `AllenDowney/ThinkStats2/code/thinkstats2.py`, `zenodo.1234567/data.csv`. */
+  text: string;
+  /** The branch, tag or commit of a GitHub URL: `master`, `v1.2.0`, `1a2b3c4`. */
+  ref: string | null;
+}
+
+/** A segment of a URL's path as it reads: `ages 2019.csv` for `ages%202019.csv`. */
+function segment(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+/** A branch or a tag as it is, a commit by its first seven characters, and null for HEAD. */
+function refOf(ref: string | undefined): string | null {
+  if (!ref || ref === 'HEAD') {
+    return null;
+  }
+  return /^[0-9a-f]{40}$/i.test(ref) ? ref.slice(0, 7) : ref;
+}
+
+/** The words of a URL; null for a text that is no URL. */
+export function urlView(url: string): IUrlView | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!/^[a-z][a-z0-9+.-]*:\/\/[^/]/i.test(url)) {
+    return null;
+  }
+  const host = parsed.host.toLowerCase();
+  const parts = parsed.pathname.split('/').filter(Boolean).map(segment);
+  const github = (path: string[], ref: string | null): IUrlView => ({
+    site: 'github',
+    text: path.join('/'),
+    ref
+  });
+  if ((host === 'github.com' || host === 'www.github.com') && parts.length) {
+    const [owner, repo, kind, ref, ...path] = parts;
+    if (['blob', 'raw', 'tree', 'blame'].includes(kind) && ref) {
+      return github([owner, repo, ...path], refOf(ref));
+    }
+    if (kind === 'releases' && ref === 'download' && path.length > 1) {
+      return github([owner, repo, ...path.slice(1)], refOf(path[0]));
+    }
+    return github(parts, null);
+  }
+  if (host === 'raw.githubusercontent.com' && parts.length > 2) {
+    const [owner, repo, ...rest] = parts;
+    const named = rest[0] === 'refs' && ['heads', 'tags'].includes(rest[1]);
+    const ref = named ? rest[2] : rest[0];
+    return github([owner, repo, ...rest.slice(named ? 3 : 1)], refOf(ref));
+  }
+  const zenodo = (record: string, file?: string): IUrlView => ({
+    site: 'zenodo',
+    text: file ? `zenodo.${record}/${file}` : `zenodo.${record}`,
+    ref: null
+  });
+  if (host === 'zenodo.org' || host === 'www.zenodo.org') {
+    const at = parts[0] === 'api' ? 1 : 0;
+    const record = parts[at + 1];
+    if (['record', 'records'].includes(parts[at]) && /^\d+$/.test(record)) {
+      const kind = parts[at + 2];
+      const file =
+        kind === 'files' || kind === 'preview' ? parts[at + 3] : undefined;
+      return zenodo(record, file);
+    }
+    const doi = parts[0] === 'doi' ? /^zenodo\.(\d+)$/.exec(parts[2]) : null;
+    if (doi && parts[1] === '10.5281') {
+      return zenodo(doi[1]);
+    }
+  }
+  if (host === 'doi.org' || host === 'dx.doi.org') {
+    const doi = /^zenodo\.(\d+)$/.exec(parts[1] ?? '');
+    if (doi && parts[0] === '10.5281') {
+      return zenodo(doi[1]);
+    }
+  }
+  return {
+    site: 'web',
+    text: url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, ''),
+    ref: null
+  };
+}
+
+/** The words of a URL in a chip: `AllenDowney/ThinkStats2/code/first.py @master`. */
+export function urlWords(view: IUrlView): string {
+  return view.ref ? `${view.text} @${view.ref}` : view.text;
 }
 
 /**
@@ -289,58 +400,74 @@ export function sourceNote(decision: IDecision, note: string): string {
 /** A URL as code writes it: a string in quotes that starts with a scheme, `'https://…'`. */
 const URL_VALUE = /^(['"])[a-z][a-z0-9+.-]*:\/\/[^\s'"]+\1$/i;
 
+/** The words of a value that is a URL, but the file of a read, which shows its name; else null. */
+function urlOf(decision: IDecision): IUrlView | null {
+  if (readsFile(decision) || !URL_VALUE.test(decision.value.trim())) {
+    return null;
+  }
+  return urlView(unquote(decision.value));
+}
+
 /**
- * The folder that every URL starts with, past its scheme and its host, up to
- * a "/" that leaves each URL a part after it:
- * `https://github.com/AllenDowney/ThinkStats2/raw/master/code/` for the
- * files of ThinkStats2. Null where the URLs share no host.
+ * The folder that the words of every URL start with, up to a "/" that
+ * leaves each a part after it: `AllenDowney/ThinkStats2/code/` for the
+ * files of ThinkStats2. It holds the first part at least: the host, the
+ * owner of a repository or the record. Null where the words share none.
  */
-function sharedFolder(urls: string[]): string | null {
-  let shared = urls[0];
-  for (const url of urls.slice(1)) {
+function sharedFolder(texts: string[]): string | null {
+  let shared = texts[0];
+  for (const text of texts.slice(1)) {
     let at = 0;
-    while (at < shared.length && at < url.length && shared[at] === url[at]) {
+    while (at < shared.length && at < text.length && shared[at] === text[at]) {
       at++;
     }
     shared = shared.slice(0, at);
   }
   let end = shared.lastIndexOf('/');
-  while (end >= 0 && urls.some(url => url.length <= end + 1)) {
+  while (end >= 0 && texts.some(text => text.length <= end + 1)) {
     end = shared.lastIndexOf('/', end - 1);
   }
-  const host = /^[a-z][a-z0-9+.-]*:\/\/[^/]+\//i.exec(shared);
-  return host && end + 1 >= host[0].length ? shared.slice(0, end + 1) : null;
+  return end > 0 ? shared.slice(0, end + 1) : null;
 }
 
 /**
- * The words of the chips, where calls of one function pass URLs of one
+ * The URLs of the chips, where calls of one function pass URLs of one
  * folder, as the six calls of download(url) in ThinkStats2's chapter 3: the
- * first chip writes its URL in full, and the others the part after the
- * folder, `url …/thinkplot.py` (design iteration 1.141). The tooltip of each
+ * first chip writes the folder, and the others what follows it,
+ * `url …/thinkplot.py` (design iteration 1.141). URLs of two sites, of two
+ * branches or of two records keep their words. The tooltip of each chip
  * gives its URL in full.
  */
-function folderOnce(decisions: IDecision[], texts: string[]): string[] {
+function folderOnce(
+  decisions: IDecision[],
+  views: (IUrlView | null)[]
+): (IUrlView | null)[] {
   const groups = new Map<string, number[]>();
   decisions.forEach((decision, index) => {
-    if (
-      !decision.function ||
-      !decision.param ||
-      readsFile(decision) ||
-      !URL_VALUE.test(decision.value.trim())
-    ) {
+    if (!decision.function || !decision.param || !views[index]) {
       return;
     }
     const key = JSON.stringify([shortFunction(decision), decision.param]);
     groups.set(key, [...(groups.get(key) ?? []), index]);
   });
-  const shown = [...texts];
+  const shown = [...views];
   for (const indices of groups.values()) {
-    const urls = indices.map(index => unquote(decisions[index].value));
-    const folder = indices.length > 1 ? sharedFolder(urls) : null;
+    const group = indices.map(index => views[index]!);
+    const alike = group.every(
+      view => view.site === group[0].site && view.ref === group[0].ref
+    );
+    const folder =
+      indices.length > 1 && alike
+        ? sharedFolder(group.map(view => view.text))
+        : null;
     if (folder) {
       indices.slice(1).forEach((index, at) => {
-        shown[index] =
-          `${decisions[index].name} …/${urls[at + 1].slice(folder.length)}`;
+        const view = group[at + 1];
+        shown[index] = {
+          site: view.site,
+          text: `…/${view.text.slice(folder.length)}`,
+          ref: null
+        };
       });
     }
   }
@@ -354,12 +481,16 @@ function folderOnce(decisions: IDecision[], texts: string[]): string[] {
  * `inner join · homes` and `left join · weather`. A chip does not repeat a
  * word it shows: `homes.csv` needs no `· homes`. Two chips that show the
  * same words for calls of different functions each name their functions:
- * `skipna False · mean` and `skipna False · sum`. Where calls of one
- * function pass URLs of one folder, only the first chip writes the folder:
- * `url …/thinkplot.py`.
+ * `skipna False · mean` and `skipna False · sum`. A URL shows its words
+ * (`urlView`), and where calls of one function pass URLs of one folder,
+ * only the first chip writes the folder: `url …/thinkplot.py`.
  */
 export function decisionChips(decisions: IDecision[]): IChip[] {
-  const texts = folderOnce(decisions, decisions.map(chipText));
+  const views = folderOnce(decisions, decisions.map(urlOf));
+  const texts = decisions.map((decision, index) => {
+    const view = views[index];
+    return view ? `${decision.name} ${urlWords(view)}` : chipText(decision);
+  });
   const functions = decisions.map(decision => {
     const calls = callsOf(decision);
     const names = calls.length
@@ -392,12 +523,14 @@ export function decisionChips(decisions: IDecision[]): IChip[] {
     if (target === null && twin && functions[index]) {
       target = functions[index];
     }
+    const url = views[index];
     return {
       decision,
       text,
       count: Math.max(1, calls.length),
       target,
-      tooltip: tooltipLines(decision, calls, target).join('\n')
+      tooltip: tooltipLines(decision, calls, target).join('\n'),
+      ...(url ? { url } : {})
     };
   });
 }

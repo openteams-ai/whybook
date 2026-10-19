@@ -52,3 +52,23 @@
   color: var(--jp-ui-font-color2);
   font-size: var(--jp-ui-font-size0);
 }
+
+/*
+ * The words of a URL in a chip (design iteration 1.143): the GitHub mark
+ * before the owner and the repository of a GitHub URL, at the size of the
+ * text, and the branch, tag or commit in the colour of a chip's target.
+ */
+.jp-Epi-chip-mark {
+  display: inline-flex;
+  margin-right: 0.3em;
+  vertical-align: -0.15em;
+}
+
+.jp-Epi-chip-mark svg {
+  width: 1em;
+  height: 1em;
+}
+
+.jp-Epi-chip-ref {
+  color: var(--jp-ui-font-color2);
+}
