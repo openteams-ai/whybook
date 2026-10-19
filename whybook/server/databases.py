@@ -34,6 +34,9 @@ def resolve(root: str, path: str) -> str:
 
 
 def is_sqlite(full: str) -> bool:
+    # A FIFO with a database's name would hold the thread: its open waits for a writer.
+    if not os.path.isfile(full):
+        return False
     try:
         with open(full, "rb") as file:
             return file.read(16) == MAGIC
@@ -73,14 +76,21 @@ def quote(name: str) -> str:
 
 
 def connect(full: str) -> sqlite3.Connection:
-    """A read-only connection: nothing here writes to the user's database."""
+    """A read-only connection: nothing here writes to the user's database. A path that is no regular file, such as a FIFO, is refused."""
+    if not os.path.isfile(full):
+        raise ValueError(f"{os.path.basename(full)} is not a file")
     return sqlite3.connect(Path(full).as_uri() + "?mode=ro", uri=True, timeout=1)
+
+
+def time_limit(db: sqlite3.Connection, budget: float) -> None:
+    """Stop with sqlite3.OperationalError each query of ``db`` that still runs ``budget`` seconds from now, such as a recursive view's."""
+    deadline = time.monotonic() + budget
+    db.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10000)
 
 
 def _limited(db: sqlite3.Connection, sql: str, budget: float) -> Any:
     """The first value of a query, or None when it takes longer than ``budget`` seconds."""
-    deadline = time.monotonic() + budget
-    db.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10000)
+    time_limit(db, budget)
     try:
         return db.execute(sql).fetchone()[0]
     except sqlite3.OperationalError:

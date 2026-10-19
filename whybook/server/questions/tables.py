@@ -22,6 +22,8 @@ from .rankers import score_candidate
 # Above this many rows, loading a sample comes first.
 LARGE = 200_000
 SAMPLE = 10_000
+# The seconds that the server's read of a dropped table's first rows may take.
+SAMPLE_BUDGET = 1.0
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,8 @@ def sample_rows(root: str | None, path: str, table: str) -> Any:
 
         db = databases.connect(databases.resolve(root, path))
         try:
+            # A view whose rows take longer gives no sample, as a slow count gives no number.
+            databases.time_limit(db, SAMPLE_BUDGET)
             return pd.read_sql_query(f"SELECT * FROM {databases.quote(table)} LIMIT {starts.SAMPLE}", db)
         finally:
             db.close()
