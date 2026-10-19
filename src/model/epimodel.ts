@@ -538,6 +538,9 @@ export interface IMapCamera {
   zoom: number;
 }
 
+/** The title of a code cell without code, which nothing else titles. */
+export const EMPTY_CELL_TITLE = 'Empty cell';
+
 export interface IEpiCell {
   id: string;
   model: ICellModel;
@@ -1979,7 +1982,7 @@ export class EpiModel implements IDisposable {
               )
             : null
         ) ||
-        (code ? 'Empty cell' : 'Note'),
+        (code ? EMPTY_CELL_TITLE : 'Note'),
       titleBy:
         titled && titled.title !== given ? (titled.by ?? null) : undefined,
       note: model.type === 'markdown' && noteBody(source) !== '',

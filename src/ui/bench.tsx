@@ -16,6 +16,7 @@ import { openCellMenu } from '../cellmenu';
 import type { IAgentRun } from '../model/agent';
 import { cellType } from '../model/agent';
 import type { EpiModel, IEpiCell, ISection, IStrip } from '../model/epimodel';
+import { EMPTY_CELL_TITLE } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
 import { cellWrittenBy } from '../model/writtenby';
 import { codeMimeType } from '../model/languages';
@@ -1678,8 +1679,9 @@ function SectionBlock(
   const collapsed = model.collapsed.has(section.id);
   const code = section.cells.filter(cell => cell.type === 'code');
   const top = section.cells.filter(cell => !cell.branchOf);
-  // With runs shown as cards, the cells of each run go under its card.
-  const items = groupByRun(model, top);
+  // With runs shown as cards, the cells of each run go under its card, and
+  // a run of empty code cells takes one line.
+  const items = withEmptyRuns(model, groupByRun(model, top), gone);
   // The strip of an answer whose cell was deleted, where the cell was: a
   // folded section shows its strips under its head.
   const headed = collapsed
@@ -1712,7 +1714,15 @@ function SectionBlock(
       <GoneStrips model={model} strips={headed} />
       {!collapsed &&
         items.map(item =>
-          'run' in item ? (
+          'empty' in item ? (
+            <React.Fragment key={`empty:${item.empty[0].id}`}>
+              <EmptyCells count={item.empty.length} />
+              <GoneStrips
+                model={model}
+                strips={gone.get(item.empty[item.empty.length - 1].id)}
+              />
+            </React.Fragment>
+          ) : 'run' in item ? (
             <div key={item.run.stripId} className="jp-Epi-agentgroup">
               <AgentRunView model={model} run={item.run} place="card" />
               {item.cells.map(cell => (
@@ -1821,6 +1831,92 @@ function groupByRun(
     }
   }
   return items;
+}
+
+/**
+ * An item of a section on the bench: a cell, the cells of an agent's run
+ * under its card, or a run of empty code cells.
+ */
+type BenchItem = ReturnType<typeof groupByRun>[number] | { empty: IEpiCell[] };
+
+/**
+ * Whether the card of a code cell would show its head alone, "Empty cell"
+ * with Run and Show code: the cell has no code and no outputs, and nothing
+ * that the analyst, a model, an answer or a run put on it.
+ */
+function emptyCard(model: EpiModel, cell: IEpiCell): boolean {
+  const job = model.jobs.jobFor(cell.id);
+  return (
+    cell.type === 'code' &&
+    cell.title === EMPTY_CELL_TITLE &&
+    !cell.model.sharedModel.getSource().trim() &&
+    outputsOf(cell.model).length === 0 &&
+    !cell.branchOf &&
+    cell.branches.length === 0 &&
+    cell.decisions.length === 0 &&
+    !cell.meta.summary &&
+    !cell.meta.guess &&
+    !cellType(cell.meta) &&
+    !model.codeOpen.has(cell.id) &&
+    !model.strips.has(cell.id) &&
+    !model.parallel.get(cell.id)?.length &&
+    (!job || job.status === 'done')
+  );
+}
+
+/**
+ * The items of a section with each run of empty code cells as one item,
+ * which the bench draws as one line (design iteration 1.136). A text that
+ * the bench does not draw leaves the run whole. A cell with the strips of a
+ * deleted answer after it ends its run, and the strips show after the line.
+ */
+function withEmptyRuns(
+  model: EpiModel,
+  items: ReturnType<typeof groupByRun>,
+  gone: Map<string | null, IStrip[]>
+): BenchItem[] {
+  const grouped: BenchItem[] = [];
+  let open: IEpiCell[] | null = null;
+  for (const item of items) {
+    const cell = 'cell' in item ? item.cell : null;
+    if (cell && emptyCard(model, cell)) {
+      if (!open) {
+        open = [];
+        grouped.push({ empty: open });
+      }
+      open.push(cell);
+      if (gone.get(cell.id)?.length) {
+        open = null;
+      }
+      continue;
+    }
+    const hidden =
+      cell &&
+      cell.type !== 'code' &&
+      !model.isNote(cell) &&
+      !model.inEditor(cell.id) &&
+      !gone.get(cell.id)?.length;
+    if (open && hidden) {
+      continue;
+    }
+    open = null;
+    grouped.push(item);
+  }
+  return grouped;
+}
+
+/**
+ * A run of empty code cells on the bench: one line that counts them, with
+ * no label. The Code view and JupyterLab's notebook show each cell.
+ */
+function EmptyCells(props: { count: number }): JSX.Element {
+  return (
+    <div className="jp-Epi-emptycells">
+      {props.count === 1
+        ? 'An empty code cell'
+        : `${props.count} empty code cells`}
+    </div>
+  );
 }
 
 /**

@@ -1728,6 +1728,15 @@
   contain-intrinsic-size: auto 200px;
 }
 
+/* A run of empty code cells on the bench: one thin line that counts them. */
+.jp-Epi-emptycells {
+  margin: 4px 0 8px;
+  padding: 2px 12px;
+  border-top: 1px dashed var(--jp-border-color2);
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
 /* Drop targets light up without moving: the layout must not shift under a drag. */
 .jp-Epi-cell.jp-mod-target {
   border-style: dashed;
