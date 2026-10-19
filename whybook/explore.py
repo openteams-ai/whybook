@@ -47,12 +47,16 @@ class WholeTextFrame(pd.DataFrame):
         return ({}, {"whybook": {"extremes": extremes}}) if extremes else None
 
 
-def _noun(column: str) -> str:
-    """"patient" for "patient_id": the thing that an id column names, as the questions write it."""
+def _noun(column: Any) -> str:
+    """"patient" for "patient_id": the thing that an id column names, as the questions write it.
+
+    A column whose key is not a string, such as 4 in pd.DataFrame(array), names "4".
+    """
+    text = str(column)
     for suffix in ("_id", "_key", "id"):
-        if column.lower().endswith(suffix) and len(column) > len(suffix):
-            return column[: -len(suffix)].rstrip("_")
-    return column
+        if text.lower().endswith(suffix) and len(text) > len(suffix):
+            return text[: -len(suffix)].rstrip("_")
+    return text
 
 
 def _plural(count: int, noun: str) -> str:
@@ -294,7 +298,9 @@ def screen(
     import pandas as pd
 
     frame = _pandas(data)
-    if isinstance(outcome, str):
+    # A label of a column of data, also one that is not a string, such as 0
+    # in pd.DataFrame(array); else a Series or a frame.
+    if not hasattr(outcome, "to_frame") and not hasattr(outcome, "columns"):
         y_name = outcome
         joined = frame
     else:

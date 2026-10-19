@@ -16,6 +16,7 @@ def _whybook_inspect_variables(args):
     import importlib.metadata
     import importlib.util
     import math
+    import numbers
     import os
     import re
     import sys
@@ -155,6 +156,31 @@ def _whybook_inspect_variables(args):
             "id": "id",
             "text": "text",
         }.get(tag, "other")
+
+    def column_key(label):
+        """A column's key in its frame when it is not a string, as JSON from which the view and the server write it in code.
+
+        0 for the first column of pd.DataFrame(array), 0.5, True, and a list
+        for the tuple that names a column under two headers or more:
+        ["pain", "mean"]. None for a string, and for a key that JSON does not
+        give back exactly, such as a date.
+        """
+
+        def part(value):
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, numbers.Integral):
+                return int(value) if abs(int(value)) < 2**53 else None
+            if isinstance(value, numbers.Real) and math.isfinite(float(value)):
+                return float(value)
+            return None
+
+        if isinstance(label, str):
+            return None
+        if isinstance(label, tuple):
+            parts = [item if isinstance(item, str) else part(item) for item in label]
+            return parts if parts and None not in parts else None
+        return part(label)
 
     def column_entry(label, dtype, stats):
         """One column of the Contents list, from precomputed statistics."""
@@ -344,6 +370,9 @@ def _whybook_inspect_variables(args):
                 columns.append(column_entry(label, schema[label], stats[label]))
             except Exception as error:
                 columns.append({"label": str(label), "tag": "other", "kind": "other", "error": repr(error)})
+            key = column_key(label)
+            if key is not None:
+                columns[-1]["key"] = key
         groups, grouped_by, selection = frame_metadata(value, labels)
         entry = {
             "name": name,

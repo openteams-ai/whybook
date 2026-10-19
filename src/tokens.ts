@@ -40,7 +40,17 @@ export interface IColumn {
    * code: `polars`. The server writes the questions' code in it.
    */
   library?: string;
+  /**
+   * Its key in the frame when the key is not a string, as the kernel lists
+   * it: 0 for the first column of `pd.DataFrame(array)`, labelled "0", and
+   * `['pain', 'mean']` for the column `('pain', 'mean')` under two headers.
+   * `name` and the questions' code name the column by it (`df[0]`).
+   */
+  key?: ColumnKey;
 }
+
+/** A column's key that is not a string: a number, a flag, or the parts of a tuple. */
+export type ColumnKey = number | boolean | (string | number | boolean)[];
 
 export interface ITerm {
   term: string;

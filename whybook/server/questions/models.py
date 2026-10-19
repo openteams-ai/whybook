@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .. import languages, privacy
+from .. import codegen, languages, privacy
 
 KINDS = (
     "numeric",
@@ -116,7 +116,9 @@ class Variable:
         levels = data.get("levels") or ()
         return cls(
             name=name,
-            label=str(data.get("label") or name),
+            # A column whose key in its frame is not a string, such as the
+            # column 0 of pd.DataFrame(array): the code names it by its key.
+            label=codegen.column_label(str(data.get("label") or name), data.get("key") if data.get("parent") else None),
             kind=kind,
             parent=data.get("parent"),
             tag=data.get("tag"),
@@ -287,9 +289,22 @@ class Context:
             listed = frame.get("columns", frame)
             if not isinstance(listed, dict):
                 raise InvalidRequest("frame columns must map labels to tags")
-            columns[str(name)] = {str(c): str(t) for c, t in listed.items() if c != "rows" or "columns" in frame}
+            # The key of each column whose key is not a string, by its label.
+            keys = frame["keys"] if "columns" in frame and isinstance(frame.get("keys"), dict) else {}
+            columns[str(name)] = {codegen.column_label(str(c), keys.get(c)): str(t) for c, t in listed.items() if c != "rows" or "columns" in frame}
             if isinstance(frame.get("rows"), int):
                 rows[str(name)] = frame["rows"]
+        # The keys of the columns of each label, None for a key that is the label.
+        found: dict[str, set[str | None]] = {}
+        for labels in columns.values():
+            for column in labels:
+                found.setdefault(column, set()).add(column.key if isinstance(column, codegen.Label) else None)
+
+        def column_of(text: Any) -> Any:
+            """An outcome or a unit as the label of its column: a Label when every frame that has it gives it one key."""
+            given = found.get(text) if isinstance(text, str) else None
+            return codegen.Label(text, next(iter(given))) if given and len(given) == 1 and None not in given else text
+
         mode = data.get("mode") or "wonder"
         if mode not in ("do", "report", "wonder"):
             raise InvalidRequest(f"unknown mode {mode!r}")
@@ -302,14 +317,14 @@ class Context:
             asked=tuple(AskedQuestion.from_json(item) for item in asked),
             used=frozenset(_strings(data, "used")),
             cells=tuple(_strings(data, "cells")),
-            outcome=outcome or (outcomes[0] if outcomes else None),
-            unit=unit or (units[0] if units else None),
+            outcome=column_of(outcome or (outcomes[0] if outcomes else None)),
+            unit=column_of(unit or (units[0] if units else None)),
             mode=mode,
             last_type=last_type,
             frames=columns,
             frame_rows=rows,
-            outcomes=tuple(dict.fromkeys(outcomes)),
-            units=tuple(dict.fromkeys(units)),
+            outcomes=tuple(column_of(text) for text in dict.fromkeys(outcomes)),
+            units=tuple(column_of(text) for text in dict.fromkeys(units)),
             language=str(data.get("language") or "python").strip().lower() or "python",
         )
 

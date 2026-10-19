@@ -295,12 +295,13 @@ def hist(data: Any, x: str, *, bins: int = 30, title: str | None = None) -> None
     _show(payload)
 
 
-def _noun(column: str) -> str:
-    """"patient" for "patient_id": the thing that an id column names."""
+def _noun(column: Any) -> str:
+    """"patient" for "patient_id": the thing that an id column names; "4" for the column 4 of pd.DataFrame(array)."""
+    text = str(column)
     for suffix in ("_id", "_key", "id"):
-        if column.lower().endswith(suffix) and len(column) > len(suffix):
-            return column[: -len(suffix)].rstrip("_")
-    return column
+        if text.lower().endswith(suffix) and len(text) > len(suffix):
+            return text[: -len(suffix)].rstrip("_")
+    return text
 
 
 def bars(data: Any, x: str, y: str | None = None, *, unit: str | None = None, title: str | None = None) -> None:

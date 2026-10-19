@@ -24,7 +24,6 @@ import type {
   IMissing,
   INoteAsk
 } from '../model/epimodel';
-import { pythonString } from '../model/kernel';
 import {
   axisValues,
   estimateText,
@@ -1948,7 +1947,8 @@ function ColumnFilter(props: { model: EpiModel; ask: IDropAsk }): JSX.Element {
           {shown.map(column => {
             const item: IItem = {
               kind: 'column',
-              name: `${ask.source.name}[${pythonString(column.label)}]`,
+              // The code of the column, by its key when that is not a string: X[0].
+              name: column.name,
               label: column.label,
               parent: ask.source.name
             };

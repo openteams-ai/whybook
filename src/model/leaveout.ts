@@ -104,15 +104,17 @@ export function ruleText(extremes: IExtremes, cuts: ICuts): string {
  * under `name`, and a line with how many rows went. A missing value stays,
  * as no comparison takes it. Each bound is the value as the quick look gave
  * it, in the column's own type: 999.9 finds the float32 readings of
- * 999.900024, which `isin([999.9])` does not.
+ * 999.900024, which `isin([999.9])` does not. `column` is the code of the
+ * column as the kernel's listing names it, `X[0]` for the column labelled
+ * "0" of `pd.DataFrame(array)`; without it, the column goes by its label.
  */
 export function leaveOutCode(
   extremes: IExtremes,
   cuts: ICuts,
-  name: string
+  name: string,
+  column = `${extremes.frame}[${pyString(extremes.column)}]`
 ): { text: string; code: string } {
   const { frame } = extremes;
-  const column = `${frame}[${pyString(extremes.column)}]`;
   const tests: string[] = [];
   if (cuts.low !== null) {
     tests.push(`(${column} <= ${extremes.lowest[cuts.low].value})`);

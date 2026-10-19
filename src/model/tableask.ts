@@ -16,6 +16,7 @@ import type { EpiModel, IAskBase } from './epimodel';
 import type { IReadTable, ITableSource, TableTarget } from './frametable';
 import { frameColumn, resolveTable } from './frametable';
 import { pythonString } from './kernel';
+import { pythonKey } from './languages';
 import { notebookMeta, outputKind, outputsOf } from './notebook';
 import { pyComment, pyString } from './pycode';
 import { fingerprint, htmlOf, tableInfo } from './tables';
@@ -267,10 +268,13 @@ export function tableSource(
   });
 }
 
-function columnItem(frame: string, label: string): IItem {
+function columnItem(model: EpiModel, frame: string, label: string): IItem {
   return {
     kind: 'column',
-    name: `${frame}[${pythonString(label)}]`,
+    // The code of the column as the listing names it, by its key when that
+    // is not a string: X[0].
+    name:
+      model.column(frame, label)?.name ?? `${frame}[${pythonString(label)}]`,
     label,
     parent: frame
   };
@@ -378,7 +382,7 @@ export function askTableHeaders(
     rows: []
   };
   if (frame && found.every(label => label !== null)) {
-    const items = found.map(label => columnItem(frame, label!));
+    const items = found.map(label => columnItem(model, frame, label!));
     const modifiers = { ...model.pickModifiers };
     if (model.armed) {
       model.pick(items[items.length - 1], modifiers, anchor);
@@ -570,7 +574,12 @@ export async function askTableRows(
           column =>
             NUMBER_DTYPE.test(column.dtype ?? '') &&
             !keys.includes(column.label)
-        )
+        ),
+      // The kernel names each column of its comparison by its label.
+      columnCode: label =>
+        pythonKey(
+          variable?.columns?.find(column => column.label === label)?.key
+        ) ?? pyString(label)
     });
   } catch (error) {
     ask.error = describe(error);
@@ -604,6 +613,12 @@ export function rowOptions(input: {
   unit: string | null;
   /** Whether the frame has a number column besides the keys; true when unknown. */
   numbers?: boolean;
+  /**
+   * A column of the frame by its label, as code that picks it: its key when
+   * that is not a string, `0` for the column "0" of `pd.DataFrame(array)`,
+   * else a string literal.
+   */
+  columnCode?: (label: string) => string;
 }): IOption[] {
   const { frame, summary, words, keys, cellId, cellLabel } = input;
   const mask = summary.mask;
@@ -668,7 +683,8 @@ export function rowOptions(input: {
           input.unit,
           placement,
           key,
-          polars
+          polars,
+          input.columnCode?.(top.column)
         )
       );
     }
@@ -819,14 +835,14 @@ function rowsTest(
   unit: string | null,
   placement: IPlacement,
   key: string,
-  polars = false
+  polars = false,
+  quoted = pyString(column)
 ): IOption {
   const noun = unit ? unit.replace(/_id$/, '') : 'row';
   const counted = unit ? `${noun}s` : 'rows';
   const effect = `Welch t-test on ${unit ? `per-${noun} means` : 'rows'}`;
   const text = `Is ${column} different in ${words} by more than chance?`;
   const result = identifier(`${frame}_rows_${column}`);
-  const quoted = pyString(column);
   const mean = pyString(`mean ${column}`);
   const split = polars
     ? unit

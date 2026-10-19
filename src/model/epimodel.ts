@@ -2672,11 +2672,17 @@ export class EpiModel implements IDisposable {
     const frames: Record<string, unknown> = {};
     for (const variable of this.variables()) {
       if (variable.kind === 'dataframe' && variable.columns) {
+        // The key of each column whose key is not a string, by its label:
+        // the code of a question names the column 0 of a frame as X[0].
+        const keys = variable.columns
+          .filter(column => column.key !== undefined)
+          .map(column => [column.label, column.key]);
         frames[variable.name] = {
           rows: variable.rows,
           columns: Object.fromEntries(
             variable.columns.map(column => [column.label, column.tag])
-          )
+          ),
+          ...(keys.length ? { keys: Object.fromEntries(keys) } : {})
         };
       }
     }
@@ -5904,7 +5910,14 @@ export class EpiModel implements IDisposable {
       ...this.definitions().keys()
     ]);
     const name = cleanName(extremes.frame, taken);
-    const { text, code } = leaveOutCode(extremes, cuts, name);
+    // The quick look gives the column's label: the listing names the column
+    // 0 of a frame as X[0].
+    const { text, code } = leaveOutCode(
+      extremes,
+      cuts,
+      name,
+      this.column(extremes.frame, extremes.column)?.name
+    );
     const option: IOption = {
       id: `leave-out:${extremes.frame}:${extremes.column}:${cuts.low}:${cuts.high}`,
       text,

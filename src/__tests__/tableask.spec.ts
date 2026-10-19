@@ -96,6 +96,24 @@ describe('rowOptions', () => {
     );
   });
 
+  it('names a column whose key in its frame is not a string by its key', () => {
+    // The column 0 of pd.DataFrame(array): the kernel compares it as "0".
+    const test = rowOptions({
+      ...input,
+      frame: 'X',
+      summary: {
+        ...summary,
+        mask: 'X.index.isin([0, 1])',
+        differences: [{ ...summary.differences[0], column: '0' }]
+      },
+      columnCode: label => (label === '0' ? '0' : `"${label}"`)
+    })[1];
+    expect(test.text).toBe(
+      'Is 0 different in rows 0 and 1 by more than chance?'
+    );
+    expect(test.code).toContain('\n_a = X.loc[_rows, 0].dropna()\n');
+  });
+
   it('tests the means of each unit when the frame has the unit', () => {
     const test = rowOptions({
       ...input,

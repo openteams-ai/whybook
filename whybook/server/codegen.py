@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import ast
 import keyword
+import math
 import re
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
+from typing import Any
 
 KEY_PATTERN = re.compile(r"(^|_)(id|week|day|date|visit|month|time)$")
 
@@ -23,12 +25,63 @@ KEY_PATTERN = re.compile(r"(^|_)(id|week|day|date|visit|month|time)$")
 # ends the string or the line that it is in.
 
 
+class Label(str):
+    """The label of a column whose key in its frame is not a string: "0" for the column 0 of pd.DataFrame(array).
+
+    It reads as its text wherever a question shows it or compares it, and
+    literal() writes ``key``, the column's key as Python code, so that the
+    code finds the column: ``whybook.summary(X, 0)``.
+    """
+
+    key: str
+
+    def __new__(cls, text: str, key: str) -> Label:
+        made = super().__new__(cls, text)
+        made.key = key
+        return made
+
+    def __getnewargs__(self) -> tuple[str, str]:  # type: ignore[override]
+        return str(self), self.key
+
+
+def key_literal(value: Any) -> str | None:
+    """A column's key as Python code, from the JSON of the kernel's listing; None for any other value.
+
+    A key is a number, a flag, or a list of texts, numbers and flags for the
+    tuple that names a column under two headers or more: ``0``, ``0.5``,
+    ``True``, ``("pain", "mean")``. A notebook keeps the listing, and only
+    such a key goes into code.
+    """
+
+    def part(item: Any) -> str | None:
+        if isinstance(item, (bool, int)) or (isinstance(item, float) and math.isfinite(item)):
+            return repr(item)
+        return None
+
+    if not isinstance(value, list):
+        return part(value)
+    parts = [literal(item) if isinstance(item, str) else part(item) for item in value]
+    written = [text for text in parts if text is not None]
+    if not written or len(written) != len(parts):
+        return None
+    return f"({', '.join(written)}{',' if len(written) == 1 else ''})"
+
+
+def column_label(text: str, key: Any) -> str:
+    """The label of a column: a Label when the listing gives its key, else the text."""
+    code = None if key is None else key_literal(key)
+    return Label(text, code) if code is not None else text
+
+
 def literal(text: str) -> str:
     """``text`` as a Python string literal: ``sleep "hours"`` gives ``'sleep "hours"'``.
 
     The literal reads back as ``text``, whatever it holds. A text without a
     double quote gets double quotes, as the templates write their strings.
+    The Label of a column whose key is not a string gives the key: ``0``.
     """
+    if isinstance(text, Label):
+        return text.key
     quoted = repr(str(text))
     return f'"{quoted[1:-1]}"' if quoted[0] == "'" and '"' not in text else quoted
 

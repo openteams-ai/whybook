@@ -205,6 +205,64 @@ describe('the R adapter', () => {
   });
 });
 
+describe('a column whose key in its frame is not a string', () => {
+  it('is named by its key, as the kernel lists it', () => {
+    // The columns of pd.DataFrame(array), a pivot on a column of numbers or
+    // flags, and a column under two headers.
+    expect(PYTHON.column('X', '0', 0)).toBe('X[0]');
+    expect(PYTHON.column('wide', '0.5', 0.5)).toBe('wide[0.5]');
+    expect(PYTHON.column('wide', '-3', -3)).toBe('wide[-3]');
+    expect(PYTHON.column('wide', 'True', true)).toBe('wide[True]');
+    expect(PYTHON.column('wide', "('pain', 'mean')", ['pain', 'mean'])).toBe(
+      "wide[('pain', 'mean')]"
+    );
+    expect(PYTHON.column('wide', "('pain', 2)", ['pain', 2])).toBe(
+      "wide[('pain', 2)]"
+    );
+    expect(PYTHON.column('wide', "('pain',)", ['pain'])).toBe(
+      "wide[('pain',)]"
+    );
+    expect(PYTHON.column('X', 'age')).toBe("X['age']");
+  });
+
+  it('is named by its label when its key is no number, flag or list of them, as a notebook keeps any JSON', () => {
+    for (const key of [
+      '__import__("os").system("id")',
+      { 0: 1 },
+      [1, [2]],
+      [],
+      [{ 0: 1 }],
+      NaN,
+      Infinity,
+      null
+    ]) {
+      expect(PYTHON.column('X', '0', key)).toBe("X['0']");
+    }
+  });
+
+  it('gets its name back from its key when the notebook keeps it', () => {
+    const variable: IVariable = {
+      name: 'X',
+      label: 'X',
+      kind: 'dataframe',
+      rows: 30,
+      columns: [
+        {
+          name: '',
+          label: '0',
+          parent: '',
+          kind: 'numeric',
+          tag: 'num',
+          key: 0
+        }
+      ]
+    };
+    expect(prepareVariable(variable).columns![0].name).toBe('X[0]');
+    // An R frame names each column with a text.
+    expect(prepareVariable(variable, R).columns![0].name).toBe('X[["0"]]');
+  });
+});
+
 describe('LANGUAGES', () => {
   it('lists each language once', () => {
     const names = LANGUAGES.flatMap(language => language.names);

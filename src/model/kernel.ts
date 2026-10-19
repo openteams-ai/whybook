@@ -870,7 +870,7 @@ export function prepareVariable(
   const library = variable.type?.startsWith('polars.') ? 'polars' : null;
   const columns = variable.columns.map(column => ({
     ...column,
-    name: language.column(variable.name, column.label),
+    name: language.column(variable.name, column.label, column.key),
     parent: variable.name,
     rows: variable.rows,
     ...(library ? { library } : {})

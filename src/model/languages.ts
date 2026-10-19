@@ -50,8 +50,12 @@ export interface ILanguage {
    * program.
    */
   call(name: Snippet, args: unknown): string | null;
-  /** Code that evaluates to a column of a frame: `df['age']` in Python. */
-  column(frame: string, label: string): string;
+  /**
+   * Code that evaluates to a column of a frame: `df['age']` in Python. `key`
+   * is the column's key when it is not a string, as the kernel lists it:
+   * `df[0]` for the first column of `pd.DataFrame(array)`, labelled "0".
+   */
+  column(frame: string, label: string, key?: unknown): string;
   /**
    * Whether the view runs code in the kernel's subshells, when the kernel
    * lists them. A kernel written as a subclass of ipykernel's Kernel lists
@@ -102,7 +106,8 @@ export const PYTHON: ILanguage = {
     const payload = JSON.stringify(JSON.stringify(args));
     return `__import__("builtins").exec(${program}, {"_whybook_args": __import__("json").loads(${payload})})\n`;
   },
-  column: (frame, label) => `${frame}[${pythonString(label)}]`,
+  column: (frame, label, key) =>
+    `${frame}[${pythonKey(key) ?? pythonString(label)}]`,
   subshells: true,
   commentText: hashComment,
   remove: names => `del ${names.join(', ')}`
@@ -311,4 +316,32 @@ export function codeMimeType(
 
 export function pythonString(text: string): string {
   return `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+}
+
+/**
+ * A column's key as Python code, from the kernel's listing: `0`, `0.5`,
+ * `True`, and `('pain', 'mean')` for a list. Null for any other value: a
+ * notebook keeps the listing, and only a number, a flag, or a list of them
+ * and texts, goes into code.
+ */
+export function pythonKey(key: unknown): string | null {
+  const part = (value: unknown): string | null => {
+    if (typeof value === 'boolean') {
+      return value ? 'True' : 'False';
+    }
+    // The shortest text that Python reads back as the same number.
+    return typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : null;
+  };
+  if (!Array.isArray(key)) {
+    return part(key);
+  }
+  const parts = key.map(value =>
+    typeof value === 'string' ? pythonString(value) : part(value)
+  );
+  if (!parts.length || parts.includes(null)) {
+    return null;
+  }
+  return `(${parts.join(', ')}${parts.length === 1 ? ',' : ''})`;
 }
