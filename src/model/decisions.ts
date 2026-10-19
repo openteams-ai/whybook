@@ -286,6 +286,67 @@ export function sourceNote(decision: IDecision, note: string): string {
   return library ? `default in ${library}` : note;
 }
 
+/** A URL as code writes it: a string in quotes that starts with a scheme, `'https://…'`. */
+const URL_VALUE = /^(['"])[a-z][a-z0-9+.-]*:\/\/[^\s'"]+\1$/i;
+
+/**
+ * The folder that every URL starts with, past its scheme and its host, up to
+ * a "/" that leaves each URL a part after it:
+ * `https://github.com/AllenDowney/ThinkStats2/raw/master/code/` for the
+ * files of ThinkStats2. Null where the URLs share no host.
+ */
+function sharedFolder(urls: string[]): string | null {
+  let shared = urls[0];
+  for (const url of urls.slice(1)) {
+    let at = 0;
+    while (at < shared.length && at < url.length && shared[at] === url[at]) {
+      at++;
+    }
+    shared = shared.slice(0, at);
+  }
+  let end = shared.lastIndexOf('/');
+  while (end >= 0 && urls.some(url => url.length <= end + 1)) {
+    end = shared.lastIndexOf('/', end - 1);
+  }
+  const host = /^[a-z][a-z0-9+.-]*:\/\/[^/]+\//i.exec(shared);
+  return host && end + 1 >= host[0].length ? shared.slice(0, end + 1) : null;
+}
+
+/**
+ * The words of the chips, where calls of one function pass URLs of one
+ * folder, as the six calls of download(url) in ThinkStats2's chapter 3: the
+ * first chip writes its URL in full, and the others the part after the
+ * folder, `url …/thinkplot.py` (design iteration 1.141). The tooltip of each
+ * gives its URL in full.
+ */
+function folderOnce(decisions: IDecision[], texts: string[]): string[] {
+  const groups = new Map<string, number[]>();
+  decisions.forEach((decision, index) => {
+    if (
+      !decision.function ||
+      !decision.param ||
+      readsFile(decision) ||
+      !URL_VALUE.test(decision.value.trim())
+    ) {
+      return;
+    }
+    const key = JSON.stringify([shortFunction(decision), decision.param]);
+    groups.set(key, [...(groups.get(key) ?? []), index]);
+  });
+  const shown = [...texts];
+  for (const indices of groups.values()) {
+    const urls = indices.map(index => unquote(decisions[index].value));
+    const folder = indices.length > 1 ? sharedFolder(urls) : null;
+    if (folder) {
+      indices.slice(1).forEach((index, at) => {
+        shown[index] =
+          `${decisions[index].name} …/${urls[at + 1].slice(folder.length)}`;
+      });
+    }
+  }
+  return shown;
+}
+
 /**
  * The chips of a cell's decisions. One chip stands for every call that
  * leaves the same value, `inner join ×2`. Where calls of one function leave
@@ -293,10 +354,12 @@ export function sourceNote(decision: IDecision, note: string): string {
  * `inner join · homes` and `left join · weather`. A chip does not repeat a
  * word it shows: `homes.csv` needs no `· homes`. Two chips that show the
  * same words for calls of different functions each name their functions:
- * `skipna False · mean` and `skipna False · sum`.
+ * `skipna False · mean` and `skipna False · sum`. Where calls of one
+ * function pass URLs of one folder, only the first chip writes the folder:
+ * `url …/thinkplot.py`.
  */
 export function decisionChips(decisions: IDecision[]): IChip[] {
-  const texts = decisions.map(chipText);
+  const texts = folderOnce(decisions, decisions.map(chipText));
   const functions = decisions.map(decision => {
     const calls = callsOf(decision);
     const names = calls.length
@@ -490,12 +553,33 @@ const DRAWING_FUNCTIONS =
   /^(subplots|figure|plot|scatter|bar|barh|hist|boxplot|violinplot|errorbar|fill_between|axhline|axvline|axline|step|stairs|stem|pie|imshow|text|annotate|legend|title|suptitle|savefig|xlabel|ylabel|set_xlabel|set_ylabel|set_title|set|set_xlim|set_ylim|xlim|ylim|tight_layout|grid|lineplot|scatterplot|barplot|boxplot|histplot|kdeplot|regplot|lmplot|catplot|relplot|pointplot|stripplot|swarmplot|heatmap|pairplot|jointplot|displot|countplot|ggplot|aes|labs|ggtitle|xlab|ylab|theme|geom_\w+)$/;
 
 /**
+ * The options that label a drawing: a title, the label of a line or of an
+ * axis. They change no result in any function, such as xlabel of
+ * thinkplot.Config in ThinkStats2, so their values show no chip and ask no
+ * question, whether a call writes them or leaves them at a default of the
+ * analyst's function (design iteration 1.141). The kernel's analysis holds
+ * the same rule (label_params in whybook/server/kernel_code/analyze_cells.py).
+ */
+const LABEL_PARAMS = new Set([
+  'label',
+  'xlabel',
+  'ylabel',
+  'zlabel',
+  'title',
+  'suptitle'
+]);
+
+/**
  * The decisions less the values that only shape a drawing: a parameter of
  * DRAWING_PARAMS in a call of a drawing function, such as figsize of
- * plt.subplots, xlabel of ax.set_xlabel or marker of ax.plot.
+ * plt.subplots, xlabel of ax.set_xlabel or marker of ax.plot, and a label
+ * option of any call (LABEL_PARAMS), such as those that a notebook kept.
  */
 export function withoutDrawing(decisions: IDecision[]): IDecision[] {
   return decisions.filter(decision => {
+    if (decision.param && LABEL_PARAMS.has(decision.param)) {
+      return false;
+    }
     const fn = (decision.function ?? '').split('.').pop() ?? '';
     const param = decision.param ?? decision.name;
     return !(

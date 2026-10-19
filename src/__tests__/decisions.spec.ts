@@ -9,7 +9,8 @@ import {
   decisionKey,
   libraryOf,
   sameValue,
-  sourceNote
+  sourceNote,
+  withoutDrawing
 } from '../model/decisions';
 import type { IDecision, IOption } from '../tokens';
 
@@ -385,6 +386,123 @@ describe('decisionChips', () => {
       'Chosen by AI.'
     ]);
     expect(new Set(kept.map(decisionKey)).size).toBe(2);
+  });
+
+  it('writes the folder that the URLs of calls of one function share once, on the first chip, as the six downloads of ThinkStats2’s chapter 3', () => {
+    // [1] of chap03ex.ipynb calls download(url) six times, each with a file
+    // of one folder, and its six chips wrote the folder six times (design
+    // iteration 1.141).
+    const folder =
+      'https://github.com/AllenDowney/ThinkStats2/raw/master/code/';
+    const download = (file: string, line: number): IDecision => ({
+      name: 'url',
+      value: `'${folder}${file}'`,
+      provenance: 'you',
+      param: 'url',
+      function: 'download',
+      calls: [{ line, col: 0, target: null }]
+    });
+    const chips = decisionChips([
+      download('thinkstats2.py', 13),
+      download('thinkplot.py', 14),
+      download('nsfg.py', 15),
+      download('first.py', 16),
+      download('2002FemPreg.dct', 19),
+      download('2002FemPreg.dat.gz', 20)
+    ]);
+    // The first chip writes the folder: the owner and the repository of
+    // ThinkStats2, and the file. The others write what follows the folder.
+    const [first, ...rest] = chips;
+    expect(first.text).toContain('AllenDowney/ThinkStats2');
+    expect(first.text).toMatch(/thinkstats2\.py/);
+    expect(first.text).not.toContain('…');
+    expect(rest.map(chip => [chip.text, chip.target])).toEqual([
+      ['url …/thinkplot.py', 'line 14'],
+      ['url …/nsfg.py', 'line 15'],
+      ['url …/first.py', 'line 16'],
+      ['url …/2002FemPreg.dct', 'line 19'],
+      ['url …/2002FemPreg.dat.gz', 'line 20']
+    ]);
+    expect(first.target).toBe('line 13');
+    // The tooltip of each chip gives its URL in full.
+    expect(chips[1].tooltip.split('\n')[0]).toBe(
+      `url = '${folder}thinkplot.py'`
+    );
+    // Two files of a cell's later download: the folder once on that card too.
+    const later = decisionChips([
+      download('2002FemResp.dct', 1),
+      download('2002FemResp.dat.gz', 2)
+    ]).map(chip => chip.text);
+    expect(later[0]).toContain('AllenDowney/ThinkStats2');
+    expect(later[1]).toBe('url …/2002FemResp.dat.gz');
+    // A URL alone, URLs of two hosts, and paths that are no URL are not cut.
+    expect(decisionChips([download('relay.py', 1)])[0].text).not.toContain('…');
+    const other = (value: string, line: number): IDecision => ({
+      ...download('', line),
+      value: `'${value}'`
+    });
+    const hosts = decisionChips([
+      other('https://example.org/a.csv', 1),
+      other('https://example.com/b.csv', 2)
+    ]).map(chip => chip.text);
+    expect(hosts[0]).toMatch(/example\.org\/a\.csv$/);
+    expect(hosts[1]).toMatch(/example\.com\/b\.csv$/);
+    expect(
+      decisionChips([
+        other('data/2002/a.csv', 1),
+        other('data/2002/b.csv', 2)
+      ]).map(chip => chip.text)
+    ).toEqual(['url data/2002/a.csv', 'url data/2002/b.csv']);
+  });
+});
+
+describe('the values that label a drawing', () => {
+  const option = (
+    name: string,
+    value: string,
+    fn: string,
+    provenance: IDecision['provenance'] = 'literal'
+  ): IDecision => ({
+    name,
+    value,
+    provenance,
+    param: name,
+    function: fn,
+    calls: [{ line: 1, col: 0 }]
+  });
+
+  it('show no chip in any function, written or left at a default of the analyst’s function, as thinkplot.Config(xlabel=...) of ThinkStats2', () => {
+    const kept: IDecision[] = [
+      option('xlabel', "'Class size'", 'Config'),
+      option('ylabel', "'PMF'", 'Config'),
+      option('title', "'Class sizes'", 'Config'),
+      option('label', "'observed'", 'BiasPmf'),
+      option('label', 'None', 'Copy', 'defaulted'),
+      option('zlabel', "'z'", '__init__', 'defaulted'),
+      // A default that a constant of the analyst's module holds.
+      {
+        ...option('PLOT_TITLE', "'PMF'", 'pre_plot', 'defaulted'),
+        param: 'suptitle'
+      },
+      // The other values of the same calls stay.
+      option('num', '2', 'PrePlot'),
+      option('rows', 'None', 'PrePlot', 'defaulted'),
+      option('legend', 'False', 'Config'),
+      // A name that the cell assigns is no option of a call.
+      {
+        name: 'title',
+        value: "'Results'",
+        provenance: 'literal',
+        param: null,
+        function: null
+      }
+    ];
+    expect(withoutDrawing(kept).map(decision => decision.name)).toEqual([
+      'num',
+      'rows',
+      'legend',
+      'title'
+    ]);
   });
 });
 

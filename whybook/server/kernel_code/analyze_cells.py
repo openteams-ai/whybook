@@ -15,7 +15,8 @@ when it is known, for the popover that says "default in pandas 3.0.6". A
 keyword argument that keeps the books, such as ``drop=True`` of
 ``reset_index``, makes no ``literal`` decision (``bookkeeping`` below), and
 neither does a call that picks the rows that the cell only shows, such as the
-``head()`` that ends it (``showing_functions``).
+``head()`` that ends it (``showing_functions``). A label option, such as
+``xlabel`` or ``title``, makes no decision in any function (``label_params``).
 
 Each decision of a call is keyed by that call: where the cell names the
 function, its line and column. Calls that leave the same parameter at the
@@ -142,10 +143,19 @@ def _whybook_analyze_cells(args):
     # goes, and ignore_index numbers the rows again, in every function that has it.
     skipped_params = {
         "data", "x", "y", "by", "on", "columns", "column", "groups", "group", "index", "name", "labels",
-        "title", "as_index", "observed", "sort", "disp", "verbose", "inplace", "copy", "axis", "left_on",
+        "as_index", "observed", "sort", "disp", "verbose", "inplace", "copy", "axis", "left_on",
         "right_on", "id_vars", "value_vars", "var_name", "value_name", "subset", "keys", "path", "sep",
         "outcome", "random_state", "seed", "formula", "ignore_index",
     }
+    # The options that label a drawing: a title, the label of a line or of an
+    # axis. They name what a reader sees and change no result, in any
+    # function, so they make no decision, whether a call writes them or
+    # leaves them at a default of the analyst's function, and a model that
+    # reads the signatures is not shown them: thinkplot.Config(xlabel=...),
+    # a function of the notebook's folder, made a chip on eight cards of
+    # ThinkStats2's chapter 3 (design iteration 1.141). The view holds the
+    # same rule (withoutDrawing in src/model/decisions.ts).
+    label_params = {"label", "xlabel", "ylabel", "zlabel", "title", "suptitle"}
     # Parameters that keep the books in one function and mean more in another,
     # by the function's name (design iteration 1.86): reset_index(drop=True)
     # throws the old index away, where drop_duplicates keeps its `keep`. The
@@ -362,7 +372,8 @@ def _whybook_analyze_cells(args):
         """What the signature of a library function holds, read once in the session; None for any other function.
 
         A builtin, a function that the notebook defines (``__main__``) and
-        a module whose name starts with ``_`` are no library's.
+        a module whose name starts with ``_`` are no library's. A label
+        option is left out, such as ``label`` of DataFrame.to_latex.
         """
         key = qualified(func)
         if key is None:
@@ -378,6 +389,8 @@ def _whybook_analyze_cells(args):
             params = []
             for param in signature.parameters.values():
                 if param.default is inspect.Parameter.empty or param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                    continue
+                if param.name in label_params:
                     continue
                 found = default_of(param.name, param.default)
                 if found is not None and not found[1] and marker.fullmatch(found[0]):
@@ -1031,7 +1044,7 @@ def _whybook_analyze_cells(args):
             for param in signature.parameters.values():
                 if param.name in passed or param.default is inspect.Parameter.empty:
                     continue
-                if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD) or param.name in label_params:
                     continue
                 if user_path:
                     node_default = default_node(func, param.name)
@@ -1097,7 +1110,7 @@ def _whybook_analyze_cells(args):
                         "when": "not_converged",
                     }, call)
             for name, value_node in bound.items():
-                if name in skipped_params and name != file_param:
+                if (name in skipped_params and name != file_param) or name in label_params:
                     continue
                 if name in bookkeeping.get(function_name, ()):
                     continue

@@ -76,7 +76,8 @@ def test_the_demo_cells_list_the_functions_of_libraries_and_not_those_of_the_ana
     ribbon = weekly["ribbon"]
     assert (ribbon["module"], ribbon["library"]) == ("whybook.plots", "whybook")
     # units and max_units draw a line per unit (design iteration 1.75); the demo's ribbon by arm leaves them.
-    assert ribbon["calls"][0]["defaulted"] == ["units", "max_units", "seed", "title"]
+    # Its title, a label option, is not shown to the model (design iteration 1.141).
+    assert ribbon["calls"][0]["defaulted"] == ["units", "max_units", "seed"]
     lmm = listed(analysis["lmm"])
     assert {"DataFrame.merge", "MixedLM.from_formula", "MixedLM.fit"} <= set(lmm)
     fit = lmm["MixedLM.fit"]
