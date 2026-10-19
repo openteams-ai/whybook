@@ -119,9 +119,11 @@ export default defineConfig([
           // settings editors in activate, and ./widgets imports the rest of
           // the view. An await import() of one of these would still load it
           // before JupyterLab shows its window, which waits for every plugin
-          // to activate. The check-up's plugin (./checkup.ts) draws its
-          // section in the Exploration panel and records run times from the
-          // first view, so it needs its three modules at start too. So does
+          // to activate. The panels and the Check-up's section take their
+          // icons from ./icons in activate, so it loads at start either way.
+          // The check-up's plugin (./checkup.ts) draws its section in the
+          // Exploration panel and records run times from the first view, so
+          // it needs its three modules at start too. So does
           // the plugin of another kernel (./reproduce.ts), which adds the
           // Check-up's rows for each kernel once the kernels are listed; its
           // module loads with the view model, which imports it. The Kernel
@@ -137,6 +139,7 @@ export default defineConfig([
           ignoreImports: [
             './contextmenu',
             './databases',
+            './icons',
             './kernelmenu',
             './model/api',
             './model/checkup',
