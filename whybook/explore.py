@@ -580,7 +580,8 @@ def _variance_parts(values: Any, groups: Any) -> tuple[Any, Any, float, float]:
     grouped = values.groupby(groups, observed=True, sort=True)
     sizes = grouped.size()
     sizes = sizes[sizes > 0]
-    means = grouped.mean()[sizes.index]
+    # By label: the levels False and True as a key, with [] or .loc, pick rows as a mask.
+    means = grouped.mean().reindex(sizes.index)
     k, n = len(sizes), int(sizes.sum())
     between = float((sizes * (means - values.mean()) ** 2).sum()) / (k - 1) if k > 1 else math.nan
     within = float(((values - grouped.transform("mean")) ** 2).sum()) / (n - k) if n > k else math.nan
@@ -659,7 +660,7 @@ def compare_levels(data: Any, y: str, by: str, *, unit: str | None = None):
     if sizes.empty:
         print(f"No row has both {y} and {by}.")
         return WholeTextFrame({counted: []})
-    sds = values.groupby(part[by], observed=True, sort=True).std()[sizes.index]
+    sds = values.groupby(part[by], observed=True, sort=True).std().reindex(sizes.index)
     intervals = []
     for level in sizes.index:
         count, mean, sd = int(sizes[level]), float(means[level]), float(sds[level])

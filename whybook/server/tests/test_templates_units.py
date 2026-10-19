@@ -296,6 +296,22 @@ def test_the_levels_of_a_category_get_an_f_test_and_a_row_each(capsys):
     assert list(table.columns) == ["rows", "mean", "sd", "95% CI of the mean"] and list(table.index) == ["east", "north", "south"]
 
 
+def test_the_levels_of_a_flag_get_a_row_each_and_the_f_test_of_both(capsys):
+    stats = pytest.importorskip("scipy.stats")
+    rng = np.random.default_rng(0)
+    movies = pd.DataFrame({"reviews": rng.integers(1, 800, 200), "likes_more": rng.random(200) > 0.5})
+    # A list of the levels False and True, used as a key, would pick rows as a mask.
+    table = explore.compare_levels(movies, "reviews", "likes_more")
+    parts = [part["reviews"] for _, part in movies.groupby("likes_more")]
+    expected = stats.f_oneway(*parts)
+    test = f"F = {expected.statistic:.3g} on 1 and 198 df, p = {expected.pvalue:.2g}."
+    assert test in capsys.readouterr().out
+    assert list(table.index) == [False, True] and list(table["rows"]) == [len(part) for part in parts]
+    # The share between groups comes from the same parts.
+    explore.icc(movies, "reviews", "likes_more")
+    assert test in capsys.readouterr().out
+
+
 def test_the_meaning_of_within_and_between_shows_in_full():
     table = explore.within_between(visits(), "week", "analgesic_dose_mg", group="patient_id")
     html = table._repr_html_()
