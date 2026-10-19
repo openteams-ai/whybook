@@ -489,6 +489,190 @@ describe('The block Variables explored', () => {
     await view.unmount();
   });
 
+  it('says that the notebook has no data frame once its cells ran, as after Run all of the SEIR demo', async () => {
+    // The SEIR demo of epi-seir-covid holds 16 variables after Run all, and
+    // no frame: the block still asked to run the notebook (design iteration
+    // 1.139).
+    const source = 'beta, gamma, sigma = 1.75, 0.5, 0.2';
+    const { model } = benchModel([{ id: 'a', source }]);
+    const view = await mount(<ExplorationPanel model={model} />);
+    const text = () => block(view.host).head.parentElement!.textContent;
+    expect(text()).toContain(
+      'Run the notebook to see which columns the analysis uses.'
+    );
+    // The cell ran in the kernel, and the kernel's listing holds no frame.
+    await step(() => {
+      (model.bridge as any)._ranCode.add(source);
+      (model.bridge.changed as any).emit('variables');
+    });
+    await settle();
+    expect(text()).toContain('No data frame in this notebook yet.');
+    expect(text()).not.toContain('Run the notebook');
+    const { head, list } = block(view.host);
+    expect(head.textContent).toBe('Variables explored');
+    expect(list).toBeNull();
+    await view.unmount();
+  });
+
+  it('counts a Series as one square, and an array of numbers as a row of one square with its size, as in the SEIR demo', async () => {
+    // The owner chose to count Series and arrays too (design iteration
+    // 1.139). The SEIR demo's runs are arrays of 4 columns that have no
+    // names; ax, the axes of plt.subplots, is an array of objects.
+    const code: [string, string[], string[]][] = [
+      ['r = s.run(t_max=90, dt=0.1)', ['r'], ['s']],
+      ['s.plot(r)', [], ['r', 's']],
+      ['r3 = np.vstack((r1, r2))', ['r3'], ['np', 'r1', 'r2']],
+      ['infected = pd.Series(r3[:, 2])', ['infected'], ['pd', 'r3']],
+      ['fig, ax = plt.subplots(2, 3)', ['fig', 'ax'], ['plt']],
+      ['ax[0, 0].plot(t, infected)', [], ['ax', 't', 'infected']]
+    ];
+    const array = (name: string, shape: number[], dtype = 'float64') => ({
+      name,
+      label: name,
+      kind: 'array',
+      type: 'numpy.ndarray',
+      shape,
+      dtype,
+      cell: null
+    });
+    const series = (name: string, type: string, rows: number) => ({
+      name,
+      label: name,
+      kind: 'numeric',
+      tag: 'num',
+      type,
+      rows,
+      cell: null
+    });
+    const { model } = benchModel({
+      cells: code.map(([source, defs, uses], index) => ({
+        cell_type: 'code',
+        id: `c${index}`,
+        source,
+        metadata: {
+          whybook: {
+            analysis: storedAnalysis(
+              {
+                defs,
+                uses,
+                formulas: [],
+                columns: {},
+                decisions: [],
+                attachments: []
+              },
+              source
+            )
+          }
+        },
+        execution_count: index + 1,
+        outputs: []
+      })),
+      metadata: {
+        whybook: {
+          variables: [
+            array('r', [901, 4]),
+            array('r1', [901, 4]),
+            array('r2', [1351, 4]),
+            array('r3', [2252, 4]),
+            array('t', [901]),
+            array('ax', [2, 3], 'object'),
+            array('frames', [4, 32, 32]),
+            series('infected', 'pandas.Series', 2252),
+            series('days', 'polars.series.series.Series', 6),
+            { name: 'peak', label: 'peak', kind: 'constant', value: '0.21' }
+          ]
+        }
+      },
+      nbformat: 4,
+      nbformat_minor: 5
+    } as any);
+    const view = await mount(<ExplorationPanel model={model} />);
+    const { head, list, labels } = block(view.host);
+    // The arrays by the cells that read them, then by size; the Series last.
+    expect(labels).toEqual(['r3', 'r2', 'r', 'r1', 't', 'Series']);
+    expect(head.textContent).toBe('Variables explored6');
+    const row = (label: string) =>
+      Array.from(list!.querySelectorAll('.jp-Epi-coverage')).find(
+        node => node.firstElementChild!.firstElementChild!.textContent === label
+      )!;
+    const squares = (label: string) =>
+      Array.from(row(label).querySelectorAll('.jp-Epi-squares > span')).map(
+        square => square.className
+      );
+    // An array: its size, and one square, filled when a cell reads it.
+    expect(row('r3').querySelector('.jp-Epi-mono')!.textContent).toBe(
+      '2,252 × 4'
+    );
+    expect(squares('r3')).toEqual(['jp-mod-used']);
+    expect(row('t').querySelector('.jp-Epi-mono')!.textContent).toBe(
+      '901 values'
+    );
+    expect(squares('t')).toEqual(['jp-mod-used']);
+    expect(row('r3').querySelector('.jp-Epi-caption')!.textContent).toBe(
+      'One square: its columns have no names'
+    );
+    expect(
+      row('r3')
+        .querySelector('.jp-Epi-coverage-head span')!
+        .getAttribute('title')
+    ).toBe('Used by 1 cell. 2,252 rows × 4 columns.');
+    // The Series: one square each, filled when a cell reads it, with its name.
+    expect(row('Series').querySelector('.jp-Epi-mono')!.textContent).toBe(
+      '1 / 2'
+    );
+    expect(squares('Series')).toEqual(['jp-mod-used', '']);
+    expect(
+      Array.from(row('Series').querySelectorAll('.jp-Epi-squares > span')).map(
+        square => square.getAttribute('title')
+      )
+    ).toEqual(['infected', 'days']);
+    // No row for the axes, an array of objects, or for an array of three dimensions.
+    expect(labels).not.toContain('ax');
+    expect(labels).not.toContain('frames');
+    await view.unmount();
+  });
+
+  it('keeps the line after a run for a notebook with no frame, Series or array of numbers', async () => {
+    const source = 'fig, ax = plt.subplots(2, 3)';
+    const { model } = benchModel({
+      cells: [
+        {
+          cell_type: 'code',
+          id: 'a',
+          source,
+          metadata: {},
+          execution_count: 1,
+          outputs: []
+        }
+      ],
+      metadata: {
+        whybook: {
+          variables: [
+            {
+              name: 'ax',
+              label: 'ax',
+              kind: 'array',
+              type: 'numpy.ndarray',
+              shape: [2, 3],
+              dtype: 'object',
+              cell: 'a'
+            }
+          ]
+        }
+      },
+      nbformat: 4,
+      nbformat_minor: 5
+    } as any);
+    (model.bridge as any)._ranCode.add(source);
+    const view = await mount(<ExplorationPanel model={model} />);
+    const { head, list } = block(view.host);
+    expect(list).toBeNull();
+    expect(head.parentElement!.textContent).toContain(
+      'No data frame in this notebook yet.'
+    );
+    await view.unmount();
+  });
+
   it('draws the rows again in a new order when the setting changes', async () => {
     const { model } = benchModel(notebook());
     const view = await mount(<ExplorationPanel model={model} />);

@@ -443,10 +443,12 @@ function StatusItem(props: {
   }
   const jobs = model.jobs;
   const longest = jobs.longest;
-  // The columns a cell uses are read only in the languages that analyse cells.
+  // The columns a cell uses are read only in the languages that analyse
+  // cells. The frames alone: an array's row and the row of the Series count
+  // no columns, and neither does the row of the derived variables.
   const rows = model.unsupported('analysis')
     ? []
-    : coverage(model).filter(row => row.label !== 'Derived');
+    : coverage(model).filter(row => row.name !== null && !row.dims);
   const explored = rows
     .slice(0, 2)
     .map(

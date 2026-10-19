@@ -10,7 +10,7 @@ import { exploredOrder, orderExplored } from '../model/exploredorder';
 import { extremesOf } from '../model/leaveout';
 import { notebookMeta } from '../model/notebook';
 import { needsAI, runnableFirst } from '../model/questionorder';
-import type { QuestionType } from '../tokens';
+import type { IVariable, QuestionType } from '../tokens';
 import { QUESTION_TYPES } from '../tokens';
 import {
   AIOffNote,
@@ -56,6 +56,33 @@ export interface ICoverage {
   size: number;
   /** A cell read the frame from a file: Auto lists it first. */
   loaded: boolean;
+  /** What the head shows in place of used / total: the size of an array, `2,252 × 4`. */
+  dims?: string;
+  /** The variables that the squares stand for, in their order: the Series. */
+  names?: string[];
+}
+
+/** The type of a Series, as the kernel names it: `pandas.Series`, `polars.series.series.Series`. */
+const SERIES_TYPE = /^(pandas|polars)\.(.+\.)?Series$/;
+
+/** Whether a variable is a Series of pandas or polars. */
+export function isSeries(variable: IVariable): boolean {
+  return SERIES_TYPE.test(variable.type ?? '');
+}
+
+/**
+ * Whether a variable is a numpy array of one or two dimensions that holds
+ * data. An array of objects holds none, such as the axes that
+ * plt.subplots gives.
+ */
+export function isDataArray(variable: IVariable): boolean {
+  const dimensions = variable.shape?.length ?? 0;
+  return (
+    variable.kind === 'array' &&
+    /^numpy\./.test(variable.type ?? '') &&
+    (dimensions === 1 || dimensions === 2) &&
+    variable.dtype !== 'object'
+  );
 }
 
 /**
@@ -65,7 +92,10 @@ export interface ICoverage {
  * (../model/runnames.ts), except a table that the run read from a file: it
  * is data that the analysis starts from. In a notebook that a run made,
  * such as its notebook in R, every name is the run's. The frames that only
- * undone answers made stay out (`undoneNames` of the view model).
+ * undone answers made stay out (`undoneNames` of the view model). A Series
+ * is one square of the row "Series", and an array of numbers is a row of
+ * one square with its size, since its columns have no names: each square
+ * is filled when a cell reads the variable (design iteration 1.139).
  */
 export function coverage(
   model: EpiModel,
@@ -166,6 +196,63 @@ export function coverage(
       });
     }
   }
+  // Whether a cell reads a name: one of the analyst's, or only cells that
+  // answer offered questions, as the squares of a frame's columns tell.
+  const reads = (name: string): 'own' | 'offered' | null => {
+    let offered = false;
+    for (const cell of cells) {
+      if (!cell.analysis?.uses.includes(name)) {
+        continue;
+      }
+      const question = cell.meta.question?.id;
+      if (!question || question.startsWith('own:')) {
+        return 'own';
+      }
+      offered = true;
+    }
+    return offered ? 'offered' : null;
+  };
+  const main = model.mainVariables();
+  for (const array of main.filter(isDataArray)) {
+    const [length, width] = array.shape!;
+    const state = reads(array.name);
+    rows.push({
+      label: array.name,
+      used: state ? 1 : 0,
+      total: 1,
+      squares: [state],
+      note:
+        width === undefined
+          ? 'One square for its values'
+          : 'One square: its columns have no names',
+      name: array.name,
+      cells: readers.get(array.name) ?? 0,
+      shape: { rows: length, columns: width ?? 1 },
+      size: length * (width ?? 1),
+      loaded: loaded.has(array.name),
+      dims:
+        width === undefined
+          ? `${length.toLocaleString()} values`
+          : `${length.toLocaleString()} × ${width.toLocaleString()}`
+    });
+  }
+  const series = main.filter(isSeries);
+  if (series.length) {
+    const states = series.map(variable => reads(variable.name));
+    rows.push({
+      label: 'Series',
+      used: states.filter(Boolean).length,
+      total: series.length,
+      squares: states,
+      note: 'One square per Series, filled when a cell reads it',
+      name: null,
+      cells: 0,
+      shape: null,
+      size: 0,
+      loaded: false,
+      names: series.map(variable => variable.name)
+    });
+  }
   const later = model
     .mainVariables()
     .filter(
@@ -211,16 +298,29 @@ function keysText(row: ICoverage): string | undefined {
       ? 'No cell uses it.'
       : `Used by ${row.cells} cell${row.cells === 1 ? '' : 's'}.`;
   const { rows, columns } = row.shape;
+  const across = `${columns.toLocaleString()} column${columns === 1 ? '' : 's'}`;
   const size =
-    rows === null
-      ? `${columns.toLocaleString()} columns.`
-      : `${rows.toLocaleString()} rows × ${columns.toLocaleString()} columns.`;
+    rows === null ? `${across}.` : `${rows.toLocaleString()} rows × ${across}.`;
   return `${users} ${size}`;
+}
+
+/** The tooltip of a square: the variable it stands for, and whether only offered questions reached it. */
+function squareTitle(
+  name: string | undefined,
+  state: 'own' | 'offered' | null
+): string | undefined {
+  const offered =
+    state === 'offered' ? 'Reached only through offered questions' : null;
+  if (name === undefined) {
+    return offered ?? undefined;
+  }
+  return offered ? `${name}: ${offered.toLowerCase()}` : name;
 }
 
 /**
  * The block "Variables explored": a row for each frame that the analysis
- * starts from, and one for the variables it derives, in the order of a
+ * starts from, one for each array of numbers, one for the Series, and one
+ * for the variables it derives, in the order of a
  * setting. A right click on the head, or the Menu key or Shift+F10 on it,
  * opens the menu of orders (../contextmenu.ts). Past a few rows the list
  * scrolls, and the head stays in sight with its count (design iteration
@@ -276,14 +376,15 @@ export function ExploredBlock(props: {
         >
           {rows.map(row => (
             <div
-              key={row.name ?? ':derived'}
+              key={row.name ?? `:${row.label}`}
               className="jp-Epi-coverage"
               role="listitem"
             >
               <div className="jp-Epi-coverage-head">
                 <span title={keysText(row)}>{row.label}</span>
                 <span className="jp-Epi-mono">
-                  {row.used.toLocaleString()} / {row.total.toLocaleString()}
+                  {row.dims ??
+                    `${row.used.toLocaleString()} / ${row.total.toLocaleString()}`}
                 </span>
               </div>
               <div className="jp-Epi-squares">
@@ -297,11 +398,7 @@ export function ExploredBlock(props: {
                           ? 'jp-mod-used jp-mod-offered'
                           : ''
                     }
-                    title={
-                      state === 'offered'
-                        ? 'Reached only through offered questions'
-                        : undefined
-                    }
+                    title={squareTitle(row.names?.[index], state)}
                   />
                 ))}
               </div>
@@ -322,6 +419,27 @@ export function ExploredBlock(props: {
  */
 export function openAssumptions(model: EpiModel): number {
   return countOpenAssumptions(model.codeCells(), model.variables());
+}
+
+/**
+ * What Variables explored says while it has no rows: how to see the columns
+ * that the analysis uses, until a cell runs in the kernel; then, while the
+ * kernel holds no data frame, Series or array of numbers, that the notebook
+ * has none yet (design iteration 1.139).
+ */
+function exploredEmpty(model: EpiModel): string {
+  const ran = model.bridge.runCount > 0;
+  const data = model
+    .variables()
+    .some(
+      variable =>
+        variable.kind === 'dataframe' ||
+        isSeries(variable) ||
+        isDataArray(variable)
+    );
+  return ran && !data
+    ? 'No data frame in this notebook yet.'
+    : 'Run the notebook to see which columns the analysis uses.';
 }
 
 /** Whether the view knows an outcome of the analysis: set by hand, or inferred (../model/inferred.ts). */
@@ -429,10 +547,7 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
       <ExploredBlock
         model={model}
         rows={rows}
-        empty={
-          noAnalysis ??
-          'Run the notebook to see which columns the analysis uses.'
-        }
+        empty={noAnalysis ?? exploredEmpty(model)}
       />
       <ExplorationCounts
         branches={branches}
