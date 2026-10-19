@@ -1068,9 +1068,15 @@ NETWORK_MODULES = {
 URL = re.compile(r"^\s*(?:https?|ftp|sftp|s3|gs|az|abfss?|ssh|git|wss?)://", re.I)
 JUPYTER = re.compile(r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):88\d\d|/api/(?:sessions|kernels|contents|terminals|kernelspecs)\b|JUPYTERHUB_API_TOKEN|JPY_API_TOKEN|JUPYTER_TOKEN")
 SECRET_PATH = re.compile(
-    r"\.ssh\b|\.aws\b|\.netrc\b|\.pgpass\b|\.git-credentials\b|id_rsa|id_ed25519|id_ecdsa|\.kube/config|\.config/gcloud|\.docker/config\.json|credentials(?:\.json)?\b|\.pem$|\.key$|(?:^|/)\.env(?:\.\w+)?$|(?:^|/)secrets?\.(?:json|ya?ml|toml)$",
+    r"\.ssh\b|\.aws\b|\.netrc\b|\.pgpass\b|\.git-credentials\b|id_rsa|id_ed25519|id_ecdsa|\.kube/config|\.config/gcloud|\.docker/config\.json|credentials(?:\.json)?\b|\.pem$|\.key$|(?:^|/)\.env(?:\.\w+)?$|(?:^|/)secrets?\.(?:json|ya?ml|toml)$"
+    r"|(?:^|/)whybook/(?:keys|connection)\.json$",
     re.I,
 )
+# Whybook keeps the analyst's saved keys and connection in Jupyter's data folder (whybook/server/keystore.py), which a kernel
+# outside the sandbox can read: its modules, the call that finds the folder, and the variable that moves it.
+KEY_MODULES = ("whybook.server.keystore", "whybook.server.connection", "whybook.server.signin")
+KEY_CALLS = {"jupyter_data_dir"}
+KEY_NAMES = {"WHYBOOK_DATA_DIR"}
 STARTUP_PATH = re.compile(r"\.(?:bashrc|bash_profile|profile|zshrc|zprofile|config/fish)\b|\.ipython/|\.jupyter/|crontab|\.config/autostart|authorized_keys|\.local/share/jupyter|/etc/", re.I)
 SECRET_NAME = re.compile(r"key|token|secret|passw|credential|auth|cookie|session", re.I)
 NETWORK_SHELL = re.compile(r"\b(?:curl|wget|ssh|scp|sftp|rsync|nc|ncat|ftp|telnet|aws|gsutil|gcloud|az)\b|\bgit\s+(?:push|pull|clone|fetch)\b|\bpip\d?\s+download\b")
@@ -1185,11 +1191,15 @@ class _CodeVisitor(ast.NodeVisitor):
             self.aliases[alias.asname or alias.name.split(".")[0]] = alias.name if alias.asname else alias.name.split(".")[0]
             if any(alias.name == module or alias.name.startswith(module + ".") for module in NETWORK_MODULES):
                 self.note("network", node)
+            if alias.name.startswith(KEY_MODULES):
+                self.note("secret", node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or ""
         for alias in node.names:
             self.aliases[alias.asname or alias.name] = f"{module}.{alias.name}"
+            if f"{module}.{alias.name}".startswith(KEY_MODULES):
+                self.note("secret", node)
         if any(module == name or module.startswith(name + ".") for name in NETWORK_MODULES):
             self.note("network", node)
 
@@ -1224,6 +1234,8 @@ class _CodeVisitor(ast.NodeVisitor):
                 self.note("Jupyter server", node)
             elif URL.match(value):
                 self.note("network", node)
+            elif value in KEY_NAMES:
+                self.note("secret", node)
             elif SECRET_PATH.search(value) and "/" in value or re.fullmatch(r"\.env(?:\.\w+)?", value.strip()):
                 self.note("secret" if value.strip().startswith(("/", "~", "..")) else "secret in the folder", node)
             if STEERING.search(value):
@@ -1292,8 +1304,8 @@ class _CodeVisitor(ast.NodeVisitor):
                 kind = _delete_kind(source)
                 if kind:
                     self.note(kind, node)
-        elif name in {"keyring.get_password", "keyring.get_credential", "keyring.get_keyring"}:
-            # The system's keyring, which the sandbox does not reach.
+        elif name in {"keyring.get_password", "keyring.get_credential", "keyring.get_keyring"} or last in KEY_CALLS:
+            # The system's keyring, and the folder of Whybook's saved keys, which the sandbox does not reach.
             self.note("secret", node)
         elif last in WRITERS or (last == "open" and _write_mode(node)):
             target = literal or _first_path(node)
