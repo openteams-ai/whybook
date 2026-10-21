@@ -41,7 +41,7 @@ class DecisionModel:
     # The model's id on OpenRouter.
     openrouter: str
     # OpenRouter lists an endpoint of the model with zero data retention
-    # (https://openrouter.ai/api/v1/endpoints/zdr, read on 14 October 2026).
+    # (https://openrouter.ai/api/v1/endpoints/zdr, read on 21 October 2026).
     zdr: bool
     # The model on its maker's own API, TypeSafe's for now: config.typesafe_*.
     typesafe: bool = False
@@ -54,8 +54,10 @@ MODELS = {
         DecisionModel("solar-decide", "Solar Decide by Upstage", "upstage/solar-decide", True),
         DecisionModel("clef", "Clef by Cloudflare", "cloudflare/clef", True),
         DecisionModel("clef-flash", "Clef Flash by Cloudflare", "cloudflare/clef-flash", True),
-        # V1, which research/choice-classifiers.md measured, left OpenRouter in October 2026.
-        DecisionModel("pplx-decider", "Decider V1.1 27B by Perplexity", "perplexity/pplx-decider-v1.1-27b", True),
+        # OpenRouter no longer serves V1 and V1.1, which research/choice-classifiers.md
+        # and local-predictors-2.md measured; research/model-candidates.md measured
+        # V1.2. The id keeps the analyst's choice.
+        DecisionModel("pplx-decider", "Decider V1.2 27B by Perplexity", "perplexity/pplx-decider-v1.2", True),
         DecisionModel("luna-decisions", "GPT-6 Luna Decisions by OpenAI", "openai/gpt-6-luna-decisions", False),
         DecisionModel("mercury-decide", "Mercury Decide by Inception", "inception/mercury-decide", True),
         DecisionModel("d1", "D1 by Liquid AI", "liquid/d1", True),

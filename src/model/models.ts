@@ -636,8 +636,8 @@ function localChoices(
  * reader who saw no method (research/local-predictors-2.md); and the share of
  * 300 cells of public notebooks whose first question had the type of the
  * analyst's next question, as one choice over the questions
- * (research/choice-classifiers.md). Decider V1.1 of Perplexity is not
- * measured on the order.
+ * (research/choice-classifiers.md). research/model-candidates.md measured
+ * Decider V1.2 of Perplexity on both.
  */
 const DECISION_MEASURED: Record<
   string,
@@ -647,7 +647,7 @@ const DECISION_MEASURED: Record<
   'solar-decide': { type: 84, order: 40 },
   clef: { type: 88, order: 40 },
   'clef-flash': { type: 80, order: 44 },
-  'pplx-decider': { type: 88, order: null },
+  'pplx-decider': { type: 89, order: 46 },
   'luna-decisions': { type: 79, order: 40 },
   'mercury-decide': { type: 81, order: 44 },
   d1: { type: 79, order: 49 },
