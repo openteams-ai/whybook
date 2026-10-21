@@ -110,9 +110,17 @@ jobs:
         python -m whybook.demo "$RUNNER_TEMP/whybook-demo"
 
   integration-tests:
-    name: Integration tests
+    name: Integration tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: build
     runs-on: ubuntu-latest
+
+    strategy:
+      # The other shards go on when one fails, so that the report has every
+      # failure of the run.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        shards: [4]
 
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
@@ -166,19 +174,83 @@ jobs:
         jlpm playwright install chromium --only-shell
       working-directory: ui-tests
 
+    # Each shard writes a blob report, and the next job merges them into one
+    # HTML report.
     - name: Execute integration tests
       working-directory: ui-tests
       run: |
-        jlpm playwright test
+        jlpm playwright test --shard=${{ matrix.shard }}/${{ matrix.shards }} --reporter=github,blob
+
+    - name: Upload the blob report
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: whybook-playwright-blob-${{ matrix.shard }}
+        path: ui-tests/blob-report
+        retention-days: 1
+        compression-level: 1
+
+  integration-tests-report:
+    name: Integration tests report
+    needs: integration-tests
+    # The report is needed most when a shard fails. After a failed build no
+    # shard runs, and there is no report to merge.
+    if: ${{ !cancelled() && needs.integration-tests.result != 'skipped' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+    - name: Install jlpm
+      run: python -m pip install -U "jupyterlab>=4.0.0,<5"
+
+    - name: Install the dependencies of the galata tests
+      working-directory: ui-tests
+      env:
+        YARN_ENABLE_IMMUTABLE_INSTALLS: 0
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+      run: jlpm install
+
+    - name: Download the blob reports
+      uses: actions/download-artifact@v8
+      with:
+        pattern: whybook-playwright-blob-*
+        path: ui-tests/all-blob-reports
+        merge-multiple: true
+
+    - name: Merge the blob reports
+      working-directory: ui-tests
+      run: jlpm playwright merge-reports --reporter=html all-blob-reports
 
     - name: Upload Playwright Test report
-      if: always()
       uses: actions/upload-artifact@v7
       with:
         name: whybook-playwright-tests
-        path: |
-          ui-tests/test-results
-          ui-tests/playwright-report
+        path: ui-tests/playwright-report
+
+    # The report as one HTML file, with its screenshots and videos in it. The
+    # link in the job summary opens it in the browser.
+    - name: Inline the report
+      uses: jupyterlab/maintainer-tools/.github/actions/inline-playwright-report@v1
+      with:
+        path: ui-tests/playwright-report
+        output: ui-tests/whybook-playwright-report.html
+
+    - name: Upload the inlined report
+      id: upload-report
+      uses: actions/upload-artifact@v7
+      with:
+        path: ui-tests/whybook-playwright-report.html
+        archive: false
+
+    - name: Link the report in the job summary
+      env:
+        REPORT_URL: ${{ steps.upload-report.outputs.artifact-url }}
+      run: echo "**[Open the Playwright report](${REPORT_URL})**" >> "$GITHUB_STEP_SUMMARY"
 
   check_links:
     name: Check Links

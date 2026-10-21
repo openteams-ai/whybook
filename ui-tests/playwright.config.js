@@ -9,6 +9,10 @@ const port = process.env.EPI_UI_TEST_PORT ?? '8877';
 
 module.exports = {
   ...baseConfig,
+  // Playwright shares out single tests among the workers, and among the
+  // shards on CI. Shared out by file, all of view.spec.ts, the longest file
+  // by far, would run in one worker while the other workers wait.
+  fullyParallel: true,
   // One retry on CI: a test that passes on its retry shows as flaky in the
   // report, and does not fail the run.
   retries: process.env.CI ? 1 : 0,
