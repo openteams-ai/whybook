@@ -791,6 +791,12 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
   }, [model, model.view]);
   // The new cell of a template's answer, while its outputs come (1.93).
   const follow = useFollowAnswer(main);
+  // The count of the model's changes that this drawing shows. It is read
+  // after the cells, as the bench reads it, since a read of the cells can
+  // add to it. The effects of a drawing can run after the model changed
+  // again.
+  model.cells();
+  const drawn = model.revision;
   // The strip of an agent's run that the Running panel or the history of
   // runs opened the view on, once the view has drawn it: after the notebook
   // loads, in a view that opened for it. The strip of a run that the analyst
@@ -821,12 +827,19 @@ export function DocumentView(props: IDocumentProps): JSX.Element {
     const strip = main.current?.querySelector(
       `[data-strip-id="${CSS.escape(key)}"]`
     );
+    // The cell that the answer added, right under its strip (1.93).
+    const added = model.stripCellToShow;
+    const addedCell = added ? cellElement(main.current, added) : null;
+    // The effects of an earlier drawing can run after the model changed, as
+    // when Enter asks a question while the view draws. The strip, or the
+    // cell that comes into sight with it, is then not drawn yet: the next
+    // drawing shows it.
+    if (model.revision !== drawn && (!strip || (added && !addedCell))) {
+      return;
+    }
     if (strip) {
-      // The cell that the answer added, right under its strip (1.93).
-      const added = model.stripCellToShow;
       model.stripShown();
       const root = main.current;
-      const addedCell = added ? cellElement(root, added) : null;
       if (root && added && addedCell) {
         // It comes into sight, and its outputs as they come, unless the
         // analyst has scrolled, clicked or typed in the view since asking,
