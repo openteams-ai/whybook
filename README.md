@@ -68,15 +68,14 @@ Whybook also runs in Jupyter Notebook 7: on a notebook's page, the switch Notebo
 
 [Open the demo on Binder](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb): it runs in the browser and needs no install and no AI model.
 
-To run it on this machine, install Whybook as above, then clone this repository and open the notebook:
+To run it on this machine, install Whybook as above, then write the demo into a folder and open its notebook:
 
 ```bash
-git clone https://github.com/openteams-ai/whybook
-cd whybook/examples/pain_diary
-jupyter lab pain_diary_cohort.ipynb
+python -m whybook.demo pain_diary
+jupyter lab pain_diary/pain_diary_cohort.ipynb
 ```
 
-In JupyterLab, choose "Open Notebook in Whybook" in the command palette, then press Run all. The notebook imports its helpers and data from `prep.py` in the same folder, and `pain_diary_cohort_6h.ipynb` beside it is the same analysis after six more hours of work.
+In JupyterLab, choose "Open Notebook in Whybook" in the command palette, then press Run all. `python -m whybook.demo` writes three files of the installed release: the notebook, `prep.py` and `clinic.sqlite`. The notebook imports its helpers and data from `prep.py`, and `clinic.sqlite` holds the clinic's records as a SQLite file. In a folder that already has one of these files, the command writes none of them. The same analysis after six more hours of work is [`examples/pain_diary/pain_diary_cohort_6h.ipynb`](https://github.com/openteams-ai/whybook/blob/main/examples/pain_diary/pain_diary_cohort_6h.ipynb) on GitHub.
 
 The questions from templates work with no AI model. Questions marked needs AI, and questions that the analyst types, need a model connected in the AI models panel: OpenRouter after a sign-in, a Hugging Face access token, an API key of Anthropic, OpenAI, Google or Mistral AI, or a model server on this machine.
 
