@@ -11,6 +11,8 @@ import { githubIcon, helpIcon, microphoneIcon } from '../icons';
 import type { EpiModel, IEpiCell } from '../model/epimodel';
 import type { IChip } from '../model/decisions';
 import { decisionChips, decisionKey } from '../model/decisions';
+import type { IMarkedPart } from '../model/inlinecode';
+import { plainText, splitMarks } from '../model/inlinecode';
 import { namedBy, splitLabels } from '../model/labels';
 import type { IOrdered } from '../model/questionorder';
 import { needsAI } from '../model/questionorder';
@@ -217,6 +219,42 @@ export function Relevance(props: {
   );
 }
 
+/**
+ * A name of code or a value in the code font, and a name of data by its exact
+ * name in bold (design iterations 1.145 and 1.146).
+ */
+function MarkedPart(props: { part: IMarkedPart }): JSX.Element {
+  const { part } = props;
+  if (part.kind === 'code') {
+    return <code className="jp-Epi-inlinecode">{part.text}</code>;
+  }
+  if (part.kind === 'data') {
+    return <span className="jp-Epi-inlinedata">{part.text}</span>;
+  }
+  return <>{part.text}</>;
+}
+
+/**
+ * A question, or a title made from one, with each name of code and each value
+ * that it marks with backticks in the code font, and each name of data that
+ * it marks with two asterisks in bold: "What if the merge with **patients**
+ * were an outer join?", "What if `reml` were `False` in the `fit` of
+ * **model_data**?".
+ */
+export function CodeText(props: { text: string }): JSX.Element {
+  const parts = splitMarks(props.text);
+  if (parts.every(part => part.kind === 'text')) {
+    return <>{props.text}</>;
+  }
+  return (
+    <>
+      {parts.map((part, index) => (
+        <MarkedPart key={index} part={part} />
+      ))}
+    </>
+  );
+}
+
 export function ProgressBar(props: {
   value: number | null;
   label: string;
@@ -227,7 +265,7 @@ export function ProgressBar(props: {
     <span
       className={`jp-Epi-progress${props.wide ? ' jp-mod-wide' : ''}${percent === null ? ' jp-mod-indeterminate' : ''}`}
       role="progressbar"
-      aria-label={props.label}
+      aria-label={plainText(props.label)}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={percent ?? undefined}
@@ -308,6 +346,28 @@ export function LabelledText(props: {
   refs?: Record<string, string>;
 }): JSX.Element {
   const { model, text, refs } = props;
+  // A name of code or a value in backticks shows in the code font, and a
+  // name of data between two asterisks in bold, in a question or a title made
+  // from one; a label of a cell inside a name, as in `X[0]`, is part of it.
+  const pieces = splitMarks(text);
+  if (pieces.some(piece => piece.kind !== 'text')) {
+    return (
+      <>
+        {pieces.map((piece, index) =>
+          piece.kind === 'text' ? (
+            <LabelledText
+              key={index}
+              model={model}
+              text={piece.text}
+              refs={refs}
+            />
+          ) : (
+            <MarkedPart key={index} part={piece} />
+          )
+        )}
+      </>
+    );
+  }
   const shared = model.sharedLabels();
   const parts = splitLabels(text);
   if (!parts.some((part, index) => index % 2 === 1 && shared.has(part))) {
@@ -327,7 +387,7 @@ export function LabelledText(props: {
         );
         if (!cell) {
           const tip = `${part} is shown by ${named.length} cells: ${named
-            .map(item => `“${item.title}”`)
+            .map(item => `“${plainText(item.title)}”`)
             .join(', ')}`;
           return (
             <span
@@ -346,8 +406,8 @@ export function LabelledText(props: {
             key={index}
             type="button"
             className="jp-Epi-labelref"
-            title={`${part}: ${cell.title}`}
-            aria-label={`${part}: ${cell.title}`}
+            title={`${part}: ${plainText(cell.title)}`}
+            aria-label={`${part}: ${plainText(cell.title)}`}
             onMouseDown={event => event.stopPropagation()}
             onClick={event => {
               event.stopPropagation();
@@ -594,7 +654,9 @@ export function OptionRow(props: {
       <span className="jp-Epi-option-body">
         {option.origin === 'claude' || option.origin === 'local' ? (
           <span className="jp-Epi-option-text">
-            <span className="jp-Epi-ai">{option.text}</span>
+            <span className="jp-Epi-ai">
+              <CodeText text={option.text} />
+            </span>
             <AITag
               by={option.by}
               verb="Proposed"
@@ -606,7 +668,9 @@ export function OptionRow(props: {
             />
           </span>
         ) : (
-          <span className="jp-Epi-option-text">{option.text}</span>
+          <span className="jp-Epi-option-text">
+            <CodeText text={option.text} />
+          </span>
         )}
         <span className="jp-Epi-option-effect">
           {option.effect || option.reasons[0] || ''}

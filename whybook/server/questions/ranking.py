@@ -24,6 +24,7 @@ from tornado.httpclient import AsyncHTTPClient
 from .. import connection, decision_models, local_models, privacy, tiers
 from ..config import Whybook
 from ..decision_models import DecisionModel
+from .marks import plain
 from .models import Context, InvalidRequest, Selection
 
 MAX_QUESTIONS = 30
@@ -89,7 +90,8 @@ def request_from_json(body: Any) -> dict[str, Any]:
     for item in (body.get("questions") or [])[:MAX_QUESTIONS]:
         if not isinstance(item, dict) or not item.get("id") or not item.get("text"):
             raise InvalidRequest("every question needs an id and a text")
-        questions.append({"id": str(item["id"]), "text": str(item["text"])[:MAX_TEXT], "type": str(item.get("type") or "")})
+        # Without the marks of names and values: the models were measured on texts that had none.
+        questions.append({"id": str(item["id"]), "text": plain(str(item["text"]))[:MAX_TEXT], "type": str(item.get("type") or "")})
     if not questions:
         raise InvalidRequest("the body needs the questions")
     selection = Selection.from_json(body["selection"]) if body.get("selection") else None
@@ -103,8 +105,8 @@ def state_of(request: dict[str, Any]) -> dict[str, Any]:
     """What the models read of the notebook; with the data on this machine, the selection as names, kinds and sizes."""
     context: Context = request["context"]
     state: dict[str, Any] = {
-        "analysis_so_far": list(context.cells[-20:]),
-        "already_asked": [question.text for question in context.asked],
+        "analysis_so_far": [plain(title) for title in context.cells[-20:]],
+        "already_asked": [plain(question.text) for question in context.asked],
         "mode": context.mode,
     }
     selection: Selection | None = request["selection"]

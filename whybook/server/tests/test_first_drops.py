@@ -20,6 +20,7 @@ from whybook.server.questions import claude_questions
 from whybook.server.questions.cells import CellInfo, next_steps
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.models import Candidate, Context, Placement, Variable
+from whybook.server.questions.marks import plain
 
 FRAMES = {
     "homes": {"rows": 360, "columns": {"home_id": "id", "region": "cat", "floor_area_m2": "int", "heating": "cat"}},
@@ -94,7 +95,7 @@ async def test_the_model_reads_the_questions_offered_the_frames_and_the_formulas
 async def test_the_answer_leaves_out_a_repeat_and_names_only_columns_of_the_frames(jp_fetch, prompts):
     events = await post(jp_fetch, ask(offered=OFFERED))
     result = events[-1]
-    assert [question["text"] for question in result["questions"]] == [WARMER, "Are some homes missing days of readings?"]
+    assert [plain(question["text"]) for question in result["questions"]] == [WARMER, "Are some homes missing days of readings?"]
     assert result["outcomes"] == [{"column": "kwh_import", "frame": "meter_readings", "why": "the energy each home uses"}]
     assert result["units"] == [{"column": "home_id", "frame": "homes", "why": "each home is read daily"}]
 
@@ -102,12 +103,12 @@ async def test_the_answer_leaves_out_a_repeat_and_names_only_columns_of_the_fram
 async def test_the_question_that_names_what_the_templates_miss_comes_first(jp_fetch, prompts):
     events = await post(jp_fetch, ask(offered=OFFERED, cells_above=3))
     result = events[-1]
-    ids = {question["text"]: question["id"] for question in result["questions"]}
+    ids = {plain(question["text"]): question["id"] for question in result["questions"]}
     order = result["order"]
     assert sorted(order) == sorted([item["id"] for item in OFFERED] + list(ids.values()))
     # WARMER names kwh_import, mean_temp_c and region, which no template question names.
     assert order[0] == ids[WARMER]
-    first = next(question for question in result["questions"] if question["text"] == WARMER)
+    first = next(question for question in result["questions"] if plain(question["text"]) == WARMER)
     assert "names kwh_import, mean_temp_c, region, which no template question here names" in first["reasons"]
     # The rules scored the model's questions: the model's priority is only their prior.
     assert first["probability"] != 0.8
@@ -172,10 +173,10 @@ def test_the_outcome_is_the_first_that_the_frame_of_the_cell_holds():
     context = {"frames": frames, "outcome": "kwh_import", "outcomes": ["kwh_import", "pain"], "units": ["patient_id"], "used": [], "asked": []}
     options = drop_options(DropRequest.from_json({"source": sleep, "target": {"cell": cell}, "context": context}))["options"]
     association = next(option for option in options if option["type"] == "association")
-    assert association["text"] == "Is sleep associated with pain here?"
+    assert plain(association["text"]) == "Is sleep associated with pain here?"
     assert association["uses"] == {"outcome": "pain"}
     # A question that takes nothing from the notebook says so by having no uses.
-    assert all("uses" not in option for option in options if "pain" not in option["text"])
+    assert all("uses" not in option for option in options if "pain" not in plain(option["text"]))
 
 
 def test_two_columns_of_a_frame_without_the_unit_are_not_within_or_between_units():
@@ -185,7 +186,7 @@ def test_two_columns_of_a_frame_without_the_unit_are_not_within_or_between_units
     context = {**CONTEXT, "unit": "home_id", "units": ["home_id"]}
     options = drop_options(DropRequest.from_json({"source": rain, "target": {"item": temp}, "context": context}))["options"]
     [pair] = [option for option in options if option["type"] == "association"]
-    assert pair["text"] == "Are rain_mm and mean_temp_c associated?"
+    assert plain(pair["text"]) == "Are rain_mm and mean_temp_c associated?"
     assert "home_id" not in pair["code"] and "uses" not in pair
     weather = pd.DataFrame({"rain_mm": np.arange(6.0), "mean_temp_c": np.arange(6.0) ** 2})
     exec(pair["code"], {"weather": weather})  # noqa: S102  the view runs the same code in the kernel
@@ -197,7 +198,7 @@ def test_two_columns_of_a_frame_with_the_unit_are_within_or_between_units_and_sa
     context = {**CONTEXT, "unit": "home_id", "units": ["home_id"]}
     options = drop_options(DropRequest.from_json({"source": peak, "target": {"item": total}, "context": context}))["options"]
     [pair] = [option for option in options if option["type"] == "association"]
-    assert pair["text"] == "Are kwh_peak and kwh_import associated, within or between homes?"
+    assert plain(pair["text"]) == "Are kwh_peak and kwh_import associated, within or between homes?"
     assert pair["uses"] == {"unit": "home_id"}
 
 
@@ -205,7 +206,7 @@ def test_worth_asking_next_says_which_questions_take_the_outcome():
     cells = [CellInfo(id="c1", label="[1]", source="homes = load()", defs=("homes",))]
     context = Context.from_json({**CONTEXT, "outcome": "kwh_import", "outcomes": ["kwh_import"], "unit": "home_id", "units": ["home_id"]})
     steps = next_steps(cells, context, {}, set())
-    about = [step for step in steps if step.text == "How does floor_area_m2 relate to kwh_import?"]
+    about = [step for step in steps if plain(step.text) == "How does floor_area_m2 relate to kwh_import?"]
     assert about and about[0].uses == {"outcome": "kwh_import"}
     assert about[0].to_json()["uses"] == {"outcome": "kwh_import"}
 
@@ -228,7 +229,7 @@ def test_a_key_that_holds_two_kinds_of_values_joins_no_rows_and_the_note_says_wh
     """The dates of weather.csv are text, and those of the parquet file Python dates: a merge on date matched no row."""
     weather = {"name": "weather", "label": "weather", "kind": "dataframe", "rows": 1460, "n_columns": 4}
     result = drop_options(DropRequest.from_json({"source": weather, "target": {"item": READINGS}, "context": CONTEXT}))
-    texts = [option["text"] for option in result["options"]]
+    texts = [plain(option["text"]) for option in result["options"]]
     assert "How do weather and meter_readings line up?" in texts
     assert "Join weather and meter_readings" not in texts
     assert result["note"] == "date holds text in weather and Python objects in meter_readings: a join on it matches no row until both hold the same kind."

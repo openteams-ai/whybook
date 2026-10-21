@@ -17,6 +17,7 @@ import whybook
 from whybook import explore
 from whybook.server import codegen
 from whybook.server.questions.drops import DropRequest, drop_options
+from whybook.server.questions.marks import plain
 
 COVARIATES = ["qsmk", "sex", "race", "age", "education", "smokeintensity", "smokeyrs", "exercise", "active", "wt71", "wt82_71"]
 FORMULA = "wt82_71 ~ qsmk + C(sex) + C(race) + age + C(education) + smokeintensity + smokeyrs + C(exercise) + C(active) + wt71"
@@ -110,14 +111,14 @@ def options(source, cell, ctx):
 
 
 def question(found, text):
-    return next((option for option in found if option["text"] == text), None)
+    return next((option for option in found if plain(option["text"]) == text), None)
 
 
 def test_sex_dropped_on_the_adjusted_model_asks_whether_the_effect_of_qsmk_differs_by_sex(capsys):
     frame = nhefs()
     found = options(column(frame, "sex"), model_cell(ADJUSTED), context(frame))
     asked = question(found, "Does the effect of qsmk on wt82_71 differ by sex?")
-    assert asked is not None, [option["text"] for option in found]
+    assert asked is not None, [plain(option["text"]) for option in found]
     # First, above the association of sex with the outcome: it runs at once, as a branch.
     assert found[0] is asked
     assert asked["type"] == "causal"
@@ -147,14 +148,14 @@ def test_the_exposure_or_the_outcome_dropped_on_its_model_asks_no_such_question(
     frame = nhefs()
     for label in ("qsmk", "wt82_71"):
         found = options(column(frame, label), model_cell(ADJUSTED), context(frame))
-        assert not [option for option in found if option["text"].startswith("Does the effect")], label
+        assert not [option for option in found if plain(option["text"]).startswith("Does the effect")], label
 
 
 @pytest.mark.parametrize("kind", ["id", "text"])
 def test_a_unit_s_id_or_a_text_asks_no_such_question(kind):
     frame = nhefs()
     found = options({**column(frame, "seqn"), "kind": kind}, model_cell(ADJUSTED), context(frame))
-    assert not [option for option in found if option["text"].startswith("Does the effect")]
+    assert not [option for option in found if plain(option["text"]).startswith("Does the effect")]
 
 
 def test_a_number_dropped_on_the_model_gives_the_effect_at_its_quartiles(capsys):
@@ -239,7 +240,7 @@ def test_the_mediation_question_names_the_model_s_exposure():
     missing = pd.DataFrame({"seqn": frame["seqn"][:63], "wt82 missing": True})
     ctx = context(frame, missing=missing)
     ctx["frames"]["missing"]["columns"]["wt82 missing"] = "bool"
-    texts = [option["text"] for option in options(column(frame, "sex"), model_cell(ADJUSTED), ctx)]
+    texts = [plain(option["text"]) for option in options(column(frame, "sex"), model_cell(ADJUSTED), ctx)]
     assert "Could sex mediate the effect of qsmk?" in texts, texts
     assert not [text for text in texts if "wt82 missing" in text]
 
@@ -395,4 +396,4 @@ def test_il6_dropped_on_the_demo_s_mixed_model_is_joined_on_the_patient_first(de
 @pytest.mark.demo
 @pytest.mark.parametrize(("frame", "label"), [("weekly", "treatment_arm"), ("weekly", "week"), ("weekly", "pain_score"), ("patients", "patient_id")])
 def test_the_arm_time_the_outcome_and_the_unit_ask_no_such_question(demo, frame, label):
-    assert not [option for option in demo_options(demo, frame, label) if option["text"].startswith("Does the effect")]
+    assert not [option for option in demo_options(demo, frame, label) if plain(option["text"]).startswith("Does the effect")]

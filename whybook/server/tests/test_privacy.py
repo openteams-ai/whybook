@@ -11,6 +11,7 @@ from whybook.server.questions import templates
 from whybook.server.questions.cells import CellInfo
 from whybook.server.questions.models import Selection
 from whybook.server.solve import SolveRequest
+from whybook.server.questions.marks import plain
 
 # A frame and a column as the kernel lists them, with the values a listing carries.
 DIARY = {
@@ -177,7 +178,7 @@ def test_a_token_picked_in_contents_brings_no_question_about_its_value():
     assert selection.source.value is None and "value" not in selection.source.to_state()
     assert templates.generate(selection) == []
     days = Selection.from_json({"source": {"name": "MIN_DAYS", "kind": "constant", "value": "14"}, "target": {"name": "MIN_DAYS", "kind": "constant", "value": "14"}})
-    assert [candidate.text for candidate in templates.generate(days)] == ["Why is MIN_DAYS set to 14, and do the results depend on it?"]
+    assert [plain(candidate.text) for candidate in templates.generate(days)] == ["Why is MIN_DAYS set to 14, and do the results depend on it?"]
 
 
 def test_a_token_in_a_call_is_no_decision_to_ask_about():

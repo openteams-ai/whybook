@@ -6,6 +6,7 @@ import type {
   IUserValue
 } from '../tokens';
 import { editedByHand, holdsValue } from './handedit';
+import { plainText } from './inlinecode';
 
 /** Calls that join one frame to another, named by the frame they join. */
 const JOINS = new Set(['merge', 'join', 'merge_asof', 'merge_ordered']);
@@ -783,10 +784,12 @@ export function sameValue(a: string, b: string): boolean {
 /**
  * The value that the analyst chose with an option of the questions about a
  * decision, or null when the option chooses none. A value typed in the box
- * comes as `typed`; a value picked from the list is in the option's text,
- * "What if MIN_DAYS were 7?", or "What if how were "left" in the merge with
- * weather?" for one call of several; "Choose MIN_DAYS in [14]" keeps the
- * value the cell had. A sweep of several values is the template's.
+ * comes as `typed`. A value picked from the list comes as the option's
+ * `value`, since the words of a join do not give it, and an option that a
+ * notebook saved without one has the value in its text: "What if MIN_DAYS
+ * were 7?", or "What if how were "left" in the merge with weather?" for one
+ * call of several. "Choose MIN_DAYS in [14]" keeps the value the cell had. A
+ * sweep of several values is the template's.
  */
 export function chosenValue(
   decision: IDecision,
@@ -797,14 +800,22 @@ export function chosenValue(
     if (typed !== null) {
       return typed;
     }
+    // The value that the option tries, which the text of a join gives in
+    // words: "What if the merge with **patients** were an outer join?".
+    if (option.value !== undefined && option.value !== null) {
+      return option.value;
+    }
+    // The text without the marks of its names and values, as a notebook
+    // saved before them keeps it.
+    const text = plainText(option.text);
     const whatIf =
       /^What if (.+?) were (.+?)(?: in (?:both|all \d+|\d+ of the|the) [^?]*)?\?$/s.exec(
-        option.text
+        text
       );
     if (whatIf && whatIf[1] === decision.name) {
       return whatIf[2];
     }
-    if (option.text.startsWith(`Choose ${decision.name} in `)) {
+    if (text.startsWith(`Choose ${decision.name} in `)) {
       return decision.value;
     }
     return null;

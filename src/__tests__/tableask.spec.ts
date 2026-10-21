@@ -68,9 +68,9 @@ describe('rowOptions', () => {
   it('offers what sets the rows apart, a test on the column that differs most, and why', () => {
     const options = rowOptions(input);
     expect(options.map(option => option.text)).toEqual([
-      'What sets rows 0 and 1 apart from the other rows of df?',
-      'Is pain different in rows 0 and 1 by more than chance?',
-      'Why do rows 0 and 1 differ from the other rows of df?'
+      'What sets rows 0 and 1 apart from the other rows of **df**?',
+      'Is **pain** different in rows 0 and 1 by more than chance?',
+      'Why do rows 0 and 1 differ from the other rows of **df**?'
     ]);
     expect(options[0].code).toContain('_rows = df.index.isin([0, 1])');
     expect(options[0].placement).toEqual({
@@ -109,7 +109,7 @@ describe('rowOptions', () => {
       columnCode: label => (label === '0' ? '0' : `"${label}"`)
     })[1];
     expect(test.text).toBe(
-      'Is 0 different in rows 0 and 1 by more than chance?'
+      'Is **0** different in rows 0 and 1 by more than chance?'
     );
     expect(test.code).toContain('\n_a = X.loc[_rows, 0].dropna()\n');
   });
@@ -139,10 +139,10 @@ describe('rowOptions', () => {
       missingValues: true
     });
     expect(options.map(option => option.text)).toEqual([
-      'What sets rows 0 and 1 apart from the other rows of df?',
+      'What sets rows 0 and 1 apart from the other rows of **df**?',
       'Are values missing more often in rows 0 and 1?',
-      'Is pain different in rows 0 and 1 by more than chance?',
-      'Why do rows 0 and 1 differ from the other rows of df?'
+      'Is **pain** different in rows 0 and 1 by more than chance?',
+      'Why do rows 0 and 1 differ from the other rows of **df**?'
     ]);
     for (const option of options.slice(0, 3)) {
       expect(option.code).toContain('import polars as pl');

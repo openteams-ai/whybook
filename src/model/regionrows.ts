@@ -6,6 +6,7 @@
  */
 import type { IOption, IPlacement } from '../tokens';
 import { pyComment, pyString } from './pycode';
+import { inlineData } from './inlinecode';
 
 /** A column of the frame, as the kernel's listing gives it. */
 export interface IListedColumn {
@@ -90,7 +91,7 @@ export function rowsQuestions(options: {
   if (group && y && group !== y) {
     questions.push({
       id: `region:groups:${frame}:${group}:${key}`,
-      text: `How do the groups of ${group} compare here?`,
+      text: `How do the groups of ${inlineData(group)} compare here?`,
       type: 'association',
       origin: 'template',
       probability: 0.65,

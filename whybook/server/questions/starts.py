@@ -23,6 +23,7 @@ from typing import Callable, Sequence
 
 from .. import codegen
 from .cells import CellInfo, unit_noun
+from .marks import as_data
 from .models import Candidate, Context, Placement
 
 # A notebook with fewer code cells that hold code than this has just begun.
@@ -62,15 +63,18 @@ def plural(noun: str) -> str:
     return f"{noun}s"
 
 
-def rows_of(name: str) -> str:
+def rows_of(name: str, marked: bool = False) -> str:
     """What a question counts of a frame: "visits", or "rows of model_data" for a name that is not a plural noun.
+
+    ``marked`` marks such a name as data, for the text of a question: "rows
+    of **model_data**". A plural noun stays a word of the sentence.
 
     The name is a plural noun when its last word ends in s, and not as
     status, analysis or diabetes end (SINGULAR_ENDINGS). "How many
     model_data per patient?" made the analyst read model_data as its rows.
     """
     word = name.lower().rstrip("_.0123456789")
-    return name if word.endswith("s") and not word.endswith(SINGULAR_ENDINGS) else f"rows of {name}"
+    return name if word.endswith("s") and not word.endswith(SINGULAR_ENDINGS) else f"rows of {as_data(name) if marked else name}"
 
 
 def _names(columns: Sequence[str], limit: int = 3) -> str:
@@ -162,7 +166,7 @@ def start_options(
         return make(text, "descriptive", prior, place, "\n".join(lines), f"{effect} · {UNLESS_KEPT}")
 
     options = []
-    text = f"What does one row of {label} hold?"
+    text = f"What does one row of {as_data(label)} hold?"
     if unit is not None:
         # The unit's id is repeated in a long file: the rows of each unit say what a row is.
         body = f"$answer = whybook.rows_per_unit($data, {codegen.literal(unit)})"
@@ -173,14 +177,14 @@ def start_options(
             "$answer = $data.head(3).T"
         )
         options.append(question(text, "one_row", 0.68, "No column is named like an id: the first rows, one column each", body))
-    text = f"How many rows has {label}, and how many values are missing?"
+    text = f"How many rows has {as_data(label)}, and how many values are missing?"
     body = (
         '$answer = $data.isna().sum().rename("values missing").to_frame()\n'
         'print(format(len($data), ","), "rows and", $data.shape[1], "columns;", format(int($answer["values missing"].sum()), ","), "values missing.")'
     )
     options.append(question(text, "missing", 0.64, "The rows, and the values missing in each column", body))
     if shape is not None and shape.levels:
-        text = f"How many rows has each level of {_names(shape.levels)}?"
+        text = f"How many rows has each level of {_names([as_data(level) for level in shape.levels])}?"
         # A table, as the missing values are one: a row for each of the 12 most
         # common levels of each column. pandas shows a table of more than 60
         # rows as its first and last five, and NHEFS has 96 such rows, so the
@@ -195,7 +199,7 @@ def start_options(
         )
         options.append(question(text, "levels", 0.6, "The rows of each level of the columns with few levels", body, shown=False))
     if shape is not None and shape.numbers:
-        text = f"What is the range of each number in {label}?"
+        text = f"What is the range of each number in {as_data(label)}?"
         body = f'$answer = $data[{codegen.literals(shape.numbers)}].agg(["min", "max"]).T'
         options.append(question(text, "range", 0.58, "The lowest and the highest value of each number", body))
     return options
@@ -308,14 +312,14 @@ def combined_options(link: Link, load: list[str], make: Make, place: Placement, 
     def code(text: str, lines: list[str], imports: bool = False) -> str:
         return "\n".join([codegen.comment(text), *(["import whybook", ""] if imports else []), *head, *lines])
 
-    text = f"How many {counted} per {noun}?"
+    text = f"How many {rows_of(many, marked=True)} per {noun}?"
     lines = [f"whybook.rows_per_unit({many}, {quoted})"]
     options.append(make(text, "descriptive", 0.8, place, code(text, lines, imports=True), f"The rows of {many} for each {noun}, and the {nouns} with the fewest"))
 
     # The counts take the keys of the one frame, so that a key that the other frame lacks counts 0.
     counts, answer = (codegen.temporary(many, noun, word) for word in ("counts", "outliers"))
     first, third, low, high = (codegen.temporary(many, noun, word) for word in ("q1", "q3", "low", "high"))
-    text = f"Is any {noun} an outlier for the number of {counted}?"
+    text = f"Is any {noun} an outlier for the number of {rows_of(many, marked=True)}?"
     lines = [
         f"{counts} = {many}.groupby({quoted}).size().reindex({one}[{quoted}].drop_duplicates(), fill_value=0)",
         f"{first}, {third} = {counts}.quantile([0.25, 0.75])",
@@ -327,7 +331,7 @@ def combined_options(link: Link, load: list[str], make: Make, place: Placement, 
     ]
     options.append(make(text, "quality", 0.76, place, code(text, lines), f"The {counted} for each {noun}, and those beyond 1.5 times the interquartile range"))
 
-    text = f"Which {nouns} have no {counted}?"
+    text = f"Which {nouns} have no {rows_of(many, marked=True)}?"
     answer = codegen.temporary(one, "without", many)
     lines = [
         f"{answer} = {one}[~{one}[{quoted}].isin({many}[{quoted}])]",
@@ -339,7 +343,7 @@ def combined_options(link: Link, load: list[str], make: Make, place: Placement, 
     # Only the one frame's columns join: the rows of the other keep their own.
     probe = next((column for column in link.one_columns if column != key and column not in link.many_columns), None)
     if probe is not None and (link.dropped_many or not joined_before):
-        text = f"Add the columns of {one} to {many}"
+        text = f"Add the columns of {as_data(one)} to {as_data(many)}"
         joined = codegen.identifier(f"{many}_{one}")
         lines = [
             f'{joined} = {many}.merge({one}, on={quoted}, how="left", validate="many_to_one")',

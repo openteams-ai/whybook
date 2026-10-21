@@ -15,6 +15,8 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from .questions.marks import plain
+
 KEY_PATTERN = re.compile(r"(^|_)(id|week|day|date|visit|month|time)$")
 
 
@@ -102,8 +104,12 @@ def formula(outcome: str, terms: Iterable[str]) -> str:
 
 
 def comment(text: str) -> str:
-    """A comment of generated code, on one line: a line break in a name does not end it."""
-    return "# " + "".join(char if char.isprintable() else " " for char in str(text))
+    """A comment of generated code, on one line: a line break in a name does not end it.
+
+    A question's text goes in without the marks of its names and values
+    (questions/marks.py): "# What if reml were False in the fit of model_data?".
+    """
+    return "# " + "".join(char if char.isprintable() else " " for char in plain(str(text)))
 
 
 def _reads_as(text: str, value: str) -> bool:

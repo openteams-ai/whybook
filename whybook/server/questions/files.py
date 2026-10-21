@@ -17,6 +17,7 @@ from typing import Any
 from .. import codegen
 from . import reshape, starts
 from .cells import CellInfo, question_id
+from .marks import as_data
 from .models import Candidate, Context, InvalidRequest, Placement
 from .rankers import score_candidate
 
@@ -240,15 +241,15 @@ def file_options(drop: FileDrop, root: str | None) -> dict[str, Any]:
             home = Placement("new", None, "the first cell", "The notebook has no cells yet", None)
         preview = Placement("preview", None, "a preview in the sidebar", "Nothing is written to the notebook unless you keep it", None)
         load = "\n".join(["import pandas as pd", "", *loaded, f"{name}.head()"])
-        options.append(_option(f"Load {drop.label} as {name}", "descriptive", 0.7, home, load, f"A data frame from the file, and its first rows{with_dates}", drop.path))
+        options.append(_option(f"Load {as_data(drop.label)} as {as_data(name)}", "descriptive", 0.7, home, load, f"A data frame from the file, and its first rows{with_dates}", drop.path))
         profile = "\n".join(["import whybook", "import pandas as pd", "", f"whybook.profile({read})"])
-        options.append(_option(f"Profile {drop.label} before loading it", "quality", 0.6, preview, profile, f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop.path))
+        options.append(_option(f"Profile {as_data(drop.label)} before loading it", "quality", 0.6, preview, profile, f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop.path))
         columns = header(root, drop.path, suffix)
         # A diary with pain_1 to pain_7 loads as one row per day too (design iteration 1.85).
         long = reshape.plan(columns, context.unit) if columns else None
         if long:
             long_name = reshape.name_for(name, taken | {name})
-            text = f"Load {drop.label} as one row per {long.step}"
+            text = f"Load {as_data(drop.label)} as one row per {as_data(long.step)}"
             code = "\n".join([codegen.comment(f"{text}: {reshape.text(name, long).split(': ', 1)[1]}"), "import pandas as pd", "", *loaded, *reshape.lines(name, long_name, long)])
             options.append(_option(text, "descriptive", 0.72, home, code, f"{long_name}: {reshape.effect(long)[0].lower()}{reshape.effect(long)[1:]}", drop.path))
         # The frames that the cell loads or reads (design iteration 1.87): a cell that loads
@@ -280,7 +281,7 @@ def file_options(drop: FileDrop, root: str | None) -> dict[str, Any]:
                 lines.append(f"{joined}.head()")
                 options.append(
                     _option(
-                        f"Join {drop.label} to {frame} on {', '.join(keys)}",
+                        f"Join {as_data(drop.label)} to {as_data(frame)} on {', '.join(as_data(key) for key in keys)}",
                         "descriptive",
                         0.65,
                         Placement("new", cell.id, f"new cell after {cell.label}", "The cell uses the frame it joins to", None),
@@ -304,7 +305,7 @@ def file_options(drop: FileDrop, root: str | None) -> dict[str, Any]:
             shape = starts.shape_of(sample) if sample is not None else None
             options += starts.start_options(drop.label, name, lambda variable: ["import pandas as pd", "", *loader(variable)], starts.unit_of(columns or [], context.unit), shape, make, preview)
         else:
-            options.append(_option(f"What could {drop.label} add to this analysis?", "descriptive", 0.45, home, None, "AI reads the file's columns and the notebook", drop.path))
+            options.append(_option(f"What could {as_data(drop.label)} add to this analysis?", "descriptive", 0.45, home, None, "AI reads the file's columns and the notebook", drop.path))
     for option in options:
         score_candidate(option, [], context)
     options.sort(key=lambda option: option.probability or 0.0, reverse=True)

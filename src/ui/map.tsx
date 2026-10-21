@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { runStatus } from '../model/agent';
 import type { EpiModel, IEpiCell, IMapCamera, IStrip } from '../model/epimodel';
+import { plainText } from '../model/inlinecode';
 import { TEXT_LINES } from '../model/logs';
 import { firstLine, noteBody, outputKind, outputsOf } from '../model/notebook';
 import type { IOutputTile, PlotGlyph } from '../model/outputs';
@@ -10,6 +11,7 @@ import { outputTile } from '../model/outputs';
 import { stripAction } from './bench';
 import {
   CellLabel,
+  CodeText,
   ProgressBar,
   anchorOf,
   carriesItem,
@@ -1198,8 +1200,8 @@ function MapCard(props: {
     >
       <span className="jp-Epi-map-cell-head">
         <CellLabel cell={cell} />
-        <span className="jp-Epi-map-cell-title" title={cell.title}>
-          {cell.title}
+        <span className="jp-Epi-map-cell-title" title={plainText(cell.title)}>
+          <CodeText text={cell.title} />
         </span>
         <button
           className="jp-Epi-map-show"

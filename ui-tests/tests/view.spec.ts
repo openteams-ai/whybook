@@ -2767,11 +2767,11 @@ test('shows one chip for two merges that leave how, and tries a value in one mer
   ]);
   const texts = box.locator('.jp-Epi-option .jp-Epi-option-text');
   await expect(texts.first()).toHaveText(
-    'What if how were "left" in both merges?'
+    'What if both merges were left joins?'
   );
   await where.filter({ hasText: 'labs' }).click();
   await expect(texts.first()).toHaveText(
-    'What if how were "left" in the merge with labs?'
+    'What if the merge with labs were a left join?'
   );
   await texts.first().click();
 
@@ -2780,7 +2780,7 @@ test('shows one chip for two merges that leave how, and tries a value in one mer
   // both merges keeps 3.
   const branch = page.locator('.jp-Epi-cell.jp-mod-branch', {
     has: page.locator('.jp-Epi-title', {
-      hasText: 'What if how were "left" in the merge with labs?'
+      hasText: 'What if the merge with labs were a left join?'
     })
   });
   await expect(branch.locator('.jp-Epi-textoutput')).toHaveText('2', {
@@ -2791,7 +2791,7 @@ test('shows one chip for two merges that leave how, and tries a value in one mer
       .cells;
     for (let i = 0; i < cells.length; i++) {
       const source: string = cells.get(i).sharedModel.getSource();
-      if (source.includes('in the merge with labs')) {
+      if (source.includes('the merge with labs were a left join')) {
         return source;
       }
     }
@@ -3114,8 +3114,15 @@ test('orders the questions offered with the model chosen for question order', as
   );
   const steps = ranked.find(body => !body.selection);
   expect(steps.model).toBe('gemma-4-e2b');
+  // The list shows a name or a value in the code font, and a name of data in
+  // bold, without their marks.
+  const plain = (text: string) =>
+    text.replace(
+      /`([^`\n]+)`|\*\*(\S(?:[^*`\n]*\S)?)\*\*/g,
+      (_, code, data) => code ?? data
+    );
   await expect(next.locator('.jp-Epi-next-text').first()).toHaveText(
-    steps.questions[steps.questions.length - 1].text
+    plain(steps.questions[steps.questions.length - 1].text)
   );
 
   // A drop of the frame on itself shows the rules' order at once, and the
@@ -3133,9 +3140,9 @@ test('orders the questions offered with the model chosen for question order', as
     model: 'gemma-4-e2b',
     selection: { source: { name: 'df' } }
   });
-  expect(drop.questions.slice(0, rules.length).map((q: any) => q.text)).toEqual(
-    rules
-  );
+  expect(
+    drop.questions.slice(0, rules.length).map((q: any) => plain(q.text))
+  ).toEqual(rules);
   waiting.shift()!();
   await expect(note).toHaveText(
     'Gemma 4 E2B ordered these questions. Show its order'
@@ -3143,7 +3150,7 @@ test('orders the questions offered with the model chosen for question order', as
   await expect(texts).toHaveText(rules);
   await note.locator('button', { hasText: 'Show its order' }).click();
   const reversed = drop.questions
-    .map((q: any) => q.text)
+    .map((q: any) => plain(q.text))
     .reverse()
     .slice(0, rules.length);
   await expect(texts).toHaveText(reversed);

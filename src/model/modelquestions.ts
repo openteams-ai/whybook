@@ -1,4 +1,5 @@
 import type { IAgentRunRecord, IAskedQuestion } from '../tokens';
+import { plainText } from './inlinecode';
 
 /** What an agent's run found, as the model that writes questions reads it. */
 export interface IAgentFinding {
@@ -55,5 +56,5 @@ export function notAsked<T extends Pick<IAskedQuestion, 'id' | 'text'>>(
 }
 
 function words(text: string): string {
-  return text.trim().toLowerCase();
+  return plainText(text).trim().toLowerCase();
 }

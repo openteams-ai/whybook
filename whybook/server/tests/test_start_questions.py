@@ -18,6 +18,7 @@ from whybook import plots
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.files import FileDrop, file_options
 from whybook.server.questions.tables import TableDrop, table_options
+from whybook.server.questions.marks import plain
 
 # Five sites; the visits come from four of them, and site E has none.
 SITES = pd.DataFrame({"site": list("ABCDE"), "region": ["north", "south", "east", "west", "far"], "clinicians": [12, 8, 20, 15, 3]})
@@ -63,11 +64,11 @@ def table_options_of(folder, table, cells, context, target=None):
 
 
 def texts(options):
-    return [option["text"] for option in options]
+    return [plain(option["text"]) for option in options]
 
 
 def option_of(options, start):
-    return next(option for option in options if option["text"].startswith(start))
+    return next(option for option in options if plain(option["text"]).startswith(start))
 
 
 @pytest.fixture(autouse=True)
@@ -113,7 +114,7 @@ def test_the_first_drop_on_an_empty_notebook_gets_questions_to_start_with_and_no
     for text in START:
         assert text.format(label=label) in found
     for text in START:
-        option = next(option for option in options if option["text"] == text.format(label=label))
+        option = next(option for option in options if plain(option["text"]) == text.format(label=label))
         # Each runs without a model, and shows its answer in a preview that nothing keeps.
         assert option["code"] and option["placement"]["kind"] == "preview"
         assert "needs AI" not in option["reasons"]
@@ -150,7 +151,7 @@ def test_the_questions_to_start_with_run_and_leave_no_name_behind(folder, kind):
     assert list(answer.index) == ["crp_mg_l"]
     assert (answer.loc["crp_mg_l", "min"], answer.loc["crp_mg_l", "max"]) == (1.5, pytest.approx(5.6))
     assert public(namespace) == []
-    assert label in options_range["text"]
+    assert label in plain(options_range["text"])
 
 
 def test_a_column_named_like_an_id_gives_the_unit_and_without_one_the_first_rows_show_what_a_row_holds(folder):

@@ -18,9 +18,11 @@ import type {
 } from '../model/checkup';
 import { CHECKUP_GROUPS, checkupOf, checkupQuestions } from '../model/checkup';
 import type { EpiModel } from '../model/epimodel';
+import { plainText } from '../model/inlinecode';
 import type { IOption } from '../tokens';
 import {
   AITag,
+  CodeText,
   ProgressBar,
   aiOffReason,
   flash,
@@ -191,7 +193,9 @@ function QuestionCard(props: {
   const { off } = props;
   return (
     <div className="jp-Epi-next jp-Epi-checkup-question">
-      <div className="jp-Epi-next-text">{props.text}</div>
+      <div className="jp-Epi-next-text">
+        <CodeText text={props.text} />
+      </div>
       <div className="jp-Epi-next-foot">
         <span className="jp-Epi-next-why">
           {props.how}
@@ -317,7 +321,9 @@ function ReviewRow(props: { model: EpiModel; option: IOption }): JSX.Element {
   return (
     <li className="jp-Epi-checkup-asked">
       <span className="jp-Epi-checkup-asked-text">
-        <span className="jp-Epi-ai">{option.text}</span>{' '}
+        <span className="jp-Epi-ai">
+          <CodeText text={option.text} />
+        </span>{' '}
         <AITag by={option.by} verb="Asked" />
       </span>
       <span className="jp-Epi-next-foot">
@@ -331,7 +337,7 @@ function ReviewRow(props: { model: EpiModel; option: IOption }): JSX.Element {
           className="jp-Epi-button"
           disabled={!!off}
           title={off ? `Needs an AI model: ${off}` : undefined}
-          aria-label={`Ask: ${option.text}`}
+          aria-label={`Ask: ${plainText(option.text)}`}
           onClick={() => void model.apply(option)}
         >
           Ask

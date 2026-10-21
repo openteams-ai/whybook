@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 from typing import Any, Sequence
 
+from .marks import plain
 from .models import Candidate, Context, Selection
 
 def _logit(p: float) -> float:
@@ -196,7 +197,7 @@ def model_state(selection: Selection, context: Context) -> dict[str, Any]:
         selected.append(selection.target.to_state())
     return {
         "selected": selected,
-        "analysis_so_far": list(context.cells[-20:]),
-        "already_asked": [question.text for question in context.asked],
+        "analysis_so_far": [plain(title) for title in context.cells[-20:]],
+        "already_asked": [plain(question.text) for question in context.asked],
         "mode": context.mode,
     }

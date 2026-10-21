@@ -21,6 +21,7 @@ from whybook.server.questions import templates
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.files import FileDrop, file_options
 from whybook.server.questions.models import Selection, Variable
+from whybook.server.questions.marks import plain
 
 FRAMES = {
     "visits": {"rows": 60, "columns": {"patient_id": "id", "week": "int", "crp_mg_l": "num", "analgesic_dose_mg": "int", "site": "cat"}},
@@ -70,11 +71,11 @@ def options(source, target, context=CONTEXT):
 
 
 def texts(source, target, context=CONTEXT):
-    return [option["text"] for option in options(source, target, context)]
+    return [plain(option["text"]) for option in options(source, target, context)]
 
 
 def option(source, target, start, context=CONTEXT):
-    return next(o for o in options(source, target, context) if o["text"].startswith(start))
+    return next(o for o in options(source, target, context) if plain(o["text"]).startswith(start))
 
 
 @pytest.fixture
@@ -149,7 +150,7 @@ def test_a_number_that_measures_something_else_is_no_time_index(name):
 
 def test_a_column_of_dates_and_a_number_get_the_profile_by_hour_and_weekday(shown, capsys):
     profile = option(TIMESTAMP, KWH, "How does kwh vary")
-    assert profile["text"] == "How does kwh vary by hour of day and by weekday?"
+    assert plain(profile["text"]) == "How does kwh vary by hour of day and by weekday?"
     assert 'whybook.time_profile(half_hourly, "timestamp", "kwh")' in profile["code"]
     run(profile["code"])
     drawn = payloads(shown)
@@ -164,7 +165,7 @@ def test_a_column_named_date_gets_the_profile_by_weekday_and_month(shown, capsys
     date = {"name": "readings['date']", "label": "date", "kind": "datetime", "parent": "readings", "tag": "date", "rows": 730}
     use = {"name": "readings['kwh_import']", "label": "kwh_import", "kind": "numeric", "parent": "readings", "tag": "num", "rows": 730}
     profile = option(date, use, "How does kwh_import vary", {**CONTEXT, "frames": frames, "unit": "home_id"})
-    assert profile["text"] == "How does kwh_import vary by weekday and by month?"
+    assert plain(profile["text"]) == "How does kwh_import vary by weekday and by month?"
     days = pd.date_range("2025-01-01", periods=365, freq="D")
     readings = pd.DataFrame({"home_id": np.repeat(["H1", "H2"], 365), "date": np.tile(days.date, 2), "kwh_import": np.tile(20 + 10 * np.cos(2 * np.pi * (days.dayofyear - 15) / 365), 2)})
     run(profile["code"], readings=readings)
@@ -177,7 +178,7 @@ def test_a_column_named_date_gets_the_profile_by_weekday_and_month(shown, capsys
 
 def test_a_time_index_and_a_number_draw_a_line_per_unit_and_the_mean(shown):
     trajectory = option(WEEK, DOSE, "How does analgesic_dose_mg change over week")
-    assert trajectory["text"] == "How does analgesic_dose_mg change over week, per patient?"
+    assert plain(trajectory["text"]) == "How does analgesic_dose_mg change over week, per patient?"
     assert 'whybook.ribbon(visits, x="week", y="analgesic_dose_mg", units="patient_id")' in trajectory["code"]
     assert trajectory["uses"] == {"unit": "patient_id"}
     run(trajectory["code"])
@@ -200,8 +201,8 @@ def test_a_time_index_dropped_on_a_cell_plots_the_outcome_over_time():
     cell = {"id": "c2", "label": "[2]", "source": "fit = smf.mixedlm('analgesic_dose_mg ~ week', visits, groups='patient_id').fit()", "defs": ["fit"], "uses": ["smf", "visits"]}
     request = {"source": WEEK, "target": {"cell": cell}, "cells": [cell], "context": {**CONTEXT, "outcome": "analgesic_dose_mg"}}
     found = drop_options(DropRequest.from_json(request))["options"]
-    [plot] = [o for o in found if o["text"].startswith("Plot")]
-    assert plot["text"] == "Plot analgesic_dose_mg over week, a line per patient"
+    [plot] = [o for o in found if plain(o["text"]).startswith("Plot")]
+    assert plain(plot["text"]) == "Plot analgesic_dose_mg over week, a line per patient"
     assert 'whybook.ribbon(visits, x="week", y="analgesic_dose_mg", units="patient_id")' in plot["code"]
 
 
@@ -231,7 +232,7 @@ def test_the_quick_look_at_dates_gives_the_first_the_last_and_the_longest_gap():
 
 def test_the_quick_look_at_an_id_counts_the_rows_of_each_unit_the_fewest_first(shown, capsys):
     summary = option(PATIENT, PATIENT, "Summarise")
-    assert summary["text"] == "Summarise patient_id: rows per patient"
+    assert plain(summary["text"]) == "Summarise patient_id: rows per patient"
     assert summary["code"] == 'import whybook\n\nwhybook.rows_per_unit(visits, "patient_id")'
     frame = visits().drop(index=[0, 1, 2, 13])
     table = run(summary["code"].replace("whybook.rows", "result = whybook.rows"), visits=frame)["result"]
@@ -248,7 +249,7 @@ def test_the_quick_look_at_an_id_counts_the_rows_of_each_unit_the_fewest_first(s
 
 def test_a_number_and_the_unit_get_the_share_between_units(capsys):
     icc = option(PATIENT, DOSE, "How much of the variation")
-    assert icc["text"] == "How much of the variation in analgesic_dose_mg lies between patients?"
+    assert plain(icc["text"]) == "How much of the variation in analgesic_dose_mg lies between patients?"
     table = run(icc["code"].replace("whybook.icc", "result = whybook.icc"))["result"]
     line = capsys.readouterr().out
     assert " of the variance of analgesic_dose_mg lies between the 10 patients\n(ICC " in line
@@ -260,7 +261,7 @@ def test_a_units_id_dropped_on_a_cell_is_no_covariate_but_the_share_between_unit
     cell = {"id": "c2", "label": "[2]", "source": "fit = smf.ols('analgesic_dose_mg ~ week', visits).fit()", "defs": ["fit"], "uses": ["smf", "visits"], "formulas": ["analgesic_dose_mg ~ week"]}
     request = {"source": PATIENT, "target": {"cell": cell}, "cells": [cell], "context": {**CONTEXT, "outcome": "analgesic_dose_mg"}}
     [share] = drop_options(DropRequest.from_json(request))["options"]
-    assert share["text"] == "How much of the variation in analgesic_dose_mg lies between patients?"
+    assert plain(share["text"]) == "How much of the variation in analgesic_dose_mg lies between patients?"
     run(share["code"])
     assert "lies between the 10 patients" in capsys.readouterr().out
 
@@ -329,7 +330,7 @@ def test_the_meaning_of_within_and_between_shows_in_full():
 def test_a_csv_file_loads_its_iso_dates_as_dates(tmp_path, monkeypatch):
     (tmp_path / "homes.csv").write_text("home_id,tariff,tou_start,starts\nH1,flat,,00:00\nH2,time of use,2025-03-14,07:00\nH3,time of use,2025-04-02,16:00\n")
     drop = FileDrop.from_json({"source": {"path": "homes.csv", "kernel_path": "homes.csv", "label": "homes.csv"}, "context": {}})
-    load = next(o for o in file_options(drop, str(tmp_path))["options"] if o["text"].startswith("Load"))
+    load = next(o for o in file_options(drop, str(tmp_path))["options"] if plain(o["text"]).startswith("Load"))
     assert 'homes = pd.read_csv("homes.csv", parse_dates=["tou_start"])' in load["code"]
     assert load["effect"].endswith(", with tou_start as dates")
     monkeypatch.chdir(tmp_path)
@@ -343,7 +344,7 @@ def test_a_parquet_file_loads_its_dates_as_dates(tmp_path, monkeypatch):
 
     pd.DataFrame({"home_id": ["H1", "H2"], "date": [datetime.date(2025, 1, 1), datetime.date(2025, 1, 2)], "kwh_import": [20.1, 19.9]}).to_parquet(tmp_path / "readings.parquet")
     drop = FileDrop.from_json({"source": {"path": "readings.parquet", "kernel_path": "readings.parquet", "label": "readings.parquet"}, "context": {}})
-    load = next(o for o in file_options(drop, str(tmp_path))["options"] if o["text"].startswith("Load"))
+    load = next(o for o in file_options(drop, str(tmp_path))["options"] if plain(o["text"]).startswith("Load"))
     assert 'readings["date"] = pd.to_datetime(readings["date"])' in load["code"]
     monkeypatch.chdir(tmp_path)
     assert pd.api.types.is_datetime64_any_dtype(run(load["code"])["readings"]["date"])
@@ -399,6 +400,6 @@ def test_a_number_gets_one_question_about_its_shape():
 
 def test_a_time_index_and_a_number_ask_how_many_rows_each_unit_has(shown, capsys):
     counts = option(WEEK, DOSE, "How many rows")
-    assert counts["text"] == "How many rows does each patient have in visits?"
+    assert plain(counts["text"]) == "How many rows does each patient have in visits?"
     run(counts["code"])
     assert capsys.readouterr().out == "10 patients in 60 rows.\n"

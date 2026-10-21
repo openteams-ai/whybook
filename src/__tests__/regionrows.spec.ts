@@ -52,7 +52,7 @@ describe('the rows of a range on a plot', () => {
       ].join('\n')
     );
     expect(groups.text).toBe(
-      'How do the groups of treatment_arm compare here?'
+      'How do the groups of **treatment_arm** compare here?'
     );
     expect(groups.code).toContain(
       `whybook.compare_levels(diary_patients[${mask}], "pain", "treatment_arm", unit="patient_id")`

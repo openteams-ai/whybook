@@ -20,6 +20,7 @@ import { pythonKey } from './languages';
 import { notebookMeta, outputKind, outputsOf } from './notebook';
 import { pyComment, pyString } from './pycode';
 import { fingerprint, htmlOf, tableInfo } from './tables';
+import { inlineData } from './inlinecode';
 
 /** Where a table is: the cell, and the output of the cell that holds it. */
 export interface ITablePlace {
@@ -636,7 +637,7 @@ export function rowOptions(input: {
     if (!polars || input.numbers !== false) {
       options.push({
         id: `${key}:apart`,
-        text: `What sets ${words} apart from the other rows of ${frame}?`,
+        text: `What sets ${words} apart from the other rows of ${inlineData(frame)}?`,
         type: 'descriptive',
         origin: 'template',
         probability: 0.7,
@@ -691,7 +692,7 @@ export function rowOptions(input: {
   }
   options.push({
     id: `${key}:why`,
-    text: `Why do ${words} differ from the other rows of ${frame}?`,
+    text: `Why do ${words} differ from the other rows of ${inlineData(frame)}?`,
     type: 'causal',
     origin: 'template',
     probability: 0.45,
@@ -841,7 +842,7 @@ function rowsTest(
   const noun = unit ? unit.replace(/_id$/, '') : 'row';
   const counted = unit ? `${noun}s` : 'rows';
   const effect = `Welch t-test on ${unit ? `per-${noun} means` : 'rows'}`;
-  const text = `Is ${column} different in ${words} by more than chance?`;
+  const text = `Is ${inlineData(column)} different in ${words} by more than chance?`;
   const result = identifier(`${frame}_rows_${column}`);
   const mean = pyString(`mean ${column}`);
   const split = polars
@@ -956,7 +957,7 @@ function otherOptions(
   if (pick.headers.length) {
     options.push({
       id: `table:${place.cellId}:${place.output}:${pick.headers.join('|')}:what`,
-      text: `What does ${listed(pick.headers)} show in this table?`,
+      text: `What does ${listed(pick.headers.map(inlineData))} show in this table?`,
       type: 'descriptive',
       origin: 'template',
       probability: 0.4,

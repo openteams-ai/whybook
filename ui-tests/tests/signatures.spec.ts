@@ -277,7 +277,7 @@ test('shows the defaults that a model picks from the signatures as chips, with t
   await dropna.click();
   await expect(
     page.locator('.jp-Epi-popover .jp-Epi-option .jp-Epi-option-text').first()
-  ).toHaveText('What if dropna were False?');
+  ).toHaveText('What if dropna were False in the groupby of df?');
   await page.keyboard.press('Escape');
 
   // Off again: the chips of before, and the answers stay for the page.

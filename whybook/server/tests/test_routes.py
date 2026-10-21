@@ -4,6 +4,7 @@ import pytest
 from tornado.httpclient import HTTPClientError
 
 from whybook.server import routes
+from whybook.server.questions.marks import plain
 
 AGE = {"name": "df['age']", "label": "age", "kind": "numeric", "parent": "df", "tag": "int", "rows": 100, "missing": 30}
 INCOME = {"name": "df['income']", "label": "income", "kind": "numeric", "parent": "df", "tag": "num", "rows": 100, "missing": 0}
@@ -80,7 +81,7 @@ async def test_table_notes_need_the_tables(jp_fetch):
 async def test_drop_a_column_onto_a_model_cell(jp_fetch):
     payload = await post(jp_fetch, "drop", body={"source": AGE, "target": {"cell": CELL}, "cells": [CELL], "context": CONTEXT})
     assert payload["title"] == "age onto [1]"
-    covariate = next(o for o in payload["options"] if o["text"] == "Add age as a covariate")
+    covariate = next(o for o in payload["options"] if plain(o["text"]) == "Add age as a covariate")
     assert covariate["code"] == 'fit = smf.ols("income ~ site + age", data=df).fit()'
     assert covariate["placement"]["kind"] == "edit"
     assert all(o["type"] in ("association", "causal", "quality", "model", "descriptive") for o in payload["options"])
@@ -106,7 +107,7 @@ async def test_cell_questions_need_a_cell(jp_fetch):
 
 async def test_next_steps(jp_fetch):
     payload = await post(jp_fetch, "next", body={"cells": [CELL], "context": CONTEXT, "groups": {}, "dismissed": []})
-    texts = [q["text"] for q in payload["questions"]]
+    texts = [plain(q["text"]) for q in payload["questions"]]
     assert "How does age relate to income?" in texts
 
 
@@ -169,7 +170,7 @@ async def test_decision_offers_what_if_branches(jp_fetch):
     cell = {"id": "c2", "label": "[2]", "source": "weekly = weekly_means(diary)", "defs": ["weekly"], "uses": ["diary"]}
     decision = {"name": "MIN_DAYS", "value": "14", "provenance": "defaulted", "param": "min_days", "function": "weekly_means"}
     payload = await post(jp_fetch, "decision", body={"cell": cell, "decision": decision, "context": {}})
-    assert [o["text"] for o in payload["options"]][:2] == ["What if MIN_DAYS were 7?", "What if MIN_DAYS were 21?"]
+    assert [plain(o["text"]) for o in payload["options"]][:2] == ["What if MIN_DAYS were 7?", "What if MIN_DAYS were 21?"]
     with pytest.raises(HTTPClientError) as error:
         await post(jp_fetch, "decision", body={"cell": cell, "decision": decision, "value": "10 +"})
     assert error.value.code == 400
@@ -181,7 +182,7 @@ async def test_decision_takes_the_call_that_a_value_goes_into(jp_fetch):
     decision = {"name": "how", "value": "'inner'", "provenance": "library_default", "param": "how", "function": "DataFrame.merge", "calls": calls}
     payload = await post(jp_fetch, "decision", body={"cell": cell, "decision": decision, "context": {}, "calls": calls[1:]})
     first = payload["options"][0]
-    assert first["text"] == 'What if how were "left" in the merge with labs?'
+    assert plain(first["text"]) == "What if the merge with labs were a left join?"
     assert "visits.merge(patients, on='id').merge(labs, on='id', how=\"left\")" in first["code"]
     # A call that the decision does not cover is refused.
     with pytest.raises(HTTPClientError) as error:

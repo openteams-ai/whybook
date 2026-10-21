@@ -198,6 +198,7 @@ import {
 } from './numbers';
 import { PlotHooks } from './plothooks';
 import { SpaceDetail } from './spacedetail';
+import { inlineCode, inlineData } from './inlinecode';
 import { pyComment, pyString } from './pycode';
 import type { ICuts, IExtremes } from './leaveout';
 import { cleanName, leaveOutCode } from './leaveout';
@@ -5993,7 +5994,7 @@ export class EpiModel implements IDisposable {
     void this.apply(
       {
         id: `keep:${name}`,
-        text: `Keep ${where} of ${frame} as ${name}`,
+        text: `Keep ${where} of ${inlineData(frame)} as ${inlineData(name)}`,
         type: 'descriptive',
         origin: 'template',
         probability: null,
@@ -8995,7 +8996,7 @@ export class EpiModel implements IDisposable {
       .filter(decision => decision.provenance === 'you')
       .map(decision => ({
         id: `you:${cell.id}:${decision.name}:${decision.value}`,
-        text: `Is ${decision.name} = ${decision.value} the right choice in ${cell.label}?`,
+        text: `Is ${inlineCode(decision.name)} = ${inlineCode(decision.value)} the right choice in ${cell.label}?`,
         type: 'model' as const,
         origin: 'template',
         probability: 0.35,
@@ -9059,7 +9060,7 @@ export class EpiModel implements IDisposable {
     if (by) {
       options.push({
         id: `region:composition:${frame}:${ask.x0}:${ask.x1}:${ask.y ?? ''}`,
-        text: `Does the share of each ${by} change in this window?`,
+        text: `Does the share of each ${inlineData(by)} change in this window?`,
         type: 'quality',
         origin: 'template',
         probability: 0.5,
@@ -9122,9 +9123,13 @@ export class EpiModel implements IDisposable {
       cell: ask.cellId,
       label: `new cell after ${cell?.label ?? ''}`
     };
-    const name = barsText(x, values);
+    // The column as data in the questions' texts: "Is **arm** B different
+    // from **arm** A by more than chance?".
+    const name = barsText(inlineData(x), values);
     const others =
-      rest.length === 1 ? barsText(x, [rest[0].x]) : 'the other bars';
+      rest.length === 1
+        ? barsText(inlineData(x), [rest[0].x])
+        : 'the other bars';
     const rows = (list: typeof bars) =>
       list.reduce((total, bar) => total + bar.n, 0);
     // A bar of means is the mean of the rows that have a y, so the mean of

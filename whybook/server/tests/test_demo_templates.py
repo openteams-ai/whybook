@@ -10,6 +10,7 @@ import pytest
 from whybook.server.questions.cells import CellInfo, cell_questions, next_steps
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 pytestmark = pytest.mark.demo
 
@@ -54,7 +55,7 @@ def test_column_onto_a_model_cell_joins_first(demo):
     source, target = drops(demo)["column onto a model cell"]
     result = drop_options(DropRequest.from_json({"source": source, "target": target, "cells": demo.cells_json(), "context": demo.context()}))
     assert result["note"] == "IL6 lives in olink: joined on patient_id first."
-    covariate = next(o for o in result["options"] if o["text"] == "Add IL6 as a covariate")
+    covariate = next(o for o in result["options"] if plain(o["text"]) == "Add IL6 as a covariate")
     assert covariate["placement"]["kind"] == "edit"
     assert '"pain_score ~ treatment_arm * month + age + IL6"' in covariate["code"]
 
@@ -92,7 +93,7 @@ def test_next_steps_cover_open_assumptions_and_run(demo):
     olink = demo.variable("olink")
     groups = {"olink": [{"label": g["label"], "total": len(g["columns"]), "used": 0} for g in olink["groups"]]}
     steps = next_steps(cells, context, groups, set())
-    texts = [step.text for step in steps]
+    texts = [plain(step.text) for step in steps]
     assert "Does MIN_DAYS = 14 change the result of [4]?" in texts
     assert steps[0].reasons
     for step in steps[:4]:
@@ -109,12 +110,12 @@ def test_next_steps_leave_out_the_reshape_that_a_cell_made(demo):
     context = Context.from_json(demo.context())
     assert (context.frame_rows["diary_raw"], context.frame_rows["diary"]) == (5880, 36941)
     cells = [CellInfo.from_json(c) for c in demo.cells_json()]
-    texts = [step.text for step in next_steps(cells, context, {}, set())]
+    texts = [plain(step.text) for step in next_steps(cells, context, {}, set())]
     # Nor does a question pair a day's column of diary_raw with diary's pain_score.
     assert not [text for text in texts if text.startswith("Reshape") or "pain_1" in text or "sleep_1" in text], texts
     # Without [3], the reshape is offered.
     unshaped = [cell for cell in cells if cell.id != "reshape"]
-    texts = [step.text for step in next_steps(unshaped, context, {}, set())]
+    texts = [plain(step.text) for step in next_steps(unshaped, context, {}, set())]
     assert "Reshape diary_raw to one row per day: pain, sleep and mood" in texts
 
 
@@ -151,7 +152,7 @@ def test_polars_drop_option_code_runs(demo):
 
         def options(source, target):
             result = drop_options(DropRequest.from_json({"source": source, "target": {"item": target}, "cells": [], "context": context}))
-            return {option["text"]: option["code"] for option in result["options"]}
+            return {plain(option["text"]): option["code"] for option in result["options"]}
 
         pair = options(column("drops_pl", "age"), column("drops_pl", "pain"))
         code = pair["Are age and pain associated?"]

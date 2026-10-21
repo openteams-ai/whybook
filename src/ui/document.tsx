@@ -20,6 +20,7 @@ import { Bench } from './bench';
 import {
   CellLabel,
   CloseButton,
+  CodeText,
   CopyButton,
   KEPT_SEARCHES,
   cellElement,
@@ -671,7 +672,9 @@ function BackToCell(props: {
     >
       <span aria-hidden="true">{where === 'above' ? '↑' : '↓'}</span>
       <CellLabel cell={cell} />
-      <span className="jp-Epi-backtocell-title">{cell.title}</span>
+      <span className="jp-Epi-backtocell-title">
+        <CodeText text={cell.title} />
+      </span>
     </button>
   );
 }

@@ -6,6 +6,8 @@
  * the summary counted.
  */
 
+import { plainText } from './inlinecode';
+
 /** A Python string literal: `sleep "hours"` gives `"sleep \"hours\""`. */
 export function pyString(text: string): string {
   // Every escape that JSON writes is also a Python escape: \" \\ \n \t \uXXXX.
@@ -30,7 +32,8 @@ export function pyNumber(value: number): string {
  * character becomes a space: Python refuses a null byte in its source.
  */
 export function pyComment(text: string): string {
-  return text
+  // A question's text goes in without the backticks of its names and values.
+  return plainText(text)
     .split(/\r\n|\r|\n/)
     .map(line =>
       // eslint-disable-next-line no-control-regex

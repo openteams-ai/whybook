@@ -16,6 +16,7 @@ from urllib.parse import quote as url_quote
 from .. import codegen, databases
 from . import starts
 from .cells import CellInfo, question_id
+from .marks import as_data
 from .models import Candidate, Context, InvalidRequest, Placement
 from .rankers import score_candidate
 
@@ -135,12 +136,12 @@ def table_options(drop: TableDrop, root: str | None) -> dict[str, Any]:
     large = rows is not None and rows > LARGE
     load = reader(drop, everything) + [f"{name} = _frame", "del _frame", f"{name}.head()"]
     size = f"{rows:,} rows" if rows is not None else "all its rows"
-    options.append(_option(f"Load {drop.table} as {name}", "descriptive", 0.55 if large else 0.7, home, "\n".join(load), f"A data frame with {size}", drop))
+    options.append(_option(f"Load {as_data(drop.table)} as {as_data(name)}", "descriptive", 0.55 if large else 0.7, home, "\n".join(load), f"A data frame with {size}", drop))
     if large:
         sample = reader(drop, f"{everything} LIMIT {SAMPLE}") + [f"{name}_sample = _frame", "del _frame", f"{name}_sample.head()"]
-        options.append(_option(f"Load the first {SAMPLE:,} rows of {drop.table}", "descriptive", 0.72, home, "\n".join(sample), f"{rows:,} rows in all: a sample first", drop))
+        options.append(_option(f"Load the first {SAMPLE:,} rows of {as_data(drop.table)}", "descriptive", 0.72, home, "\n".join(sample), f"{rows:,} rows in all: a sample first", drop))
     profile = reader(drop, f"{everything} LIMIT 100000") + ["", "import whybook", "", "whybook.profile(_frame)"]
-    options.append(_option(f"Profile {drop.table} before loading it", "quality", 0.6, preview, "\n".join(profile), f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop))
+    options.append(_option(f"Profile {as_data(drop.table)} before loading it", "quality", 0.6, preview, "\n".join(profile), f"Types, missing values and duplicates · {starts.UNLESS_KEPT}", drop))
     # The frames that the cell loads or reads (design iteration 1.87): a cell that loads
     # sites shares its key with the visits dropped on it, though it reads no frame.
     frames = starts.cell_frames(cell, context)
@@ -174,7 +175,7 @@ def table_options(drop: TableDrop, root: str | None) -> dict[str, Any]:
                 share = f'format({joined}[{codegen.literal(values[0])}].notna().mean(), ".0%")'
                 lines.append(f"print({share}, {codegen.literal(f'of {frame} rows found a match in {drop.table}')})")
             lines += ["del _frame", f"{joined}.head()"]
-            text = f"Join the per-{key[0]} means of {drop.table} to {frame}" if repeated else f"Join {drop.table} to {frame} on {key[0]}"
+            text = f"Join the per-{as_data(key[0])} means of {as_data(drop.table)} to {as_data(frame)}" if repeated else f"Join {as_data(drop.table)} to {as_data(frame)} on {as_data(key[0])}"
             effect = f"{rows / per_key:.1f} rows per {key[0]} in {drop.table}, averaged first" if repeated else "Left join on the shared key"
             options.append(
                 _option(text, "descriptive", 0.68, Placement("new", cell.id, f"new cell after {cell.label}", "The cell uses the frame it joins to", None), "\n".join(lines), effect, drop)
@@ -199,7 +200,7 @@ def table_options(drop: TableDrop, root: str | None) -> dict[str, Any]:
             drop.table, name, lambda variable: reader(drop, everything) + [f"{variable} = _frame", "del _frame"], starts.unit_of(columns, context.unit), shape, make, preview
         )
     else:
-        options.append(_option(f"What could {drop.table} add to this analysis?", "descriptive", 0.45, home, None, "AI reads the table's columns and the notebook", drop))
+        options.append(_option(f"What could {as_data(drop.table)} add to this analysis?", "descriptive", 0.45, home, None, "AI reads the table's columns and the notebook", drop))
     for option in options:
         score_candidate(option, [], context)
     options.sort(key=lambda option: option.probability or 0.0, reverse=True)

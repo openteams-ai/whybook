@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .. import codegen
+from .marks import as_data
 from .templates import TIME_NAME
 
 # A measure and its number: pain_1, sleep_7.
@@ -114,7 +115,7 @@ def name_for(frame: str, taken: Iterable[str]) -> str:
 
 
 def text(frame: str, reshape: Reshape) -> str:
-    return f"Reshape {frame} to one row per {reshape.step}: {words(list(reshape.stubs))}"
+    return f"Reshape {as_data(frame)} to one row per {as_data(reshape.step)}: {words([as_data(stub) for stub in reshape.stubs])}"
 
 
 def effect(reshape: Reshape) -> str:

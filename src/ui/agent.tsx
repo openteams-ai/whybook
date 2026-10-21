@@ -8,13 +8,14 @@ import type { EpiModel } from '../model/epimodel';
 import type { IGuardHeld } from '../model/guard';
 import { heldWords } from '../model/guard';
 import { splitLabels } from '../model/labels';
-import { splitBold, splitCode } from '../model/inlinecode';
+import { plainText, splitBold, splitCode } from '../model/inlinecode';
 import { followUpOf } from '../model/own';
 import { outputsOf } from '../model/notebook';
 import { keptCells, runWhen } from '../model/runs';
 import {
   AITag,
   CloseButton,
+  CodeText,
   ProgressBar,
   TypeBadge,
   useSeconds
@@ -53,15 +54,18 @@ export function AgentRunView(props: {
     <div
       className={`jp-Epi-agentrun jp-mod-${place} jp-mod-${run.state}`}
       role="group"
-      aria-label={`Agent: ${run.question}`}
+      aria-label={`Agent: ${plainText(run.question)}`}
     >
       <div className="jp-Epi-agentrun-head">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-agentrun-kind">Agent</span>
         {/* Two lines at most in the strip and the card, cut after the
             second: its tooltip has the whole question. */}
-        <span className="jp-Epi-agentrun-question" title={run.question}>
-          {run.question}
+        <span
+          className="jp-Epi-agentrun-question"
+          title={plainText(run.question)}
+        >
+          <CodeText text={run.question} />
         </span>
         <span className="jp-Epi-agentrun-status">
           {runStatus(run)}
@@ -220,7 +224,9 @@ export function AgentRunView(props: {
                 onClick={() => void model.askOwn(text, 'notebook', { type })}
               >
                 <TypeBadge type={type} />
-                <span>{text}</span>
+                <span>
+                  <CodeText text={text} />
+                </span>
               </button>
             );
           })}
@@ -400,8 +406,8 @@ export function AgentPointer(props: {
       <div className="jp-Epi-strip-row">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-strip-action">Agent</span>
-        <span className="jp-Epi-strip-text" title={run.question}>
-          {run.question}
+        <span className="jp-Epi-strip-text" title={plainText(run.question)}>
+          <CodeText text={run.question} />
         </span>
         <span className="jp-Epi-strip-stage">
           {runStatus(run)} ·{' '}
@@ -468,7 +474,7 @@ function CellLink(props: {
       className="jp-Epi-label jp-Epi-agentrun-cell"
       title={
         shared
-          ? `${cell.label}: ${cell.title}`
+          ? `${cell.label}: ${plainText(cell.title)}`
           : `Show ${cell.label} in the view`
       }
       onClick={() => props.model.showCell(cell.id)}
@@ -499,7 +505,7 @@ function ElsewhereLink(props: {
   return (
     <button
       className="jp-Epi-label jp-Epi-agentrun-cell jp-mod-elsewhere"
-      title={`Show ${cell?.title ? `${label} ${cell.title}` : 'the cell'} in ${notebook}`}
+      title={`Show ${cell?.title ? `${label} ${plainText(cell.title)}` : 'the cell'} in ${notebook}`}
       onClick={() => void model.runs.host?.show(notebook, cellId)}
     >
       {prefix} {label}
@@ -540,8 +546,8 @@ export function AgentElsewhere(props: {
       <div className="jp-Epi-strip-row">
         <ProgressBar value={busy ? null : 1} label={run.question} />
         <span className="jp-Epi-strip-action">Agent</span>
-        <span className="jp-Epi-strip-text" title={run.question}>
-          {run.question}
+        <span className="jp-Epi-strip-text" title={plainText(run.question)}>
+          <CodeText text={run.question} />
         </span>
         <span className="jp-Epi-strip-stage">
           {state} · {here === 1 ? '1 cell' : `${here} cells`} here · asked in{' '}

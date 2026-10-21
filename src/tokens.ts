@@ -288,6 +288,12 @@ export interface IOption {
    * column: the view shows where each came from (./model/inferred.ts).
    */
   uses?: { outcome?: string; unit?: string } | null;
+  /**
+   * The value that a what-if option tries, as code, which its text may give
+   * in words: `"outer"` for "What if the merge with **patients** were an
+   * outer join?".
+   */
+  value?: string | null;
 }
 
 export interface IDropResult {

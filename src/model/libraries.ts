@@ -7,6 +7,7 @@
  * branch, and the two results stand side by side.
  */
 import type { IOption, IPlacement, QuestionType } from '../tokens';
+import { inlineCode } from './inlinecode';
 
 export interface IAlternative {
   /** The function or the class, as the cell calls it: `LogisticRegression`. */
@@ -276,7 +277,7 @@ export function compareOption(
   const effect = compareWhy(entry);
   return {
     id: `library:${cell.id}:${entry.library}:${entry.other}`,
-    text: `${verb} ${listed(uses)} of ${entry.other} agree with ${listed(calls)} of ${entry.library}?`,
+    text: `${verb} ${listed(uses.map(inlineCode))} of ${entry.other} agree with ${listed(calls.map(inlineCode))} of ${entry.library}?`,
     type: entry.alternatives[0].type,
     origin: 'library',
     probability: null,

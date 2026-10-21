@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass
 from typing import Callable
 
+from .marks import as_code, as_data
 from .models import Candidate, Context, Selection, Variable
 
 # The variable kinds that each template kind matches.
@@ -194,8 +195,13 @@ def _order(template: Template, a: Variable, b: Variable) -> tuple[Variable, Vari
     return None
 
 
+def _name(variable: Variable) -> str:
+    """A variable as a question names it: a constant or a fitted model as code, a frame or a column as data."""
+    return as_code(variable.label) if variable.kind in ("constant", "model") else as_data(variable.label)
+
+
 def _candidate(template: Template, a: Variable, b: Variable | None) -> Candidate:
-    text = template.text.format(a=a.label, b=b.label if b else "", value=a.value)
+    text = template.text.format(a=_name(a), b=_name(b) if b else "", value=as_code(a.value))
     if b is None:
         variables: tuple[str, ...] = (a.name,)
     elif template.symmetric:

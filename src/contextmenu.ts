@@ -7,6 +7,7 @@ import { CELL, addCellItem, cellUnderMenu, makeCellMenu } from './cellmenu';
 import type { EpiModel, EpiSettings } from './model/epimodel';
 import { EXPLORED_ORDERS, exploredOrder } from './model/exploredorder';
 import type { IAnchor, IItem } from './tokens';
+import { plainText } from './model/inlinecode';
 
 namespace CommandIDs {
   export const exploredOrder = 'whybook:explored-order';
@@ -221,7 +222,9 @@ export function addContextMenus(
       const users = saved.users.length
         ? ` ${saved.users.join(', ')} ${saved.users.length === 1 ? 'uses' : 'use'} names it defined.`
         : '';
-      const name = [saved.label, saved.title].filter(Boolean).join(' ');
+      const name = [saved.label, plainText(saved.title ?? '')]
+        .filter(Boolean)
+        .join(' ');
       const notice = Notification.emit(
         `Deleted ${name || 'the cell'}.${users}`,
         'default',

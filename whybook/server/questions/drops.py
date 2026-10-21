@@ -16,6 +16,7 @@ from typing import Any, Callable
 
 from .. import codegen
 from . import missing, reshape, starts, templates
+from .marks import as_code, as_data, plain
 from .cells import CellInfo, Decision, group_column, primary_frame, question_id, site_column, sweep_code, sweep_list, sweep_names, unit_noun
 from .models import Candidate, Context, InvalidRequest, Placement, Selection, Variable
 from .rankers import kind_group, learned_order, score_candidate
@@ -147,7 +148,7 @@ def _split_options(column: Variable, profile: Profile, cell: CellInfo, context: 
         return [], None
     note = plan.notes[0] + "." if plan.notes else None
     noun = "profile" if profile.function == "time_profile" else "trajectory"
-    text = f"The same {noun} of {profile.y}, one line per {level}"
+    text = f"The same {noun} of {as_data(profile.y)}, one line per {as_data(level)}"
     if profile.function == "time_profile":
         call = f"whybook.time_profile({plan.name}, {codegen.literal(profile.x)}, {codegen.literal(profile.y)}, by={codegen.literal(level)})"
     else:
@@ -160,7 +161,7 @@ def _split_options(column: Variable, profile: Profile, cell: CellInfo, context: 
     unit = profile.units
     if profile.function == "ribbon" and unit and templates.is_time(Variable(profile.x, profile.x, "numeric")) and column.library != "polars":
         model = codegen.identifier(f"{profile.y}_by_{profile.x}_and_{level}")
-        question = f"Does {level} change the trajectory of {profile.y}?"
+        question = f"Does {as_data(level)} change the trajectory of {as_data(profile.y)}?"
         frame = plan.name
         code = [
             codegen.comment(f"{question} A mixed model with a random intercept and a slope over {profile.x} per {unit_noun(unit)}."),
@@ -211,7 +212,7 @@ def _interaction_option(column: Variable, cell: CellInfo, context: Context) -> C
     def show(fit: str) -> str:
         return f"whybook.effect_by({fit}, {codegen.literal(exposure)}, {codegen.literal(label)})"
 
-    text = f"Does the effect of {exposure} on {crossing.outcome} differ by {label}?"
+    text = f"Does the effect of {as_data(exposure)} on {as_data(crossing.outcome)} differ by {as_data(label)}?"
     if crossing.crossed and model.fit not in codegen.deleted_names(cell.source):
         after = Placement("new", cell.id, f"new cell after {cell.label}")
         code = "\n".join([codegen.comment(f"{text} The model of {cell.label} crosses them already."), "import whybook", "", show(model.fit)])
@@ -341,7 +342,7 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
         # A unit's id is no covariate, and its 318 patients no levels to plot:
         # how much of the outcome lies between the units (design iteration 1.75).
         if base and outcome and column.label != outcome:
-            text = f"How much of the variation in {outcome} lies between {unit_noun(column.label)}s?"
+            text = f"How much of the variation in {as_data(outcome)} lies between {unit_noun(column.label)}s?"
             plan = codegen.plan_data(base, [column.label], context.frames, context.unit, target=codegen.temporary(outcome, "by", column.label, "data"))
             code = _helper_code(text, plan, f"whybook.icc({plan.name}, {codegen.literal(outcome)}, {codegen.literal(column.label)})", None) if plan else None
             options.append(_option(text, "association", 0.7, after, code, "The share between them, the ICC, in words", column.name, cell.id, uses=uses))
@@ -352,7 +353,7 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
         result = codegen.identifier(f"{column.label}_vs_{outcome}")
         # The frame the model is fitted on: _il6_vs_pain_score_data for il6_vs_pain_score.
         plan = codegen.plan_data(base, needed, context.frames, context.unit, target=codegen.temporary(result, "data"))
-        adjust = f", adjusting for {site}" if site and site != column.label else ""
+        adjust = f", adjusting for {as_data(site)}" if site and site != column.label else ""
         code = None
         if plan:
             if plan.notes:
@@ -364,13 +365,13 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
                 lines.append(f"del {plan.name}")
             lines.append(f"{result}.summary().tables[1]")
             code = "\n".join(lines)
-        options.append(_option(f"Is {column.label} associated with {outcome} here{adjust}?", "association", 0.7, after, code, "Separate test next to this cell", column.name, cell.id, uses=uses))
+        options.append(_option(f"Is {as_data(column.label)} associated with {as_data(outcome)} here{adjust}?", "association", 0.7, after, code, "Separate test next to this cell", column.name, cell.id, uses=uses))
     interaction = _interaction_option(column, cell, context)
     if interaction is not None:
         options.append(interaction)
     model = cell.model
     if model is not None and column.label not in model.formula:
-        options.append(_covariate_option(column, cell, context, f"Add {column.label} as a covariate"))
+        options.append(_covariate_option(column, cell, context, f"Add {as_data(column.label)} as a covariate"))
     elif model is None and base and outcome and column.label != outcome:
         # A question of a model for a cell that fits none: the analysts of
         # public notebooks asked one after 69 of the 80 drops onto a cell that
@@ -378,12 +379,12 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
         # often adding the column to a model of another cell.
         other = _model_cell(cells, cell, outcome, column)
         if other is not None:
-            options.append(_covariate_option(column, other, context, f"Add {column.label} to the model in {other.label}", uses))
+            options.append(_covariate_option(column, other, context, f"Add {as_data(column.label)} to the model in {other.label}", uses))
         else:
             result = codegen.identifier(f"{outcome}_on_{column.label}")
             plan = codegen.plan_data(base, [column.label], context.frames, context.unit, target=codegen.temporary(result, "data"))
             code = None
-            text = f"Fit a model of {outcome} on {column.label}"
+            text = f"Fit a model of {as_data(outcome)} on {as_data(column.label)}"
             if plan:
                 lines = [codegen.comment(text), "import statsmodels.formula.api as smf", ""] + plan.lines
                 lines.append(f"{result} = smf.ols({codegen.formula(outcome, [column.label])}, data={plan.name}).fit()")
@@ -400,7 +401,7 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
     # Nothing causes a unit's id or the week of a visit (design iteration 1.75).
     timeless = not templates.is_unit(column, context) and not templates.is_time(column)
     if outcome and exposure and column.label not in (exposure, outcome) and timeless:
-        options.append(_option(f"Could {column.label} mediate the effect of {exposure}?", "causal", 0.45, branch, None, "AI writes the branch", column.name, cell.id, uses=uses))
+        options.append(_option(f"Could {as_data(column.label)} mediate the effect of {as_data(exposure)}?", "causal", 0.45, branch, None, "AI writes the branch", column.name, cell.id, uses=uses))
     if base and outcome and column.label != outcome:
         # A time index with repeated units draws the outcome over time: a line
         # per unit and the mean with its band, where a scatter of whole weeks
@@ -411,7 +412,7 @@ def _column_onto_cell(column: Variable, cell: CellInfo, context: Context, cells:
         # Another name than the association's frame: the two can run as branches at the same time.
         plan = codegen.plan_data(base, needed, context.frames, context.unit, target=codegen.temporary(column.label, "against", outcome, "data"))
         code = None
-        text = f"Plot {outcome} over {column.label}, a line per {unit_noun(unit)}" if trajectory else f"Plot {column.label} against {outcome}"
+        text = f"Plot {as_data(outcome)} over {as_data(column.label)}, a line per {unit_noun(unit)}" if trajectory else f"Plot {as_data(column.label)} against {as_data(outcome)}"
         if plan:
             numeric = column.kind in ("numeric",)
             axes = f"x={codegen.literal(column.label)}, y={codegen.literal(outcome)}"
@@ -470,7 +471,7 @@ def _frame_onto_cell(frame: Variable, cell: CellInfo, context: Context) -> list[
                     result,
                 ]
             )
-        options.append(_option(f"Screen every column of {frame.name} against this cell's outcome", "association", 0.65, after, code, "Ranked hits come back as a catalogue", frame.name, cell.id, uses={"outcome": outcome}))
+        options.append(_option(f"Screen every column of {as_data(frame.name)} against this cell's outcome", "association", 0.65, after, code, "Ranked hits come back as a catalogue", frame.name, cell.id, uses={"outcome": outcome}))
     # A frame that shares a key with a frame that the cell loads or reads asks the two together:
     # how many visits per site (design iteration 1.87). Both are in the kernel, so the rows tell which has one row per key.
     if frame.name in context.frames:
@@ -491,9 +492,9 @@ def _frame_onto_cell(frame: Variable, cell: CellInfo, context: Context) -> list[
             renamed = codegen.rename(cell.source, {name: f"{name}_{frame.name}" for name in defined}, inputs={used[0]: frame.name})
             if renamed is not None:
                 code = f"{codegen.comment(f'Branch of {cell.label} with {frame.name} as its input instead of {used[0]}')}\n{renamed}"
-        options.append(_option(f"Use {frame.name} as the input to {cell.label}", "model", 0.45, branch, code, f"Replaces {used[0]} in a branch", frame.name, cell.id))
+        options.append(_option(f"Use {as_data(frame.name)} as the input to {cell.label}", "model", 0.45, branch, code, f"Replaces {used[0]} in a branch", frame.name, cell.id))
         compare = "\n".join([codegen.comment(f"{frame.name} compared with {used[0]}, the input of {cell.label}"), "import whybook", "", f"whybook.compare_frames({frame.name}, {used[0]})"])
-        options.append(_option(f"Compare {frame.name} with what {cell.label} used", "quality", 0.5, after, compare, "Rows and columns in one, not the other", frame.name, cell.id))
+        options.append(_option(f"Compare {as_data(frame.name)} with what {cell.label} used", "quality", 0.5, after, compare, "Rows and columns in one, not the other", frame.name, cell.id))
     return options
 
 
@@ -508,12 +509,12 @@ def _constant_onto_cell(constant: Variable, cell: CellInfo, context: Context) ->
     sweep = sweep_code(cell, decision, context, tried=values or None) if decision and decision.provenance == "defaulted" else None
     if sweep is None and constant.label in cell.uses and values:
         sweep = _loop_over(cell, Decision(constant.label, value, "literal"), values)
-    options.append(_option(f"What changes if {constant.label} changes?", "model", 0.65, branch, sweep, f"Re-runs {cell.label} with {', '.join(values)}" if values else "Re-runs the cell with other values", constant.name, cell.id))
+    options.append(_option(f"What changes if {as_code(constant.label)} changes?", "model", 0.65, branch, sweep, f"Re-runs {cell.label} with {', '.join(values)}" if values else "Re-runs the cell with other values", constant.name, cell.id))
     if decision and decision.provenance == "defaulted" and decision.function and decision.param:
         explicit = codegen.add_keyword(cell.source, decision.function, decision.param, constant.label)
         where = f"{decision.source_file}:{decision.source_line}" if decision.source_file else "its module"
         code = f"{constant.label} = {decision.value}  {codegen.comment(f'chosen here; was the default in {where}')}\n{explicit}" if explicit else None
-        options.append(_option(f"Make {constant.label} an explicit choice in this cell", "model", 0.55, edit, code, f"Moves it out of {decision.source_file or 'the module'} into a decision chip", constant.name, cell.id))
+        options.append(_option(f"Make {as_code(constant.label)} an explicit choice in this cell", "model", 0.55, edit, code, f"Moves it out of {decision.source_file or 'the module'} into a decision chip", constant.name, cell.id))
     return options
 
 
@@ -556,13 +557,13 @@ def _onto_cell(request: DropRequest) -> tuple[list[Candidate], str | None]:
     if source.kind == "model":
         after = Placement("new", cell.id, f"new cell after {cell.label}")
         return [
-            _option(f"Compare {source.label} with the model in {cell.label}", "model", 0.55, after, None, "Side-by-side estimates", source.name, cell.id),
-            _option(f"Does this cell explain what {source.label} leaves unexplained?", "association", 0.45, after, None, "Screens against the residuals", source.name, cell.id),
+            _option(f"Compare {as_code(source.label)} with the model in {cell.label}", "model", 0.55, after, None, "Side-by-side estimates", source.name, cell.id),
+            _option(f"Does this cell explain what {as_code(source.label)} leaves unexplained?", "association", 0.45, after, None, "Screens against the residuals", source.name, cell.id),
         ], None
     if source.kind in COLUMN_KINDS:
         return _column_onto_cell(source, cell, context, request.cells)
     after = Placement("new", cell.id, f"new cell after {cell.label}")
-    return [_option(f"Use {source.label} in {cell.label}", "descriptive", 0.4, after, None, "AI writes the cell", source.name, cell.id)], None
+    return [_option(f"Use {as_code(source.label)} in {cell.label}", "descriptive", 0.4, after, None, "AI writes the cell", source.name, cell.id)], None
 
 
 # Drops onto another item, or onto itself.
@@ -636,14 +637,14 @@ def _unit_options(request: DropRequest, unit: Variable, other: Variable, home: P
     noun = unit_noun(unit.label)
     options = []
     if other.kind == "numeric" and not templates.is_time(other):
-        text = f"How much of the variation in {other.label} lies between {noun}s?"
+        text = f"How much of the variation in {as_data(other.label)} lies between {noun}s?"
         plan = _plan_for(other, [unit.label], context, other.label, "by", unit.label)
         code = None
         if plan:
             code = _helper_code(text, plan, f"whybook.icc({plan.name}, {codegen.literal(other.label)}, {codegen.literal(unit.label)})", other.library)
         options.append(_option(text, "association", 0.75, home, code, "The share between them, the ICC, in words", unit.name, other.name))
     elif other.kind in ("categorical", "binary") and not templates.is_unit(other, context):
-        text = f"How many {noun}s does each level of {other.label} hold?"
+        text = f"How many {noun}s does each level of {as_data(other.label)} hold?"
         plan = _plan_for(other, [unit.label], context, unit.label, "per", other.label)
         code = None
         if plan and other.library != "polars":
@@ -709,7 +710,7 @@ def _date_options(request: DropRequest, time: Variable, other: Variable, home: P
     if timed is None:
         # Without its first and last values, the name says which it is, and the helper checks.
         timed = not re.search(r"(^|_)(date|day)$", time.label.lower())
-    text = f"How does {other.label} vary by hour of day and by weekday?" if timed else f"How does {other.label} vary by weekday and by month?"
+    text = f"How does {as_data(other.label)} vary by hour of day and by weekday?" if timed else f"How does {as_data(other.label)} vary by weekday and by month?"
     plan = _plan_for(other, [time.label], request.context, other.label, "by", time.label)
     code = None
     if plan:
@@ -720,7 +721,7 @@ def _date_options(request: DropRequest, time: Variable, other: Variable, home: P
 def _trajectory(request: DropRequest, time: Variable, other: Variable, unit: str | None, home: Placement) -> Candidate:
     """A number over a time index: a line per unit, and the mean at each time with its 95% band."""
     noun = unit_noun(unit)
-    text = f"How does {other.label} change over {time.label}, per {noun}?" if unit else f"How does {other.label} change over {time.label}?"
+    text = f"How does {as_data(other.label)} change over {as_data(time.label)}, per {noun}?" if unit else f"How does {as_data(other.label)} change over {as_data(time.label)}?"
     plan = _plan_for(other, [time.label] + ([unit] if unit else []), request.context, other.label, "over", time.label)
     code = None
     if plan:
@@ -733,7 +734,7 @@ def _trajectory(request: DropRequest, time: Variable, other: Variable, unit: str
 
 def _rows_per_unit(unit: str, frame: str, home: Placement, *parts: str) -> Candidate:
     """How many rows each unit has in a frame, the fewest first: a group-by count."""
-    text = f"How many rows does each {unit_noun(unit)} have in {frame}?"
+    text = f"How many rows does each {unit_noun(unit)} have in {as_data(frame)}?"
     code = "\n".join([codegen.comment(text), "import whybook", "", f"whybook.rows_per_unit({frame}, {codegen.literal(unit)})"])
     return _option(text, "descriptive", 0.5, home, code, "A count per unit, the fewest first", *parts)
 
@@ -779,15 +780,15 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
             many = False
             # The catalogue's own questions for a category, answered here with code.
             if both:
-                text = f"Are {a.label} and {b.label} associated{unit}?"
+                text = f"Are {as_data(a.label)} and {as_data(b.label)} associated{unit}?"
             elif numbers:
                 number = numbers[0]
                 level = b if number is a else a
-                text = f"Does {number.label} differ between the levels of {level.label}?"
+                text = f"Does {as_data(number.label)} differ between the levels of {as_data(level.label)}?"
                 many = not templates.few_levels(level)
                 answered.add("group_difference")
             else:
-                text = f"Are {a.label} and {b.label} independent?"
+                text = f"Are {as_data(a.label)} and {as_data(b.label)} independent?"
                 answered.add("independence")
             # The levels of a category are compared by unit means, and two
             # categories counted once per unit, when they stay the same within
@@ -829,7 +830,7 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 options.append(_trajectory(request, time, other, unit_here, home))
                 answered.add("trend")
         if special is None:
-            options.append(_option(f"What else could explain both {a.label} and {b.label}?", "causal", 0.5, home, None, "Scans unexplored variables for common causes", a.name, b.name))
+            options.append(_option(f"What else could explain both {as_data(a.label)} and {as_data(b.label)}?", "causal", 0.5, home, None, "Scans unexplored variables for common causes", a.name, b.name))
         else:
             # How many rows each unit has: a group-by count, which the model was asked for.
             # Not for a date that each unit has once, such as tou_start: the
@@ -841,21 +842,21 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                 options.append(_rows_per_unit(counted, frame, home, a.name, b.name))
     elif a.kind in FRAME_KINDS and b.kind in FRAME_KINDS:
         line_up = "\n".join([codegen.comment(f"How do {a.name} and {b.name} line up?"), "import whybook", "", f"whybook.line_up({a.name}, {b.name})"])
-        options.append(_option(f"How do {a.name} and {b.name} line up?", "quality", 0.7, home, line_up, "Keys, overlap, rows that do not match", a.name, b.name))
+        options.append(_option(f"How do {as_data(a.name)} and {as_data(b.name)} line up?", "quality", 0.7, home, line_up, "Keys, overlap, rows that do not match", a.name, b.name))
         keys = codegen.join_keys(context.frames.get(a.name, {}), context.frames.get(b.name, {}), context.unit)
         if keys:
             result = codegen.identifier(f"{a.name}_{b.name}")
             on = codegen.literals(keys)
             joined = f"{a.name}.join({b.name}, on={on}, how=\"left\")" if a.library == "polars" else f"{a.name}.merge({b.name}, on={on}, how=\"left\")"
             join = "\n".join([codegen.comment(f"{a.name} joined with {b.name} on {', '.join(keys)}"), f"{result} = {joined}", f"{result}.head()"])
-            options.append(_option(f"Join {a.name} and {b.name}", "quality", 0.6, home, join, f"Left join on {', '.join(keys)}", a.name, b.name))
+            options.append(_option(f"Join {as_data(a.name)} and {as_data(b.name)}", "quality", 0.6, home, join, f"Left join on {', '.join(keys)}", a.name, b.name))
         else:
             note = _mismatch_note(a.name, b.name, context)
         options.append(_option("Which columns of one predict the other?", "association", 0.45, home, None, "Wide screen · catalogue of hits", a.name, b.name))
     elif "model" in (a.kind, b.kind):
         model, other = (a, b) if a.kind == "model" else (b, a)
-        options.append(_option(f"Does {other.label} explain what {model.label} leaves unexplained?", "association", 0.6, home, None, "Screens against the residuals", a.name, b.name))
-        options.append(_option(f"Refit {model.label} on {other.label}", "model", 0.5, Placement("branch", home.cell, home.label.replace("a new cell", "a branch")), None, "A branch that runs in parallel; the original stays", a.name, b.name))
+        options.append(_option(f"Does {as_data(other.label)} explain what {as_code(model.label)} leaves unexplained?", "association", 0.6, home, None, "Screens against the residuals", a.name, b.name))
+        options.append(_option(f"Refit {as_code(model.label)} on {as_data(other.label)}", "model", 0.5, Placement("branch", home.cell, home.label.replace("a new cell", "a branch")), None, "A branch that runs in parallel; the original stays", a.name, b.name))
     elif {a.kind, b.kind} & set(FRAME_KINDS) and {a.kind, b.kind} & set(COLUMN_KINDS):
         frame, column = (a, b) if a.kind in FRAME_KINDS else (b, a)
         keys = codegen.join_keys(context.frames.get(frame.name, {}), context.frames.get(column.parent or "", {}), context.unit)
@@ -877,14 +878,14 @@ def _pair_options(request: DropRequest, a: Variable, b: Variable, home: Placemen
                     result,
                 ]
             )
-        options.append(_option(f"Which columns of {frame.name} are related to {column.label}?", "association", 0.6, home, code, "Wide screen · catalogue of hits", a.name, b.name))
+        options.append(_option(f"Which columns of {as_data(frame.name)} are related to {as_data(column.label)}?", "association", 0.6, home, code, "Wide screen · catalogue of hits", a.name, b.name))
     # The general question catalogue adds questions that need an AI model to answer,
     # except the ones an option above already answers offline.
     selection = Selection(a, b)
-    known = {option.text for option in options}
+    known = {plain(option.text) for option in options}
     covered = {"association", "confounding", "join_keys", "related_columns", "predict_from_frame", *answered}
     for candidate in templates.generate(selection, context):
-        if candidate.text not in known and candidate.template not in covered:
+        if plain(candidate.text) not in known and candidate.template not in covered:
             candidate.placement = home
             candidate.effect = "AI writes the cell"
             options.append(candidate)
@@ -901,7 +902,7 @@ def _summary_lines(item: Variable) -> list[str]:
 def _summary_pair(a: Variable, b: Variable) -> Candidate:
     """A quick look at two columns, one after the other, as the quick look at one column shows it."""
     preview = Placement("preview", None, "a preview in the sidebar", "Nothing is written to the notebook unless you keep it")
-    text = f"Summarise {a.label} and {b.label}: distribution and missingness"
+    text = f"Summarise {as_data(a.label)} and {as_data(b.label)}: distribution and missingness"
     first, second = _summary_lines(a), _summary_lines(b)
     # The first table shows through display(): a cell shows its last value only.
     first[-1] = f"display({first[-1]})"
@@ -927,7 +928,7 @@ def _self_options(request: DropRequest, item: Variable, home: Placement) -> list
     preview = Placement("preview", None, "a preview in the sidebar", "Nothing is written to the notebook unless you keep it")
     options = []
     if item.kind in FRAME_KINDS:
-        options.append(_option(f"Profile {item.name}: types, missingness, duplicates", "quality", 0.7, preview, f"import whybook\n\nwhybook.profile({item.name})", f"Quick look · {starts.UNLESS_KEPT}", item.name))
+        options.append(_option(f"Profile {as_data(item.name)}: types, missingness, duplicates", "quality", 0.7, preview, f"import whybook\n\nwhybook.profile({item.name})", f"Quick look · {starts.UNLESS_KEPT}", item.name))
         columns = context.frames.get(item.name, {})
         long = reshape.plan(columns, context.unit, columns) if item.library != "polars" else None
         if long:
@@ -937,18 +938,18 @@ def _self_options(request: DropRequest, item: Variable, home: Placement) -> list
             options.append(_option(reshape.text(item.name, long), "descriptive", 0.75, home, code, reshape.effect(long), item.name))
         else:
             unit = f"one row per {unit_noun(context.unit)}" if context.unit else "aggregated"
-            options.append(_option(f"Reshape {item.name}: wide or long, or {unit}", "descriptive", 0.45, home, None, "AI proposes shapes that later questions need", item.name, uses={"unit": context.unit} if context.unit else None))
+            options.append(_option(f"Reshape {as_data(item.name)}: wide or long, or {unit}", "descriptive", 0.45, home, None, "AI proposes shapes that later questions need", item.name, uses={"unit": context.unit} if context.unit else None))
     elif item.kind in COLUMN_KINDS and item.parent:
         column = codegen.literal(item.label)
         if templates.is_unit(item, context):
             # The rows of each unit, the fewest first: one bar per home in the
             # order of the ids hid the homes with gaps (design iteration 1.75).
-            text = f"Summarise {item.label}: rows per {unit_noun(item.label)}"
+            text = f"Summarise {as_data(item.label)}: rows per {unit_noun(item.label)}"
             code = f"import whybook\n\nwhybook.rows_per_unit({item.parent}, {column})"
         else:
             # The numbers under the plot: count, missing, quartiles and the extremes.
             plot = {"numeric": "hist", "datetime": "hist", "categorical": "bars", "binary": "bars"}.get(item.kind)
-            text = f"Summarise {item.label}: distribution and missingness"
+            text = f"Summarise {as_data(item.label)}: distribution and missingness"
             code = "\n".join(["import whybook", "", *([f"whybook.{plot}({item.parent}, {column})"] if plot else []), f"whybook.summary({item.parent}, {column})"])
         options.append(_option(text, "descriptive", 0.7, preview, code, f"Quick look · {starts.UNLESS_KEPT}", item.name))
         # No "Transform: log, standardise or bin": the catalogue asks once
@@ -961,14 +962,14 @@ def _self_options(request: DropRequest, item: Variable, home: Placement) -> list
                 imports = ["import polars as pl"] if item.library == "polars" and plan.lines else []
                 by_group = f"whybook.by_group({plan.name}, {codegen.literal(item.label)}, {codegen.literal(site)})"
                 code = "\n".join([codegen.comment(f"Is {item.label} measured consistently across {site}s?"), *imports, "import whybook", ""] + plan.lines + [by_group])
-                options.append(_option(f"Is {item.label} measured consistently across {site}s?", "quality", 0.55, home, code, "Summary per level · ~3 s", item.name))
+                options.append(_option(f"Is {as_data(item.label)} measured consistently across {site}s?", "quality", 0.55, home, code, "Summary per level · ~3 s", item.name))
     elif item.kind == "constant":
-        options.append(_option(f"Where does {item.label} come from, and what uses it?", "model", 0.6, preview, None, "Shown in Contents", item.name))
-    known = {option.text for option in options}
+        options.append(_option(f"Where does {as_code(item.label)} come from, and what uses it?", "model", 0.6, preview, None, "Shown in Contents", item.name))
+    known = {plain(option.text) for option in options}
     # The summary of a column of dates gives its first and last dates and its longest gap.
     covered = {"frame_missing", "duplicates", "distribution", "missing_values", "level_counts", "time_coverage"}
     for candidate in templates.generate(Selection(item, item), context):
-        if candidate.text not in known and candidate.template not in covered:
+        if plain(candidate.text) not in known and candidate.template not in covered:
             candidate.placement = home
             candidate.effect = "AI writes the cell"
             options.append(candidate)

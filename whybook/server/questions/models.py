@@ -378,6 +378,10 @@ class Candidate:
     # The outcome and the unit that the question takes from the context, by
     # column: {"outcome": "kwh_import"}. The view shows where each came from.
     uses: dict[str, str] | None = None
+    # The value that a what-if option tries, as code, which its text may give
+    # in words: '"outer"' for "What if the merge with **patients** were an
+    # outer join?".
+    value: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         data = {
@@ -395,4 +399,6 @@ class Candidate:
         }
         if self.uses:
             data["uses"] = dict(self.uses)
+        if self.value is not None:
+            data["value"] = self.value
         return data

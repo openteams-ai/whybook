@@ -744,7 +744,7 @@ describe('Another library for a cell', () => {
     );
     expect(compareOption(entry, { id: 'c3', label: '[3]' })).toEqual({
       id: 'library:c3:sklearn:statsmodels',
-      text: 'Does Logit of statsmodels agree with LogisticRegression of sklearn?',
+      text: 'Does `Logit` of statsmodels agree with `LogisticRegression` of sklearn?',
       type: 'model',
       origin: 'library',
       probability: null,
@@ -769,7 +769,7 @@ describe('Another library for a cell', () => {
       'mannwhitneyu'
     ]);
     expect(compareOption(entries[0], { id: 'c1', label: '[1]' }).text).toBe(
-      'Do ttest and mwu of pingouin agree with ttest_ind and mannwhitneyu of scipy.stats?'
+      'Do `ttest` and `mwu` of pingouin agree with `ttest_ind` and `mannwhitneyu` of scipy.stats?'
     );
     // Before the kernel lists its packages, nothing is known to be missing.
     expect(cellAlternatives(source, IMPORTS, null)[0].missing).toBe(false);

@@ -12,6 +12,7 @@ import pytest
 
 from whybook.server.questions.cells import CellInfo, Decision, decision_options
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 demo_only = pytest.mark.demo
 
@@ -94,11 +95,11 @@ READ = CellInfo("c1", "[1]", 'homes = pd.read_csv("homes.csv")\nhomes.head()')
 
 
 def texts(result):
-    return [option["text"] for option in result["options"]]
+    return [plain(option["text"]) for option in result["options"]]
 
 
 def option(result, text):
-    return next(o for o in result["options"] if o["text"] == text)
+    return next(o for o in result["options"] if plain(o["text"]) == text)
 
 
 def test_the_other_values_of_the_header_of_read_csv_are_none_and_zero_with_what_each_does():

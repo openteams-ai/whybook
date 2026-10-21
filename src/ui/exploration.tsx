@@ -7,6 +7,7 @@ import { readsFile } from '../model/decisions';
 import type { EpiModel } from '../model/epimodel';
 import type { ExploredOrder } from '../model/exploredorder';
 import { exploredOrder, orderExplored } from '../model/exploredorder';
+import { plainText } from '../model/inlinecode';
 import { extremesOf } from '../model/leaveout';
 import { notebookMeta } from '../model/notebook';
 import { needsAI, runnableFirst } from '../model/questionorder';
@@ -536,7 +537,7 @@ export function ExplorationPanel(props: { model: EpiModel }): JSX.Element {
           <div
             className="jp-Epi-caption jp-Epi-failedcount"
             title={failed
-              .map(question => model.questionText(question))
+              .map(question => plainText(model.questionText(question)))
               .join('\n')}
           >
             Not counted: {failed.length} question

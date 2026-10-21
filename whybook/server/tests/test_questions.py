@@ -3,6 +3,7 @@ import pytest
 from whybook.server.questions import templates
 from whybook.server.questions.models import AskedQuestion, Candidate, Context, Selection, Variable
 from whybook.server.questions.rankers import model_state, score_candidate
+from whybook.server.questions.marks import plain
 
 AGE = Variable("df['age']", "age", "numeric", parent="df", rows=100, missing=30)
 INCOME = Variable("df['income']", "income", "numeric", parent="df", rows=100, missing=0)
@@ -14,7 +15,7 @@ ALPHA = Variable("alpha", "alpha", "constant", value="0.05")
 
 
 def texts(selection):
-    return {candidate.text for candidate in templates.generate(selection)}
+    return {plain(candidate.text) for candidate in templates.generate(selection)}
 
 
 def template_ids(selection):
@@ -104,7 +105,7 @@ def test_the_rules_prefer_cleaning_a_column_with_missing_values():
 def test_the_rules_push_down_asked_questions():
     selection = Selection(AGE, INCOME)
     top = scored(selection, Context())[0]
-    context = Context(asked=(AskedQuestion(top.id, top.text, top.type),), used=frozenset({"age", "income"}))
+    context = Context(asked=(AskedQuestion(top.id, plain(top.text), top.type),), used=frozenset({"age", "income"}))
     second = scored(selection, context)
     assert second[0].id != top.id
     assert "already asked" in next(c for c in second if c.id == top.id).reasons

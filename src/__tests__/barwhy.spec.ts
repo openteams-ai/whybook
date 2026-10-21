@@ -55,7 +55,7 @@ describe('the question about a picked bar', () => {
       ],
       'pain'
     );
-    expect(why(plot, 'B')).toBe('Why is arm B lower than the other bars?');
+    expect(why(plot, 'B')).toBe('Why is **arm** B lower than the other bars?');
   });
 
   it('compares a count with the counts of the other bars', () => {
@@ -70,6 +70,6 @@ describe('the question about a picked bar', () => {
       ],
       null
     );
-    expect(why(plot, 'B')).toBe('Why is arm B higher than the other bars?');
+    expect(why(plot, 'B')).toBe('Why is **arm** B higher than the other bars?');
   });
 });

@@ -65,7 +65,7 @@ describe('Keep selection', () => {
       'sel_p0_0012_0_0048 = df[df["p"].between(0.0012, 0.0048)].copy()'
     );
     expect(option.text).toBe(
-      'Keep 0.0012 <= p <= 0.0048 of df as sel_p0_0012_0_0048'
+      'Keep 0.0012 <= p <= 0.0048 of **df** as **sel_p0_0012_0_0048**'
     );
   });
 
@@ -73,7 +73,7 @@ describe('Keep selection', () => {
     const option = kept(regionAsk({ x0: 0.00123456789, x1: 2.3456789 }));
     expect(option.code).toContain('df["p"].between(0.00123456789, 2.3456789)');
     expect(option.text).toBe(
-      'Keep 0.00123 <= p <= 2.35 of df as sel_p0_00123_2_35'
+      'Keep 0.00123 <= p <= 2.35 of **df** as **sel_p0_00123_2_35**'
     );
   });
 

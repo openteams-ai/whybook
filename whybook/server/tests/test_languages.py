@@ -16,6 +16,7 @@ from whybook.server.questions.cells import CellInfo, Decision, decision_options
 from whybook.server.questions.models import Context, InvalidRequest, Variable
 
 from .test_routes import AGE, CELL, CONTEXT, post
+from whybook.server.questions.marks import plain
 
 R = Context(language="r")
 # An R cell with a constant that the rules know: a count of weeks.
@@ -85,7 +86,7 @@ def test_a_chip_of_an_r_cell_offers_its_what_ifs_for_a_model_to_write():
     # In Python the view writes each what-if as a branch; R code has no such template.
     assert decision_options(WEEKLY, MIN_WEEK, Context())["options"] == []
     result = decision_options(WEEKLY, MIN_WEEK, R)
-    assert [option["text"] for option in result["options"]] == ["What if MIN_WEEK were 2?", "What if MIN_WEEK were 8?"]
+    assert [plain(option["text"]) for option in result["options"]] == ["What if MIN_WEEK were 2?", "What if MIN_WEEK were 8?"]
     assert all(option["code"] is None and option["placement"]["kind"] == "branch" for option in result["options"])
 
 
@@ -93,7 +94,7 @@ def test_a_value_typed_for_an_r_chip_is_not_read_as_python():
     with pytest.raises(InvalidRequest):
         decision_options(WEEKLY, MIN_WEEK, Context(), value="1:3")
     (typed,) = decision_options(WEEKLY, MIN_WEEK, R, value="1:3")["options"]
-    assert typed["text"] == "What if MIN_WEEK were 1:3?" and typed["code"] is None
+    assert plain(typed["text"]) == "What if MIN_WEEK were 1:3?" and typed["code"] is None
 
 
 async def test_the_questions_of_a_drop_go_without_the_templates_code_in_r(jp_fetch):
@@ -101,5 +102,5 @@ async def test_the_questions_of_a_drop_go_without_the_templates_code_in_r(jp_fet
     assert any(option["code"] for option in python["options"])
     r = await post(jp_fetch, "drop", body={"source": AGE, "target": {"cell": CELL}, "cells": [CELL], "context": {**CONTEXT, "language": "r"}})
     # The same questions, each for a model to write in R.
-    assert [option["text"] for option in r["options"]] == [option["text"] for option in python["options"]]
+    assert [plain(option["text"]) for option in r["options"]] == [plain(option["text"]) for option in python["options"]]
     assert all(option["code"] is None for option in r["options"])

@@ -10,13 +10,14 @@ row of it matches a row of the data.
 
 from whybook.server.questions.cells import CellInfo, next_steps
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 ESTIMATES = ("Variance", "Adjusted difference (kg)", "95% CI lower", "p-value")
 
 
 def offered(context):
     cells = [CellInfo("c5", "[5]", "fit_R <- lm(wt82_71 ~ qsmk + age, data=analysis_R)")]
-    return {step.text for step in next_steps(cells, Context.from_json(context), {}, set())}
+    return {plain(step.text) for step in next_steps(cells, Context.from_json(context), {}, set())}
 
 
 def test_a_table_of_estimates_offers_none_of_its_columns_against_the_outcome():

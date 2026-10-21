@@ -18,6 +18,7 @@ from whybook.server.questions.cells import CellInfo, next_steps, random_slope_co
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.files import FileDrop, file_options
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 # Each name holds MARK: the name is safe when MARK shows in no name, attribute or call of the code.
 MARK = "PWNED"
@@ -105,13 +106,13 @@ def test_worth_asking_next_keeps_the_name_a_string(name):
 def test_a_column_that_is_not_a_python_name_gives_code_that_runs(name):
     load = {"id": "c2", "label": "[2]", "source": "visits = load()", "defs": ["visits"], "uses": ["load"]}
     request = DropRequest.from_json({"source": column(name), "target": {"cell": load}, "cells": [load], "context": context(name)})
-    [association] = [o for o in drop_options(request)["options"] if o["text"].startswith(f"Is {name} associated")]
+    [association] = [o for o in drop_options(request)["options"] if plain(o["text"]).startswith(f"Is {name} associated")]
     namespace = {"visits": visits(name)}
     exec(association["code"], namespace)  # noqa: S102  the view runs the same code in the kernel
     fit = next(value for key, value in namespace.items() if key.endswith("_vs_pain"))
     assert len(fit.params) == 4
     cells = [CellInfo("c2", "[2]", "visits = load()", defs=("visits",))]
-    [step] = [s for s in next_steps(cells, Context.from_json(context(name)), {}, set()) if s.text == f"How does {name} relate to pain?"]
+    [step] = [s for s in next_steps(cells, Context.from_json(context(name)), {}, set()) if plain(s.text) == f"How does {name} relate to pain?"]
     exec(step.code, {"visits": visits(name)})  # noqa: S102
 
 
@@ -119,7 +120,7 @@ def test_a_covariate_with_a_quote_goes_into_a_formula_in_double_quotes():
     name = 'sleep "hours"'
     fit = {"id": "c5", "label": "[5]", "source": 'fit = smf.ols("pain ~ week", data=visits).fit()', "defs": ["fit"], "uses": ["smf", "visits"], "formulas": ["pain ~ week"]}
     request = DropRequest.from_json({"source": column(name), "target": {"cell": fit}, "cells": [fit], "context": context(name)})
-    [covariate] = [o for o in drop_options(request)["options"] if o["text"] == f"Add {name} as a covariate"]
+    [covariate] = [o for o in drop_options(request)["options"] if plain(o["text"]) == f"Add {name} as a covariate"]
     import statsmodels.formula.api as smf
 
     namespace = {"smf": smf, "visits": visits(name)}

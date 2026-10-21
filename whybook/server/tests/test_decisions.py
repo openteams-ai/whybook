@@ -10,6 +10,7 @@ import pytest
 from whybook.server import codegen
 from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, cell_questions, decision_options, next_steps, open_assumption, where_text
 from whybook.server.questions.models import Context, InvalidRequest
+from whybook.server.questions.marks import plain
 
 WEEKLY = CellInfo("c2", "[2]", "weekly = weekly_means(diary)\nweekly.head()")
 MIN_DAYS = Decision("MIN_DAYS", "14", "defaulted", param="min_days", function="weekly_means", source_file="prep.py", source_line=12)
@@ -21,11 +22,11 @@ HOW = Decision("how", "'inner'", "library_default", param="how", function="DataF
 
 
 def texts(result):
-    return [option["text"] for option in result["options"]]
+    return [plain(option["text"]) for option in result["options"]]
 
 
 def option(result, text):
-    return next(o for o in result["options"] if o["text"] == text)
+    return next(o for o in result["options"] if plain(o["text"]) == text)
 
 
 def test_a_constant_from_a_module_can_be_lower_higher_or_chosen_in_the_cell():
@@ -69,10 +70,11 @@ def test_a_default_of_a_class_goes_into_the_call_of_the_class():
         {"name": "C", "value": "1.0", "provenance": "library_default", "param": "C", "function": "LogisticRegression.__init__", "calls": [{"line": 1, "col": 12}]}
     )
     result = decision_options(cell, c, Context())
-    assert texts(result) == ["What if C were 1e6?", "Choose C in [4]"]
-    assert option(result, "What if C were 1e6?")["effect"].endswith("· almost no penalty on the coefficients")
+    # The question names the call, for the title of the branch it makes (design iteration 1.146).
+    assert texts(result) == ["What if C were 1e6 in the LogisticRegression call?", "Choose C in [4], in the LogisticRegression call"]
+    assert option(result, "What if C were 1e6 in the LogisticRegression call?")["effect"].endswith("· almost no penalty on the coefficients")
     assert "scorecard_if_1e6 = LogisticRegression(C=1e6).fit(X, y)" in result["options"][0]["code"]
-    chosen = option(result, "Choose C in [4]")["code"]
+    chosen = option(result, "Choose C in [4], in the LogisticRegression call")["code"]
     assert chosen.startswith("C = 1.0  # chosen here; was the default of LogisticRegression\n")
     assert "scorecard = LogisticRegression(C=C).fit(X, y)" in chosen
 
@@ -85,8 +87,8 @@ LIMIT = {"name": "max_iter", "value": "100", "provenance": "library_default", "p
 
 def test_an_iteration_limit_offers_more_iterations():
     result = decision_options(SCORECARD, Decision.from_json({**LIMIT, "when": "not_converged"}), Context())
-    assert texts(result)[:2] == ["What if max_iter were 1000?", "What if max_iter were 10000?"]
-    more = option(result, "What if max_iter were 1000?")
+    assert texts(result)[:2] == ["What if max_iter were 1000 in the LogisticRegression call?", "What if max_iter were 10000 in the LogisticRegression call?"]
+    more = option(result, "What if max_iter were 1000 in the LogisticRegression call?")
     assert more["effect"] == "1000 instead of 100 (+900) · ten times as many iterations"
     assert "scorecard_if_1000 = LogisticRegression(max_iter=1000).fit(X, y)" in more["code"]
 
@@ -98,8 +100,8 @@ def test_an_iteration_limit_at_which_the_fit_stopped_is_an_open_assumption():
     assert open_assumption(SCORECARD, Decision.from_json(LIMIT), Context()) == (False, None)
     assert Decision.from_json({**LIMIT, "when": "always"}).when is None
     # Worth asking next asks about it, with its sign, and the branch that answers it.
-    steps = [step for step in next_steps([SCORECARD.__class__(**{**SCORECARD.__dict__, "decisions": (limit,)})], Context(), {}, set()) if "max_iter" in step.text]
-    assert [step.text for step in steps] == ["Does max_iter = 100 change the result of [4]?"]
+    steps = [step for step in next_steps([SCORECARD.__class__(**{**SCORECARD.__dict__, "decisions": (limit,)})], Context(), {}, set()) if "max_iter" in plain(step.text)]
+    assert [plain(step.text) for step in steps] == ["Does max_iter = 100 change the result of [4]?"]
     assert steps[0].reasons[0] == "the fit stopped at max_iter = 100, before it converged"
     assert "LogisticRegression(max_iter=1000)" in steps[0].code
 
@@ -136,7 +138,7 @@ def test_a_branch_of_a_cell_that_makes_its_frame_from_itself_reads_the_frame_bef
     exec(left["code"], namespace)  # noqa: S102  the bug raised NameError: name 'weekly_if_left' is not defined
     assert (len(namespace["weekly_if_left"]), len(namespace["weekly"])) == (2, 3)
     # The branch of the default does the same.
-    [branch] = [q for q in cell_questions([cell], Context()) if q.text.startswith("Is how=")]
+    [branch] = [q for q in cell_questions([cell], Context()) if plain(q.text).startswith("Is how=")]
     exec(branch.code, self_filtering())  # noqa: S102
 
 
@@ -147,8 +149,8 @@ def test_both_what_if_values_of_the_residual_plot_of_the_later_demo_run():
     assert source.startswith("model_data = model_data.assign(")
     cell = CellInfo("lmm_checks", "[7]", source)
     points = Decision("max_points", "1500", "literal", param="max_points", function="scatter")
-    options = [o for o in decision_options(cell, points, Context())["options"] if o["text"].startswith("What if")]
-    assert [o["text"] for o in options] == ["What if max_points were 750?", "What if max_points were 3000?"]
+    options = [o for o in decision_options(cell, points, Context())["options"] if plain(o["text"]).startswith("What if")]
+    assert [plain(o["text"]) for o in options] == ["What if max_points were 750?", "What if max_points were 3000?"]
     for chosen in options:
         plotted = []
         model_data = pd.DataFrame({"treatment_arm": ["A", "B"] * 3, "pain": range(6)})
@@ -156,7 +158,7 @@ def test_both_what_if_values_of_the_residual_plot_of_the_later_demo_run():
         namespace = {"model_data": model_data, "lmm_fit": fit, "display": lambda value: None}
         namespace["whybook"] = types.SimpleNamespace(scatter=lambda data, **options: plotted.append((len(data.columns), options["max_points"])))
         exec(chosen["code"], namespace)  # noqa: S102
-        assert plotted == [(4, int(chosen["text"].split()[-1].rstrip("?")))]
+        assert plotted == [(4, int(plain(chosen["text"]).split()[-1].rstrip("?")))]
         assert list(namespace["model_data"].columns) == ["treatment_arm", "pain"]
 
 
@@ -210,7 +212,7 @@ def test_a_choice_that_a_branch_asks_about_is_not_offered_again_after_the_cell_r
     weekly = CellInfo("c4", "[10]", WEEKLY.source, decisions=(MIN_DAYS,))
     branch = CellInfo("c4b", "[10b]", "min_days_sweep", title="Does MIN_DAYS = 14 change the result of [4]?", branch_of="c4")
     other = CellInfo("c5", "[11]", WEEKLY.source, decisions=(MIN_DAYS,))
-    texts = [step.text for step in next_steps([weekly, branch, other], Context(), {}, set())]
+    texts = [plain(step.text) for step in next_steps([weekly, branch, other], Context(), {}, set())]
     assert "Does MIN_DAYS = 14 change the result of [10]?" not in texts
     # The same choice in a cell that no branch asks about is still offered.
     assert "Does MIN_DAYS = 14 change the result of [11]?" in texts
@@ -221,20 +223,22 @@ def test_a_value_goes_into_the_one_merge_that_the_analyst_chose():
     how='inner'. A value used to change every merge of the cell, so one merge
     could not be tried alone; it now goes into the call chosen in the menu."""
     weather = decision_options(DAILY, HOW, Context(), calls=(WEATHER,))
-    assert texts(weather)[:2] == ['What if how were "left" in the merge with weather?', 'What if how were "outer" in the merge with weather?']
-    code = option(weather, 'What if how were "left" in the merge with weather?')["code"]
-    assert code.splitlines()[0] == "# What if how were \"left\" in the merge with weather? A branch of [4], where it is 'inner'."
+    # A join reads as its chip, "left join" (design iteration 1.146), and the option carries the value.
+    assert texts(weather)[:2] == ["What if the merge with weather were a left join?", "What if the merge with weather were an outer join?"]
+    assert [o["value"] for o in weather["options"][:2]] == ['"left"', '"outer"']
+    code = option(weather, "What if the merge with weather were a left join?")["code"]
+    assert code.splitlines()[0] == "# What if the merge with weather were a left join? A branch of [4], where it is 'inner'."
     assert '    readings.merge(homes, on="home_id")\n    .merge(weather, on=["region", "date"], how="left")' in code
     assert "daily_if_left.head()" in code
     chosen = option(weather, "Choose how in [4], in the merge with weather")
     assert 'readings.merge(homes, on="home_id")\n    .merge(weather, on=["region", "date"], how=how)' in chosen["code"]
     # Both merges, as the chip's menu offers first.
     both = decision_options(DAILY, HOW, Context())
-    assert texts(both)[0] == 'What if how were "left" in both merges?'
+    assert texts(both)[0] == "What if both merges were left joins?"
     assert 'readings.merge(homes, on="home_id", how="left")\n    .merge(weather, on=["region", "date"], how="left")' in both["options"][0]["code"]
     # A typed value goes into the chosen call too.
     typed = decision_options(DAILY, HOW, Context(), value='"right"', calls=(HOMES,))
-    assert texts(typed) == ['What if how were "right" in the merge with homes?']
+    assert texts(typed) == ["What if the merge with homes were a right join?"]
     assert 'readings.merge(homes, on="home_id", how="right")\n    .merge(weather, on=["region", "date"])' in typed["options"][0]["code"]
 
 
@@ -265,15 +269,17 @@ def test_the_calls_of_a_request_must_be_calls_of_the_decision():
 def test_where_a_value_goes_names_the_frame_of_each_call_and_its_line_where_two_share_one():
     three = Decision("how", "'inner'", "library_default", param="how", function="DataFrame.merge", calls=(HOMES, WEATHER, DecisionCall(5, 4, "homes")))
     assert where_text(three, None) == "all 3 merges"
-    assert where_text(three, (HOMES,)) == "the merge with homes on line 2"
-    assert where_text(three, (WEATHER,)) == "the merge with weather"
+    assert where_text(three, (HOMES,)) == "the merge with **homes** on line 2"
+    assert where_text(three, (WEATHER,)) == "the merge with **weather**"
     assert where_text(three, (HOMES, WEATHER)) == "2 of the 3 merges"
     ribbons = Decision("ci", "'normal'", "library_default", param="ci", function="plots.ribbon", calls=(DecisionCall(6, 8, "february"), DecisionCall(7, 8, None)))
     assert where_text(ribbons, None) == "both calls"
-    assert where_text(ribbons, ribbons.calls[:1]) == "the ribbon of february"
-    assert where_text(ribbons, ribbons.calls[1:]) == "the ribbon on line 7"
+    assert where_text(ribbons, ribbons.calls[:1]) == "the `ribbon` of **february**"
+    assert where_text(ribbons, ribbons.calls[1:]) == "the `ribbon` on line 7"
     # One call needs no place.
-    assert where_text(Decision("reml", "True", "library_default", param="reml", function="MixedLM.fit", calls=(DecisionCall(4, 2),)), None) == ""
+    # One call is named too, without its line (design iteration 1.146).
+    assert where_text(Decision("reml", "True", "library_default", param="reml", function="MixedLM.fit", calls=(DecisionCall(4, 2),)), None) == "the `fit` call"
+    assert where_text(Decision("reml", "True", "library_default", param="reml", function="MixedLM.fit", calls=(DecisionCall(4, 2, "model_data"),)), None) == "the `fit` of **model_data**"
 
 
 def test_a_sweep_of_a_constant_goes_into_the_chosen_call():
@@ -321,7 +327,7 @@ def test_a_value_goes_into_each_call_of_a_decision_of_several_functions():
     alone = decision_options(cell, skipna, Context(), value="False", calls=skipna.calls[2:])
     assert texts(alone) == ["What if skipna were False in the sum on line 2?"]
     assert "means_if_false = (x0.mean(), x1.mean())\ntotal_if_false = missing.sum(skipna=False)" in alone["options"][0]["code"]
-    assert where_text(skipna, skipna.calls[:1]) == "the mean on line 1"
+    assert where_text(skipna, skipna.calls[:1]) == "the `mean` on line 1"
     # The choice written in the cell names both functions.
     chosen = option(decision_options(cell, skipna, Context()), "Choose skipna in [20], in all 3 calls")
     assert chosen["code"].startswith("skipna = True  # chosen here; was the default of Series.mean and Series.sum\n")

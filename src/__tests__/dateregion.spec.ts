@@ -64,7 +64,7 @@ describe('a range picked on a date axis', () => {
       'sel_day2024_01_02_2024_01_03 = diary[diary["day"].between(pd.Timestamp("2024-01-02"), pd.Timestamp("2024-01-03"))].copy()'
     ]);
     expect(option.text).toBe(
-      'Keep 2024-01-02 <= day <= 2024-01-03 of diary as sel_day2024_01_02_2024_01_03'
+      'Keep 2024-01-02 <= day <= 2024-01-03 of **diary** as **sel_day2024_01_02_2024_01_03**'
     );
   });
 

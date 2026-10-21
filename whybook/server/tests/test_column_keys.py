@@ -18,6 +18,7 @@ from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.models import Context, Variable
 
 from .kernel_call import run
+from whybook.server.questions.marks import plain
 
 COLUMNS = {"0": "num", "1": "num", "2": "num", "3": "int", "4": "cat"}
 CONTEXT = {"frames": {"X": {"rows": 60, "columns": COLUMNS, "keys": {"0": 0, "1": 1, "2": 2, "3": 3, "4": 4}}}, "used": [], "asked": []}
@@ -87,19 +88,19 @@ def test_the_listing_gives_the_key_of_a_column_whose_key_is_not_a_string(shell):
 
 def test_a_column_dropped_onto_itself_is_summarised_by_its_key():
     found = options(column(0, "numeric"), column(0, "numeric"))
-    summary = next(option for option in found if option["text"].startswith("Summarise 0"))
+    summary = next(option for option in found if plain(option["text"]).startswith("Summarise 0"))
     assert "whybook.summary(X, 0)" in summary["code"]
     run_code(summary["code"])
 
 
 def test_two_columns_are_compared_by_their_keys(capsys):
     found = options(column(0, "numeric"), column(1, "numeric"))
-    association = next(option for option in found if option["text"] == "Are 0 and 1 associated?")
+    association = next(option for option in found if plain(option["text"]) == "Are 0 and 1 associated?")
     assert "X[[0, 1]].corr()" in association["code"]
     run_code(association["code"])
-    both = next(option for option in found if option["text"].startswith("Summarise 0 and 1"))
+    both = next(option for option in found if plain(option["text"]).startswith("Summarise 0 and 1"))
     run_code(both["code"])
-    levels = next(option for option in options(column(0, "numeric"), column(3, "categorical")) if option["text"].startswith("Does 0 differ"))
+    levels = next(option for option in options(column(0, "numeric"), column(3, "categorical")) if plain(option["text"]).startswith("Does 0 differ"))
     assert "whybook.compare_levels(X, 0, 3)" in levels["code"]
     run_code(levels["code"])
 

@@ -17,6 +17,7 @@ from whybook.server.questions.cells import CellInfo, Decision, cell_questions, d
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.models import Context
 from whybook.server.tests.test_demo_templates import drops
+from whybook.server.questions.marks import plain
 
 CONTEXT_JSON = {
     "outcome": "pain",
@@ -57,7 +58,7 @@ def assert_no_temporary_twice(options: list[tuple[str, str]]) -> None:
 
 def coded(result: dict) -> list[tuple[str, str]]:
     """The (text, code) pairs of the options that run offline."""
-    return [(option["text"], option["code"]) for option in result["options"] if option["code"]]
+    return [(plain(option["text"]), option["code"]) for option in result["options"] if option["code"]]
 
 
 def statements(code: str) -> list:
@@ -94,7 +95,7 @@ def test_the_checks_of_two_filters_name_what_each_keeps_and_removes():
 
 
 def test_each_association_worth_asking_next_joins_its_own_frame():
-    steps = {step.text: step.code for step in next_steps([WEEKLY], CONTEXT, {}, set())}
+    steps = {plain(step.text): step.code for step in next_steps([WEEKLY], CONTEXT, {}, set())}
     age, bmi = steps["How does age relate to pain?"], steps["How does bmi relate to pain?"]
     assert temporaries(age) == {"_age_vs_pain_data"}
     assert "age_vs_pain = smf.ols(\"pain ~ age\", data=_age_vs_pain_data).fit()" in age
@@ -172,13 +173,13 @@ def test_the_questions_of_demo_cells_and_the_next_steps_share_no_temporary(demo)
     context = Context.from_json(demo.context())
     for cell_ids in (["weekly"], ["lmm"], ["lmm", "ordinal"], ["weekly", "lmm"]):
         cells = [CellInfo.from_json({**demo.cell(i), "branch_of": "lmm" if i == "ordinal" else None}) for i in cell_ids]
-        assert_no_temporary_twice([(q.text, q.code) for q in cell_questions(cells, context) if q.code])
+        assert_no_temporary_twice([(plain(q.text), q.code) for q in cell_questions(cells, context) if q.code])
     cells = [CellInfo.from_json(c) for c in demo.cells_json()]
     olink = demo.variable("olink")
     groups = {"olink": [{"label": g["label"], "total": len(g["columns"]), "used": 0} for g in olink["groups"]]}
     # A column in two frames, such as notes, gives the same step twice, with one id.
     steps = {step.id: step for step in next_steps(cells, context, groups, set())}
-    assert_no_temporary_twice([(step.text, step.code) for step in steps.values() if step.code])
+    assert_no_temporary_twice([(plain(step.text), step.code) for step in steps.values() if step.code])
 
 
 @pytest.mark.demo

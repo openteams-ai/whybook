@@ -36,6 +36,7 @@ import {
   CellLabel,
   CellTitle,
   CloseButton,
+  CodeText,
   DecisionChips,
   GUESS_HELP,
   GuessChip,
@@ -521,7 +522,9 @@ export function ResultStrip(props: {
       <div className="jp-Epi-strip-row">
         <ProgressBar value={busy ? null : 1} label={strip.text} />
         <span className="jp-Epi-strip-action">{stripAction(model, strip)}</span>
-        <span className="jp-Epi-strip-text">{strip.text}</span>
+        <span className="jp-Epi-strip-text">
+          <CodeText text={strip.text} />
+        </span>
         {stage && <span className="jp-Epi-strip-stage">{stage}</span>}
         {strip.status === 'writing' && (
           <Button
@@ -604,7 +607,9 @@ function HeldStrip(props: { model: EpiModel; strip: IStrip }): JSX.Element {
     >
       <div className="jp-Epi-strip-row">
         <span className="jp-Epi-strip-action">Not started</span>
-        <span className="jp-Epi-strip-text">{strip.text}</span>
+        <span className="jp-Epi-strip-text">
+          <CodeText text={strip.text} />
+        </span>
         <CloseButton
           label="Close; the answer does not start"
           onClick={() => closeStrip(model, strip, root.current)}
@@ -651,7 +656,9 @@ function WaitingStrip(props: { model: EpiModel; strip: IStrip }): JSX.Element {
     >
       <div className="jp-Epi-strip-row">
         <span className="jp-Epi-strip-action">Not added</span>
-        <span className="jp-Epi-strip-text">{strip.text}</span>
+        <span className="jp-Epi-strip-text">
+          <CodeText text={strip.text} />
+        </span>
         <CloseButton
           label="Close; the answer is dropped"
           onClick={() => closeStrip(model, strip, root.current)}

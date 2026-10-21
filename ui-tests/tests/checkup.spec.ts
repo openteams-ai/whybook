@@ -535,7 +535,7 @@ test.describe('With answers of one cell', () => {
     await expect.poll(() => solve.requests.length).toBe(1);
     expect(solve.requests[0]).toMatchObject({
       question: {
-        text: 'Does Logit of statsmodels agree with LogisticRegression of sklearn?'
+        text: 'Does `Logit` of statsmodels agree with `LogisticRegression` of sklearn?'
       },
       placement: 'branch',
       cell: { label: '[2]' }

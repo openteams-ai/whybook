@@ -24,6 +24,7 @@ from typing import Any
 from . import decision_models
 from .config import Whybook
 from .decision_models import DecisionModel, Fetch
+from .questions.marks import plain
 from .questions.models import InvalidRequest
 
 TYPE_INSTRUCTION = "Sort a question that a data analyst asked about a notebook by the kind of question it is."
@@ -72,7 +73,7 @@ def request_from_json(body: Any) -> dict[str, Any]:
         raise InvalidRequest("give the cell as its source, or null")
     places = [place for place in body.get("places") or [] if place in PLACES]
     return {
-        "text": " ".join(text.split())[:MAX_QUESTION],
+        "text": " ".join(plain(text).split())[:MAX_QUESTION],
         "cell": "\n".join(cell.splitlines()[:CELL_LINES]) if cell else None,
         "places": places,
     }

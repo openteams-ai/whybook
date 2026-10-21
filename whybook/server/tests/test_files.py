@@ -3,6 +3,7 @@
 import pytest
 
 from whybook.server.questions.files import FileDrop, file_options
+from whybook.server.questions.marks import plain
 
 pytestmark = pytest.mark.demo
 
@@ -20,7 +21,7 @@ def drop(demo, tmp_path, name, text, cell=None):
 
 def test_a_csv_file_loads_and_profiles(demo, tmp_path):
     result = drop(demo, tmp_path, "visits.csv", "patient_id,visit,nurse_score\nP001,1,3\nP002,1,5\n")
-    texts = [option["text"] for option in result["options"]]
+    texts = [plain(option["text"]) for option in result["options"]]
     assert texts[:2] == ["Load visits.csv as visits", "Profile visits.csv before loading it"]
     for option in result["options"]:
         if option["code"]:
@@ -30,8 +31,8 @@ def test_a_csv_file_loads_and_profiles(demo, tmp_path):
 
 def test_dropped_on_a_cell_it_joins_on_the_shared_key(demo, tmp_path):
     result = drop(demo, tmp_path, "nurses.csv", "patient_id,nurse_score\nP001,3\n", cell="lmm")
-    join = next(o for o in result["options"] if o["text"].startswith("Join nurses.csv"))
-    assert join["text"] == "Join nurses.csv to model_data on patient_id"
+    join = next(o for o in result["options"] if plain(o["text"]).startswith("Join nurses.csv"))
+    assert plain(join["text"]) == "Join nurses.csv to model_data on patient_id"
     demo.run(join["code"])
     assert "nurse_score" in demo.shell.user_ns["model_data_nurses"].columns
 
@@ -48,8 +49,8 @@ def test_a_parquet_file_dropped_on_a_cell_joins_on_the_shared_key(demo, tmp_path
         "context": demo.context(),
     }
     result = file_options(FileDrop.from_json(body), str(tmp_path))
-    join = next(o for o in result["options"] if o["text"].startswith("Join nurses.parquet"))
-    assert join["text"] == "Join nurses.parquet to model_data on patient_id"
+    join = next(o for o in result["options"] if plain(o["text"]).startswith("Join nurses.parquet"))
+    assert plain(join["text"]) == "Join nurses.parquet to model_data on patient_id"
     demo.run(join["code"])
     assert "nurse_score" in demo.shell.user_ns["model_data_nurses"].columns
 

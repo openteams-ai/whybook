@@ -106,7 +106,7 @@ AGENT_CELL = {
 
 def test_the_share_between_units_on_a_card_uses_the_frame_the_unit_was_dragged_from(capsys):
     [share] = onto_cell(pain_column("patient_id", "id", "id"), AGENT_CELL, PAIN)
-    assert share["text"] == "How much of the variation in pain lies between patients?"
+    assert plain(share["text"]) == "How much of the variation in pain lies between patients?"
     assert 'whybook.icc(diary_patients, "pain", "patient_id")' in share["code"]
     assert "grp" not in share["code"] and "merge" not in share["code"]
     run(share["code"], diary_patients=diary_patients())
@@ -155,7 +155,7 @@ KWH_PEAK = energy_column("kwh_peak", "numeric", "readings_homes", "num")
 
 
 def test_a_date_that_each_unit_has_once_gets_no_profile_and_no_rows_per_unit():
-    found = [o["text"] for o in pair(TOU_START, KWH_PEAK)]
+    found = [plain(o["text"]) for o in pair(TOU_START, KWH_PEAK)]
     assert not [text for text in found if "vary by" in text], found
     assert not [text for text in found if text.startswith("How many rows")], found
     # The trend over the switch date stays, for a model to answer.
@@ -164,7 +164,7 @@ def test_a_date_that_each_unit_has_once_gets_no_profile_and_no_rows_per_unit():
 
 def test_daily_dates_get_the_profile_by_weekday_and_month():
     date = energy_column("date", "datetime", "readings", "date", **DAY)
-    found = [o["text"] for o in pair(date, energy_column("kwh_import", "numeric", "readings", "num"))]
+    found = [plain(o["text"]) for o in pair(date, energy_column("kwh_import", "numeric", "readings", "num"))]
     assert "How does kwh_import vary by weekday and by month?" in found
     assert "How many rows does each home have in readings?" in found
 
@@ -172,10 +172,10 @@ def test_daily_dates_get_the_profile_by_weekday_and_month():
 def test_times_of_day_get_the_profile_by_hour_and_weekday_whatever_the_name():
     stamp = energy_column("timestamp", "datetime", "half_hourly", "date", min="2025-02-10 00:00:00", max="2025-10-12 23:30:00")
     kwh = energy_column("kwh", "numeric", "half_hourly", "num")
-    assert "How does kwh vary by hour of day and by weekday?" in [o["text"] for o in pair(stamp, kwh)]
+    assert "How does kwh vary by hour of day and by weekday?" in [plain(o["text"]) for o in pair(stamp, kwh)]
     named = energy_column("date", "datetime", "half_hourly", "date", min="2025-02-10 00:00:00", max="2025-10-12 23:30:00")
     frames = {**ENERGY_FRAMES, "half_hourly": {"rows": 241920, "columns": {"home_id": "id", "date": "date", "kwh": "num"}}}
-    found = [o["text"] for o in pair(named, kwh, {**ENERGY, "frames": frames})]
+    found = [plain(o["text"]) for o in pair(named, kwh, {**ENERGY, "frames": frames})]
     assert "How does kwh vary by hour of day and by weekday?" in found
 
 
@@ -226,7 +226,7 @@ def readings_homes(homes=360, days=5) -> pd.DataFrame:
 def test_two_attributes_of_the_units_count_each_unit_once_with_a_chi_square_test(capsys):
     tariff = energy_column("tariff", "categorical", "readings_homes", "cat")
     has_ev = energy_column("has_ev", "binary", "readings_homes", "bool")
-    [independent] = [o for o in pair(tariff, has_ev) if o["text"] == "Are tariff and has_ev independent?"]
+    [independent] = [o for o in pair(tariff, has_ev) if plain(o["text"]) == "Are tariff and has_ev independent?"]
     assert 'whybook.cross_table(readings_homes, "tariff", "has_ev", unit="home_id")' in independent["code"]
     table = run(independent["code"].replace("whybook.cross_table", "result = whybook.cross_table"), readings_homes=readings_homes())["result"]
     assert list(table.columns) == ["False", "True", "homes"] and list(table["homes"]) == [267, 93]
@@ -302,11 +302,11 @@ def test_a_level_of_the_units_on_a_profile_draws_one_line_per_level(shown, capsy
     tariff = energy_column("tariff", "categorical", "homes", "cat", unique=2)
     found = onto_cell(tariff, PROFILE_CELL, {**ENERGY, "outcome": "kwh", "outcomes": ["kwh"]})
     split = found[0]
-    assert split["text"] == "The same profile of kwh, one line per tariff"
+    assert plain(split["text"]) == "The same profile of kwh, one line per tariff"
     assert 'whybook.time_profile(_kwh_by_tariff_data, "timestamp", "kwh", by="tariff")' in split["code"]
     assert 'homes.groupby("home_id", as_index=False, observed=True)["tariff"].first(), on="home_id", how="left")' in split["code"]
     # The bars that pooled every half hour are not offered beside it.
-    assert not [o for o in found if o["text"].startswith("Plot ")]
+    assert not [o for o in found if plain(o["text"]).startswith("Plot ")]
     homes = pd.DataFrame({"home_id": ["H1", "H2"], "tariff": ["flat", "time of use"]})
     run(split["code"], half_hourly=half_hourly_two_homes(), homes=homes)
     hours, weekdays = payloads(shown)
@@ -321,12 +321,12 @@ def test_an_arm_on_a_trajectory_draws_one_line_per_arm_and_asks_a_mixed_model(sh
     arm = pain_column("treatment_arm", "binary", "cat")
     found = onto_cell(arm, TRAJECTORY_CELL, PAIN)
     split, model = found[0], found[1]
-    assert split["text"] == "The same trajectory of pain, one line per treatment_arm"
+    assert plain(split["text"]) == "The same trajectory of pain, one line per treatment_arm"
     assert 'whybook.ribbon(diary_patients, x="week", y="pain", by="treatment_arm")' in split["code"]
     run(split["code"], diary_patients=diary_patients())
     [payload] = payloads(shown)
     assert [series["name"] for series in payload["series"]] == ["A", "B"]
-    assert model["text"] == "Does treatment_arm change the trajectory of pain?"
+    assert plain(model["text"]) == "Does treatment_arm change the trajectory of pain?"
     assert 'smf.mixedlm("pain ~ week * treatment_arm", diary_patients, groups=diary_patients["patient_id"], re_formula="~week").fit()' in model["code"]
     pytest.importorskip("statsmodels")
     namespace = run(model["code"], diary_patients=diary_patients(patients=40, weeks=6))
@@ -340,7 +340,7 @@ def test_an_arm_on_a_trajectory_draws_one_line_per_arm_and_asks_a_mixed_model(sh
 
 def test_the_bars_of_a_level_of_the_units_average_one_mean_per_unit_with_intervals(shown, capsys):
     cell = {"id": "c4", "label": "[4]", "source": "diary_patients = diary.merge(patients, on='patient_id')", "defs": ["diary_patients"], "uses": ["diary", "patients"]}
-    [plot] = [o for o in onto_cell(pain_column("treatment_arm", "binary", "cat"), cell, PAIN) if o["text"].startswith("Plot")]
+    [plot] = [o for o in onto_cell(pain_column("treatment_arm", "binary", "cat"), cell, PAIN) if plain(o["text"]).startswith("Plot")]
     assert 'whybook.bars(diary_patients, x="treatment_arm", y="pain", unit="patient_id")' in plot["code"]
     # Patients with fewer days pull the mean of the rows away from the mean of the patients.
     frame = diary_patients().iloc[lambda d: ((d["treatment_arm"] == "A") | (d["week"] <= 2)).to_numpy()]
@@ -367,6 +367,7 @@ from whybook.server.questions import reshape  # noqa: E402
 from whybook.server.questions.cells import CellInfo, next_steps  # noqa: E402
 from whybook.server.questions.files import FileDrop, file_options  # noqa: E402
 from whybook.server.questions.models import Context  # noqa: E402
+from whybook.server.questions.marks import plain
 
 DIARY_COLUMNS = {"patient_id": "id", "week": "int", "analgesic_use": "cat", "notes": "text", "cycle_start": "int"}
 DIARY_COLUMNS.update({f"{measure}_{day}": "num" for day in range(1, 8) for measure in ("pain", "sleep", "mood")})
@@ -398,8 +399,8 @@ def test_a_wide_diary_on_itself_reshapes_to_one_row_per_day(capsys):
     frames = {"diary_raw": {"rows": 6, "columns": DIARY_COLUMNS}}
     source = {"name": "diary_raw", "label": "diary_raw", "kind": "dataframe", "rows": 6, "n_columns": len(DIARY_COLUMNS)}
     found = pair(source, source, {"frames": frames, "unit": "patient_id", "units": ["patient_id"], "used": [], "asked": []})
-    [long] = [o for o in found if o["text"].startswith("Reshape")]
-    assert long["text"] == "Reshape diary_raw to one row per day: pain, sleep and mood"
+    [long] = [o for o in found if plain(o["text"]).startswith("Reshape")]
+    assert plain(long["text"]) == "Reshape diary_raw to one row per day: pain, sleep and mood"
     assert 'diary = pd.wide_to_long(diary_raw, stubnames=["pain", "sleep", "mood"], i=["patient_id", "week"], j="day", sep="_").reset_index()' in long["code"]
     assert long["code"] and "needs AI" not in long["reasons"]
     diary = run(long["code"], pd=pd, diary_raw=diary_raw())["diary"]
@@ -411,8 +412,8 @@ def test_a_wide_diary_on_itself_reshapes_to_one_row_per_day(capsys):
 def test_a_wide_diary_file_loads_as_one_row_per_day(tmp_path, monkeypatch):
     diary_raw().to_csv(tmp_path / "diary_raw.csv", index=False)
     drop = FileDrop.from_json({"source": {"path": "diary_raw.csv", "kernel_path": "diary_raw.csv", "label": "diary_raw.csv"}, "context": {}})
-    [long] = [o for o in file_options(drop, str(tmp_path))["options"] if "one row per" in o["text"]]
-    assert long["text"] == "Load diary_raw.csv as one row per day"
+    [long] = [o for o in file_options(drop, str(tmp_path))["options"] if "one row per" in plain(o["text"])]
+    assert plain(long["text"]) == "Load diary_raw.csv as one row per day"
     monkeypatch.chdir(tmp_path)
     namespace = run(long["code"])
     assert len(namespace["diary"]) == 36 and len(namespace["diary_raw"]) == 6
@@ -421,13 +422,13 @@ def test_a_wide_diary_file_loads_as_one_row_per_day(tmp_path, monkeypatch):
 def test_numbered_columns_are_not_suggested_as_measures_of_each_other_and_the_reshape_is():
     context = Context.from_json({"frames": {"diary_raw": {"rows": 5880, "columns": DIARY_COLUMNS}}, "outcome": "pain_1", "unit": "patient_id"})
     cells = [CellInfo(id="c1", label="[1]", source="diary_raw = pd.read_csv('diary_raw.csv')", defs=("diary_raw",))]
-    texts = [step.text for step in next_steps(cells, context, {}, set())]
+    texts = [plain(step.text) for step in next_steps(cells, context, {}, set())]
     assert not [text for text in texts if "pain_2" in text or "sleep_2" in text], texts
     assert "Reshape diary_raw to one row per day: pain, sleep and mood" in texts
     # Once a frame holds pain, sleep and mood as columns, the reshape is done.
     frames = {"diary_raw": {"rows": 5880, "columns": DIARY_COLUMNS}, "diary": {"rows": 36941, "columns": {"patient_id": "id", "day_number": "int", "pain": "num", "sleep": "num", "mood": "num"}}}
     context = Context.from_json({"frames": frames, "outcome": "pain", "unit": "patient_id"})
-    texts = [step.text for step in next_steps(cells, context, {}, set())]
+    texts = [plain(step.text) for step in next_steps(cells, context, {}, set())]
     assert not [text for text in texts if text.startswith("Reshape") or "pain_" in text or "sleep_" in text], texts
 
 
@@ -440,7 +441,7 @@ def test_a_long_frame_that_a_cell_made_from_the_wide_one_is_the_reshape():
 
     def texts(cells, **frames):
         context = Context.from_json({"frames": {"diary_raw": raw, **frames}, "outcome": "pain_score", "unit": "patient_id"})
-        return [step.text for step in next_steps(cells, context, {}, set())]
+        return [plain(step.text) for step in next_steps(cells, context, {}, set())]
 
     found = texts([load, to_long], diary=diary)
     assert not [text for text in found if text.startswith("Reshape") or "pain_1" in text or "mood_1" in text], found

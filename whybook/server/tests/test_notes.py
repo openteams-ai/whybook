@@ -5,6 +5,7 @@ import json
 from whybook.server.questions.cells import CellInfo, cell_questions, excerpt, states_numbers
 from whybook.server.questions.models import Context
 from whybook.server.solve import NOTE_TASK, PLACEMENT_PROMPTS, SolveRequest
+from whybook.server.questions.marks import plain
 
 SUMMARY = (
     "Pain falls over the six months in both arms, faster in arm B, by 0.32 points more per month. "
@@ -25,7 +26,7 @@ def note(source=SUMMARY, **extra):
 
 def test_a_text_with_numbers_asks_to_recompute_them_after_the_text():
     questions = cell_questions([note()], CONTEXT)
-    texts = [question.text for question in questions]
+    texts = [plain(question.text) for question in questions]
     assert "Can each number in this text be recomputed from the data?" in texts
     assert "Do the claims in this text hold at every site?" in texts
     # A model answers each one: no template reads prose.
@@ -35,12 +36,12 @@ def test_a_text_with_numbers_asks_to_recompute_them_after_the_text():
 
 def test_selected_words_are_quoted_in_the_question():
     words = note("by 0.32 points more per month", excerpt=True)
-    texts = [question.text for question in cell_questions([words], CONTEXT)]
+    texts = [plain(question.text) for question in cell_questions([words], CONTEXT)]
     assert "Can each number in “by 0.32 points more per month” be recomputed from the data?" in texts
 
 
 def test_a_causal_verb_gets_its_own_question():
-    texts = [question.text for question in cell_questions([note("Arm B reduces pain.")], CONTEXT)]
+    texts = [plain(question.text) for question in cell_questions([note("Arm B reduces pain.")], CONTEXT)]
     assert "Does “reduces” claim a cause that the design does not show?" in texts
     # No number worth checking: no question about numbers.
     assert not any("number" in text for text in texts)

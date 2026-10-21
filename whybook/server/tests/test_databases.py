@@ -9,6 +9,7 @@ import pytest
 
 from whybook.server import databases
 from whybook.server.questions.tables import TableDrop, sample_rows, table_options
+from whybook.server.questions.marks import plain
 
 
 def make_db(path, tables):
@@ -99,11 +100,11 @@ def test_a_table_loads_and_joins_per_patient(demo, tmp_path):
         "context": demo.context(),
     }
     result = table_options(TableDrop.from_json(body), str(tmp_path))
-    texts = [option["text"] for option in result["options"]]
+    texts = [plain(option["text"]) for option in result["options"]]
     assert "Load visits as visits" in texts
-    join = next(o for o in result["options"] if o["text"].startswith("Join"))
+    join = next(o for o in result["options"] if plain(o["text"]).startswith("Join"))
     # Two visits for P001: the join averages them first, and leaves week out.
-    assert join["text"] == "Join the per-patient_id means of visits to model_data"
+    assert plain(join["text"]) == "Join the per-patient_id means of visits to model_data"
     for option in result["options"]:
         if option["code"]:
             demo.run(option["code"])

@@ -267,7 +267,7 @@ test('asks the model next to the templates, with a bar, puts its questions where
   // The model reads the questions offered, and which of them run.
   expect(
     sent.offered.map((item: any) => [item.text, item.runs])
-  ).toContainEqual(['How do readings and homes line up?', true]);
+  ).toContainEqual(['How do **readings** and **homes** line up?', true]);
 
   // Move the pointer off the list, so that the order shows when it comes.
   await page.mouse.move(5, 5);

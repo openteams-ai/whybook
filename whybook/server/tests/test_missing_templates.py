@@ -10,6 +10,7 @@ gets, on small frames.
 from whybook.server.questions.drops import DropRequest, drop_options
 
 from .test_drop_templates import CONTEXT, column, options, run
+from whybook.server.questions.marks import plain
 
 MODEL_CELL = {
     "id": "c4",
@@ -27,7 +28,7 @@ def onto(cell, cells):
 
 
 def test_two_columns_dragged_together_offer_a_look_at_both():
-    found = {option["text"]: option for option in options(column("sleep", "numeric"), {"item": column("pain", "numeric")})}
+    found = {plain(option["text"]): option for option in options(column("sleep", "numeric"), {"item": column("pain", "numeric")})}
     look = found["Summarise sleep and pain: distribution and missingness"]
     assert look["type"] == "descriptive"
     assert look["placement"]["kind"] == "preview"
@@ -36,7 +37,7 @@ def test_two_columns_dragged_together_offer_a_look_at_both():
 
 
 def test_a_column_dragged_onto_a_cell_that_fits_no_model_is_added_to_the_model_of_another_cell():
-    found = {option["text"]: option for option in onto(PLOT_CELL, [MODEL_CELL, PLOT_CELL])}
+    found = {plain(option["text"]): option for option in onto(PLOT_CELL, [MODEL_CELL, PLOT_CELL])}
     added = found["Add sleep to the model in [4]"]
     assert added["type"] == "model"
     assert (added["placement"]["kind"], added["placement"]["cell"]) == ("edit", "c4")
@@ -46,7 +47,7 @@ def test_a_column_dragged_onto_a_cell_that_fits_no_model_is_added_to_the_model_o
 
 
 def test_with_no_model_of_the_outcome_a_model_is_fitted_next_to_the_cell():
-    found = {option["text"]: option for option in onto(PLOT_CELL, [PLOT_CELL])}
+    found = {plain(option["text"]): option for option in onto(PLOT_CELL, [PLOT_CELL])}
     model = found["Fit a model of pain on sleep"]
     assert model["type"] == "model"
     assert model["placement"]["kind"] == "new"
@@ -55,7 +56,7 @@ def test_with_no_model_of_the_outcome_a_model_is_fitted_next_to_the_cell():
 
 
 def test_a_cell_that_fits_a_model_keeps_its_covariate_question():
-    texts = [option["text"] for option in onto(MODEL_CELL, [MODEL_CELL, PLOT_CELL])]
+    texts = [plain(option["text"]) for option in onto(MODEL_CELL, [MODEL_CELL, PLOT_CELL])]
     assert "Add sleep as a covariate" in texts
     assert not any(text.startswith("Add sleep to the model in") or text.startswith("Fit a model of") for text in texts)
 
@@ -63,5 +64,5 @@ def test_a_cell_that_fits_a_model_keeps_its_covariate_question():
 def test_without_an_outcome_no_model_is_offered():
     no_outcome = {**CONTEXT, "outcome": None}
     body = {"source": column("sleep", "numeric"), "target": {"cell": PLOT_CELL}, "cells": [PLOT_CELL], "context": no_outcome}
-    texts = [option["text"] for option in drop_options(DropRequest.from_json(body))["options"]]
+    texts = [plain(option["text"]) for option in drop_options(DropRequest.from_json(body))["options"]]
     assert not any(text.startswith("Fit a model of") or text.startswith("Add sleep to the model") for text in texts)

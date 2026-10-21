@@ -15,6 +15,7 @@ import * as React from 'react';
 import { agentRunIcon, epiIcon } from '../icons';
 import type { IAgentRun } from '../model/agent';
 import { runStatus } from '../model/agent';
+import { plainText } from '../model/inlinecode';
 import type { EpiModel } from '../model/epimodel';
 import type { AgentRuns, IHistoryRow, IRunEntry } from '../model/runs';
 import { cellsSoFar, isGoing, pastRun, runTime, runWhen } from '../model/runs';
@@ -60,7 +61,7 @@ export function runItem(
       </span>
     ),
     labelTitle: () =>
-      `An agent answers "${run.question}" in ${path}: ${cells} so far. Click to open the run in Whybook.`,
+      `An agent answers "${plainText(run.question)}" in ${path}: ${cells} so far. Click to open the run in Whybook.`,
     detail: () => `${cells} · ${runTime(run, now)}`,
     open,
     shutdown: () => entry.stop(),
@@ -68,8 +69,8 @@ export function runItem(
       {
         className: 'jp-Epi-runitem-question',
         icon: () => '',
-        label: () => run.question,
-        labelTitle: () => `${run.question} Click to open the run.`,
+        label: () => plainText(run.question),
+        labelTitle: () => `${plainText(run.question)} Click to open the run.`,
         open
       }
     ]
@@ -312,7 +313,7 @@ function HistoryRow(props: { model: EpiModel; row: IHistoryRow }): JSX.Element {
           <button
             key={cell.id}
             className="jp-Epi-label jp-Epi-runhistory-cell"
-            title={`Show ${cell.label} ${cell.title}`}
+            title={`Show ${cell.label} ${plainText(cell.title)}`}
             onClick={() => model.showCell(cell.id)}
           >
             {cell.label}

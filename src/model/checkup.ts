@@ -48,6 +48,7 @@ import { runnableFirst } from './questionorder';
 import { RunTimes, recordedSeconds } from './runtimes';
 import { fingerprint } from './tables';
 import { writtenBy } from './writtenby';
+import { plainText } from './inlinecode';
 
 /** The four groups of 1.67, in the order the section shows them. */
 export type CheckupGroup = 'reproduce' | 'speed' | 'review' | 'gaps';
@@ -188,14 +189,14 @@ function listed(parts: string[]): string {
 
 /** A cell as the findings name it: its label, or its title when it has not run. */
 function nameOf(cell: ICheckupCell): string {
-  return cell.label === '[ ]' ? `“${cell.title}”` : cell.label;
+  return cell.label === '[ ]' ? `“${plainText(cell.title)}”` : cell.label;
 }
 
 /** A cell with its title, as the speed of the notebook names it: `[5b] “Ordinal model”`. */
 function titled(cell: ICheckupCell): string {
   return cell.label === '[ ]'
-    ? `“${cell.title}”`
-    : `${cell.label} “${cell.title}”`;
+    ? `“${plainText(cell.title)}”`
+    : `${cell.label} “${plainText(cell.title)}”`;
 }
 
 /** A name as a whole word, for a test of a text. */

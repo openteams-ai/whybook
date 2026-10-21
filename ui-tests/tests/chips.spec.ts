@@ -365,9 +365,9 @@ test('gives the header of read_csv a chip from the rules, whose questions need n
   await expect(
     popover.locator('.jp-Epi-option .jp-Epi-option-text')
   ).toHaveText([
-    'What if header were None?',
-    'What if header were 0?',
-    'Choose header in [2]'
+    'What if header were None in the read of homes?',
+    'What if header were 0 in the read of homes?',
+    'Choose header in [2], in the read of homes'
   ]);
   await expect(popover.locator('.jp-Epi-option-effect').first()).toContainText(
     'reads the first row as data'

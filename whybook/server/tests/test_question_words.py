@@ -23,6 +23,7 @@ from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.files import FileDrop, file_options
 from whybook.server.questions.models import Context
 from whybook.server.questions.tables import TableDrop, table_options
+from whybook.server.questions.marks import plain
 
 VISITS = pd.DataFrame(
     {
@@ -51,7 +52,7 @@ def agents(cell):
 def test_the_values_of_the_demos_model_cell_name_no_writer_since_the_notebook_records_none(demo):
     """[5] records only written_by "agent": Cell details reads that the notebook does not record which wrote it."""
     cell = CellInfo.from_json(agents(demo.cell("lmm", "[5]")))
-    asked = {question.text: question.effect for question in single_cell_questions(cell, Context.from_json(demo.context())) if "the right choice" in question.text}
+    asked = {plain(question.text): question.effect for question in single_cell_questions(cell, Context.from_json(demo.context())) if "the right choice" in plain(question.text)}
     assert asked == {
         "Is how = 'left' the right choice in [5]?": "Nobody checked it",
         "Is re_formula = '~month' the right choice in [5]?": "Nobody checked it",
@@ -104,7 +105,7 @@ def test_a_frame_dropped_on_itself_keeps_its_profile_as_a_column_dropped_on_itse
     effects = {}
     for item in (frame, column):
         for option in drop_options(DropRequest.from_json({"source": item, "target": {"item": item}, "cells": [], "context": context}))["options"]:
-            effects[option["text"]] = option["effect"]
+            effects[plain(option["text"])] = option["effect"]
     assert effects["Profile visits: types, missingness, duplicates"] == "Quick look · no cell unless you keep it"
     assert effects["Summarise crp_mg_l: distribution and missingness"] == "Quick look · no cell unless you keep it"
 
@@ -113,7 +114,7 @@ def test_a_frame_dropped_on_itself_keeps_its_profile_as_a_column_dropped_on_itse
 def test_a_plot_shows_its_output_under_the_new_cell(demo):
     """age onto the mixed model [5]: "pinned" meant shown."""
     request = {"source": demo.column("model_data", "age"), "target": {"cell": demo.cell("lmm", "[5]")}, "cells": demo.cells_json(), "context": demo.context()}
-    plot = next(option for option in drop_options(DropRequest.from_json(request))["options"] if option["text"] == "Plot age against pain_score")
+    plot = next(option for option in drop_options(DropRequest.from_json(request))["options"] if plain(option["text"]) == "Plot age against pain_score")
     assert plot["effect"] == "Output shown under the new cell"
 
 
@@ -150,13 +151,13 @@ def test_patients_with_the_mixed_model_count_the_rows_of_model_data(demo, capsys
     """Click mode: patients, Pick, then "Ask about patients with [5]". "How many model_data per patient?" made the analyst read model_data as its rows."""
     request = {"source": demo.variable("patients"), "target": {"cell": demo.cell("lmm", "[5]")}, "cells": demo.cells_json(), "context": demo.context()}
     options = drop_options(DropRequest.from_json(request))["options"]
-    effects = {option["text"]: option["effect"] for option in options}
+    effects = {plain(option["text"]): option["effect"] for option in options}
     assert effects["How many rows of model_data per patient?"] == "The rows of model_data for each patient, and the patients with the fewest"
     assert effects["Is any patient an outlier for the number of rows of model_data?"] == "The rows of model_data for each patient, and those beyond 1.5 times the interquartile range"
     assert "Which patients have no rows of model_data?" in effects
     # The answers say the same.
     for text in ("Is any patient an outlier for the number of rows of model_data?", "Which patients have no rows of model_data?"):
-        demo.run(next(option["code"] for option in options if option["text"] == text))
+        demo.run(next(option["code"] for option in options if plain(option["text"]) == text))
     printed = capsys.readouterr().out
     assert " patients are outliers for the number of rows of model_data. Outside " in printed
     assert " patients have no rows of model_data." in printed
@@ -176,9 +177,9 @@ def test_a_frame_named_for_its_rows_keeps_the_short_form():
     cell = {"id": "c1", "label": "[1]", "source": "sites = pd.read_csv('sites.csv')", "defs": ["sites"], "uses": ["pd"]}
     visits = {"name": "visits", "label": "visits", "kind": "dataframe", "rows": 42, "n_columns": 4}
     options = drop_options(DropRequest.from_json({"source": visits, "target": {"cell": cell}, "cells": [cell], "context": context}))["options"]
-    texts = [option["text"] for option in options]
+    texts = [plain(option["text"]) for option in options]
     assert texts[:4] == ["How many visits per site?", "Is any site an outlier for the number of visits?", "Add the columns of sites to visits", "Which sites have no visits?"]
-    outliers = next(option for option in options if option["text"] == "Is any site an outlier for the number of visits?")
+    outliers = next(option for option in options if plain(option["text"]) == "Is any site an outlier for the number of visits?")
     assert outliers["effect"] == "The visits for each site, and those beyond 1.5 times the interquartile range"
     printed = io.StringIO()
     with contextlib.redirect_stdout(printed):

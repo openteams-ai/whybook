@@ -16,6 +16,7 @@ from typing import Any
 
 from .. import codegen, privacy
 from . import reshape, values
+from .marks import as_code, as_data, plain
 from .models import Candidate, Context, InvalidRequest, Placement
 from .rankers import score_candidate
 from .values import LIBRARY_ALTERNATIVES, WHAT_IF_CHOICES
@@ -214,7 +215,8 @@ def unit_noun(unit: str | None) -> str:
 
 
 def question_id(*parts: str) -> str:
-    return "q:" + hashlib.sha1("|".join(parts).encode()).hexdigest()[:12]
+    """The id of a question, from its text and the ids of its parts: without the marks of its names and values, so that it stays the id of the text that had none."""
+    return "q:" + hashlib.sha1("|".join(plain(part) for part in parts).encode()).hexdigest()[:12]
 
 
 def primary_frame(cell: CellInfo, context: Context) -> str | None:
@@ -329,26 +331,92 @@ def call_name(decision: Decision, call: DecisionCall) -> str:
     noun, _ = call_nouns(decision)
     function = decision.call_function(call)
     if call.target:
-        what = f"the {noun} with {call.target}" if noun in ("merge", "join") else f"the {noun} of {call.target}" if noun == "read" else f"the {function} of {call.target}"
+        target = as_data(call.target)
+        what = f"the {noun} with {target}" if noun in ("merge", "join") else f"the {noun} of {target}" if noun == "read" else f"the {as_code(function)} of {target}"
         if sum(other.target == call.target and decision.call_function(other) == function for other in decision.calls) == 1:
             return what
         return f"{what} on line {call.line}"
-    return f"the {noun if noun != 'call' else function} on line {call.line}"
+    return f"the {noun if noun != 'call' else as_code(function)} on line {call.line}"
 
 
 def where_text(decision: Decision, chosen: tuple[DecisionCall, ...] | None) -> str:
-    """Where a what-if value goes, after "in", for a decision of several calls: "both merges", "the merge with weather".
+    """Where a what-if value goes, after "in": "the merge with weather", "both merges".
 
-    Empty for a decision of one call, or of calls it does not list.
+    A decision of one call names its call too, so that the question says what
+    its name belongs to also as the title of the branch it makes, out of the
+    chip's sight (design iteration 1.146). Empty for a decision that lists no
+    calls.
     """
-    if len(decision.calls) <= 1:
+    if not decision.calls:
         return ""
+    if len(decision.calls) == 1:
+        # One call needs no line: "the fit of **model_data**", "the merge",
+        # "the `LogisticRegression` call".
+        call = decision.calls[0]
+        if call.target:
+            return call_name(decision, call)
+        noun, _ = call_nouns(decision)
+        return f"the {noun}" if noun != "call" else f"the {as_code(decision.call_function(call))} call"
     _, nouns = call_nouns(decision)
     if chosen is None or len(chosen) == len(decision.calls):
         return f"both {nouns}" if len(decision.calls) == 2 else f"all {len(decision.calls)} {nouns}"
     if len(chosen) == 1:
         return call_name(decision, chosen[0])
     return f"{len(chosen)} of the {len(decision.calls)} {nouns}"
+
+
+def _unquote(value: str) -> str:
+    """A string literal without its quotes: outer for 'outer'; any other value as it is."""
+    text = value.strip()
+    return text[1:-1] if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"" else text
+
+
+def join_words(decision: Decision, value: str) -> str | None:
+    """The join that a value of a merge's or a join's ``how`` makes, as its chip says it: "outer join".
+
+    R's merge says it by ``all``, ``all.x`` and ``all.y``. None for any other
+    decision, and for a value that names no join (chipText in
+    src/model/decisions.ts).
+    """
+    text = _unquote(value)
+    function = decision.function or ""
+    if decision.short_function in JOINS and decision.param == "how" and text.isidentifier():
+        return f"{text} join"
+    if "::" in function and function.rsplit("::", 1)[-1] == "merge":
+        kept = text in ("TRUE", "T")
+        if decision.param == "all":
+            return "outer join" if kept else "inner join"
+        if decision.param in ("all.x", "all.y") and kept:
+            return "left join" if decision.param == "all.x" else "right join"
+    return None
+
+
+def what_if_text(decision: Decision, value: str, calls: tuple[DecisionCall, ...] | None = None) -> str:
+    """The question of a what-if value, with the call it goes into (design iteration 1.146).
+
+    A join reads as its chip: "What if the merge with **patients** were an
+    outer join?", and "What if both merges were outer joins?". Any other
+    decision names its value: "What if `reml` were `False` in the `fit` of
+    **model_data**?".
+    """
+    place = where_text(decision, calls)
+    words = join_words(decision, value)
+    if words and place:
+        if place.startswith("the "):
+            return f"What if {place} were {'an' if words[0] in 'aeiou' else 'a'} {words}?"
+        return f"What if {place} were {words}s?"
+    return f"What if {as_code(decision.name)} were {as_code(value)}{f' in {place}' if place else ''}?"
+
+
+def legacy_place(decision: Decision, calls: tuple[DecisionCall, ...] | None = None) -> str:
+    """Where a value goes, as the questions said it before 1.146: only for a decision of several calls, and without marks."""
+    return plain(where_text(decision, calls)) if len(decision.calls) > 1 else ""
+
+
+def legacy_what_if_text(decision: Decision, value: str, calls: tuple[DecisionCall, ...] | None = None) -> str:
+    """The question of a what-if value as it read before 1.146, whose text gives the option its id: a notebook that asked it still finds it asked."""
+    place = legacy_place(decision, calls)
+    return f"What if {decision.name} were {value}{f' in {place}' if place else ''}?"
 
 
 def what_if_code(cell: CellInfo, decision: Decision, value: str, calls: tuple[DecisionCall, ...] | None = None) -> str | None:
@@ -374,8 +442,7 @@ def what_if_code(cell: CellInfo, decision: Decision, value: str, calls: tuple[De
     body = codegen.rename(body, {name: f"{name}_{suffix}" for name in codegen.defined_names(cell.source)})
     if body is None:
         return None
-    where = where_text(decision, calls)
-    question = f"What if {decision.name} were {value}{f' in {where}' if where else ''}?"
+    question = what_if_text(decision, value, calls)
     return f"{codegen.comment(f'{question} A branch of {cell.label}, where it is {decision.value}.')}\n{body.rstrip()}"
 
 
@@ -404,8 +471,8 @@ def decision_options(
     and above, until the view brings a model's values as ``suggested``.
 
     With ``calls``, the values go into those calls of the decision alone, and
-    each question says where: "What if how were "left" in the merge with
-    weather?".
+    each question says where: "What if the merge with **weather** were a left
+    join?".
 
     The code is written for Python. In a kernel of another language, such as
     R, the same questions go without code, and a model writes the branch.
@@ -415,6 +482,8 @@ def decision_options(
     where = f"{decision.source_file}:{decision.source_line}" if decision.source_file and decision.source_line else decision.source_file
     place = where_text(decision, calls)
     within = f" in {place}" if place else ""
+    # The ids of the questions stay those of their texts before 1.146.
+    old = legacy_place(decision, calls)
     options = []
     found = None
     if value is not None:
@@ -436,14 +505,28 @@ def decision_options(
         code = what_if_code(cell, decision, other.text, calls) if python else None
         if code is not None or not python:
             effect = _changed(decision.value, other.text) + (f" · {other.why}" if other.why else "")
-            option = _question(f"What if {decision.name} were {other.text}{within}?", "model", 0.6, branch, code, effect, cell.id, decision.name)
+            option = _question(
+                what_if_text(decision, other.text, calls), "model", 0.6, branch, code, effect, cell.id, decision.name, key=legacy_what_if_text(decision, other.text, calls)
+            )
             option.template = "what_if_value"
+            # The value, which the text of a join gives in words: the view records the analyst's choice by it.
+            option.value = other.text
             options.append(option)
     if value is None:
         swept = sweep_list(decision, cell.source, [other.text for other in tried])
         sweep = sweep_code(cell, decision, context, calls, swept) if python and decision.provenance == "defaulted" and swept else None
         if sweep is not None or (not python and decision.provenance == "defaulted" and swept):
-            option = _question(f"Compare {decision.name} = {', '.join(swept)}{within} in one table", "model", 0.55, branch, sweep, f"Re-runs {cell.label} with each value", cell.id, decision.name)
+            option = _question(
+                f"Compare {as_code(decision.name)} = {', '.join(as_code(item) for item in swept)}{within} in one table",
+                "model",
+                0.55,
+                branch,
+                sweep,
+                f"Re-runs {cell.label} with each value",
+                cell.id,
+                decision.name,
+                key=f"Compare {decision.name} = {', '.join(swept)}{f' in {old}' if old else ''} in one table",
+            )
             option.template = "what_if_sweep"
             options.append(option)
         function = decision.short_function
@@ -458,7 +541,17 @@ def decision_options(
                 origin = f" in {where}" if where else f" of {' and '.join(owners)}"
                 code = f"{decision.name} = {decision.value}  {codegen.comment(f'chosen here; was the default{origin}')}\n{explicit}" if python else None
                 edit = Placement("edit", cell.id, f"edit {cell.label} in place")
-                option = _question(f"Choose {decision.name} in {cell.label}{f', in {place}' if place else ''}", "model", 0.5, edit, code, "An explicit choice in the cell, to change there", cell.id, decision.name)
+                option = _question(
+                    f"Choose {as_code(decision.name)} in {cell.label}{f', in {place}' if place else ''}",
+                    "model",
+                    0.5,
+                    edit,
+                    code,
+                    "An explicit choice in the cell, to change there",
+                    cell.id,
+                    decision.name,
+                    key=f"Choose {decision.name} in {cell.label}{f', in {old}' if old else ''}",
+                )
                 option.template = "what_if_choice"
                 options.append(option)
     for option in options:
@@ -672,9 +765,10 @@ def dropped_code(cell: CellInfo, decision: Decision, context: Context) -> tuple[
     return code, group
 
 
-def _question(text: str, kind: str, prior: float, placement: Placement, code: str | None, effect: str, *parts: str) -> Candidate:
+def _question(text: str, kind: str, prior: float, placement: Placement, code: str | None, effect: str, *parts: str, key: str | None = None) -> Candidate:
+    """A question of the templates of cells, whose id comes from ``key`` when given, else from its text."""
     return Candidate(
-        id=question_id(text, *parts),
+        id=question_id(key or text, *parts),
         text=text,
         type=kind,
         origin="template",
@@ -694,7 +788,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
             code = sweep_code(cell, decision, context, tried=swept)
             questions.append(
                 _question(
-                    f"Does {decision.name} = {decision.value} change what {cell.label} shows?",
+                    f"Does {as_code(decision.name)} = {as_code(decision.value)} change what {cell.label} shows?",
                     "model",
                     0.7,
                     Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel"),
@@ -707,7 +801,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
             if dropped:
                 questions.append(
                     _question(
-                        f"Who does {decision.function} remove here, and does it differ by {dropped[1]}?",
+                        f"Who does {as_code(decision.function)} remove here, and does it differ by {as_data(dropped[1])}?",
                         "quality",
                         0.6,
                         Placement("new", cell.id, f"new cell after {cell.label}"),
@@ -719,7 +813,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
         elif decision.provenance == "library_default":
             questions.append(
                 _question(
-                    f"Is {decision.name}={decision.value} changing the result of {cell.label}?",
+                    f"Is {as_code(f'{decision.name}={decision.value}')} changing the result of {cell.label}?",
                     "model",
                     0.6,
                     Placement("branch", cell.id, f"branch of {cell.label} · runs in parallel"),
@@ -735,7 +829,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
             # model nor a template may be the work of either.
             questions.append(
                 _question(
-                    f"Is {decision.name} = {decision.value} the right choice in {cell.label}?",
+                    f"Is {as_code(decision.name)} = {as_code(decision.value)} the right choice in {cell.label}?",
                     "model",
                     0.35,
                     Placement("new", cell.id, f"new cell after {cell.label}"),
@@ -762,7 +856,7 @@ def single_cell_questions(cell: CellInfo, context: Context) -> list[Candidate]:
         if residuals:
             questions.append(
                 _question(
-                    f"Are the residuals well behaved per {residuals[1]}?",
+                    f"Are the residuals well behaved per {as_data(residuals[1])}?",
                     "model",
                     0.5,
                     Placement("new", cell.id, f"new cell after {cell.label}"),
@@ -894,7 +988,7 @@ def note_questions(notes: list[CellInfo], context: Context) -> list[Candidate]:
     if site:
         questions.append(
             _question(
-                f"Do the claims in {subject} hold at every {site}?",
+                f"Do the claims in {subject} hold at every {as_data(site)}?",
                 "model",
                 0.45,
                 after,
@@ -1051,7 +1145,7 @@ def open_assumption(cell: CellInfo, decision: Decision, context: Context) -> tup
 
 
 def _without_labels(text: str) -> str:
-    return _LABEL.sub("[]", text)
+    return _LABEL.sub("[]", plain(text))
 
 
 def reshaped_frames(cells: list[CellInfo], context: Context, numbered: dict[str, dict[str, list[str]]]) -> set[str]:
@@ -1102,7 +1196,7 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             is_open, sign = open_assumption(cell, decision, context)
             if not is_open:
                 continue
-            text = f"Does {decision.name} = {decision.value} change the result of {cell.label}?"
+            text = f"Does {as_code(decision.name)} = {as_code(decision.value)} change the result of {cell.label}?"
             if (cell.id, _without_labels(text)) in branched:
                 continue
             code = sweep_code(cell, decision, context) if decision.provenance == "defaulted" else alternative_code(cell, decision)
@@ -1174,7 +1268,7 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
                 long = measure is not None and (frame in made_long or any(measure in held for held in context.frames.values()))
                 if column in measures or (measure and (measures or measure == outcome or long)):
                     continue
-                text = f"How does {column} relate to {outcome}?"
+                text = f"How does {as_data(column)} relate to {as_data(outcome)}?"
                 code = None
                 if source:
                     plan = _association_plan(source, column, frame, context)
@@ -1198,7 +1292,7 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             used, total = group.get("used", 0), group.get("total", 0)
             if not total or used / total > 0.2 or not outcome or not source or not context.unit:
                 continue
-            text = f"Which {group['label']} columns of {frame} track {outcome}?"
+            text = f"Which {group['label']} columns of {as_data(frame)} track {as_data(outcome)}?"
             unit = codegen.literal(context.unit)
             code = "\n".join(
                 [
@@ -1230,7 +1324,7 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
             )
     exposure = group_column(context)
     if outcome and exposure and context.type_share("causal") < 0.15:
-        text = f"What could confound {exposure} and {outcome}?"
+        text = f"What could confound {as_data(exposure)} and {as_data(outcome)}?"
         steps.append(
             Candidate(
                 id=question_id(text),
@@ -1245,8 +1339,9 @@ def next_steps(cells: list[CellInfo], context: Context, groups: dict[str, list[d
                 uses={"outcome": outcome},
             )
         )
-    asked = {question.text for question in context.asked}
-    steps = [step for step in steps if step.text not in dismissed and step.text not in asked]
+    # Without the marks of names and values: a notebook saved before them keeps texts that have none.
+    left_out = {plain(text) for text in dismissed} | {plain(question.text) for question in context.asked}
+    steps = [step for step in steps if plain(step.text) not in left_out]
     for step in steps:
         score_candidate(step, [], context)
     steps.sort(key=lambda s: s.probability or 0.0, reverse=True)

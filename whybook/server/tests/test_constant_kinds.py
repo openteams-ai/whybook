@@ -14,6 +14,7 @@ from whybook.server import claude, local_models, privacy
 from whybook.server.questions import values
 from whybook.server.questions.cells import CellInfo, Decision, decision_options, suggested_values
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 # (name, value, param, function, provenance, the code of the cell, the kind, the two values, where the name comes from)
 KINDS = [
@@ -122,7 +123,7 @@ def test_the_options_say_the_kind_and_whether_a_model_should_choose():
     unknown = decision_options(DAILY, BASE, Context())
     assert unknown["kind"] is None and unknown["ask_model"] is True
     # Until a model answers, or without one, the values are half and double.
-    assert [o["text"] for o in unknown["options"] if o["template"] == "what_if_value"] == ["What if BASE_TEMP_C were 7.75?", "What if BASE_TEMP_C were 31.0?"]
+    assert [plain(o["text"]) for o in unknown["options"] if o["template"] == "what_if_value"] == ["What if BASE_TEMP_C were 7.75?", "What if BASE_TEMP_C were 31.0?"]
 
 
 def test_the_standard_errors_of_a_statsmodels_fit_need_no_model():
@@ -132,7 +133,7 @@ def test_the_standard_errors_of_a_statsmodels_fit_need_no_model():
     hc3 = Decision("cov_type", "'HC3'", "agent", param="cov_type", function="fit")
     result = decision_options(cell, hc3, Context())
     assert result["ask_model"] is False
-    assert [o["text"] for o in result["options"] if o["template"] == "what_if_value"] == [
+    assert [plain(o["text"]) for o in result["options"] if o["template"] == "what_if_value"] == [
         "What if cov_type were 'nonrobust'?",
         "What if cov_type were 'HC1'?",
     ]
@@ -148,12 +149,12 @@ def test_the_values_a_model_suggested_become_branches_and_a_sweep():
     result = decision_options(DAILY, BASE, Context(frames={"daily": {"hdd": "num"}}), suggested=suggested)
     offered = [o for o in result["options"] if o["template"] == "what_if_value"]
     # The current value is not offered again.
-    assert [o["text"] for o in offered] == ["What if BASE_TEMP_C were 12.0?", "What if BASE_TEMP_C were 18?"]
+    assert [plain(o["text"]) for o in offered] == ["What if BASE_TEMP_C were 12.0?", "What if BASE_TEMP_C were 18?"]
     assert offered[0]["effect"] == "12.0 instead of 15.5 (÷1.29) · the UK convention"
     assert "daily_if_12_0 = add_degree_days(daily, base=12.0)" in offered[0]["code"]
     # The model's values leave the kind to the view, which has the model's words.
     assert "kind" not in result and "ask_model" not in result
-    assert [o["text"] for o in result["options"] if o["template"] == "what_if_sweep"] == ["Compare BASE_TEMP_C = 12.0, 15.5, 18 in one table"]
+    assert [plain(o["text"]) for o in result["options"] if o["template"] == "what_if_sweep"] == ["Compare BASE_TEMP_C = 12.0, 15.5, 18 in one table"]
 
 
 def test_a_model_reads_the_code_without_the_value_when_the_data_stays_here():
@@ -228,7 +229,7 @@ async def test_the_model_suggests_values_with_a_kind_and_the_view_builds_their_b
     assert fake_model["system"].rstrip().endswith('each with "value" and "why". Never send one value on its own.')
     # The view sends the values back, and the server writes the branches.
     options = json.loads(await post(jp_fetch, "decision", body=body(suggested=result["values"])))["options"]
-    assert [o["text"] for o in options if o["template"] == "what_if_value"] == ["What if BASE_TEMP_C were 12.0?", "What if BASE_TEMP_C were 18.0?"]
+    assert [plain(o["text"]) for o in options if o["template"] == "what_if_value"] == ["What if BASE_TEMP_C were 12.0?", "What if BASE_TEMP_C were 18.0?"]
 
 
 async def test_with_the_data_on_this_machine_the_model_gets_no_value(jp_fetch, fake_model):

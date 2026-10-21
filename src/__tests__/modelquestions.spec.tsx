@@ -91,11 +91,11 @@ describe('what agents found, for the model that writes questions', () => {
     expect(agentFindings(undefined)).toEqual([]);
   });
 
-  it('leaves out of a list the questions asked, by their id or their words', () => {
+  it('leaves out of a list the questions asked, by their id or their words without the marks of names', () => {
     const options = [
       option('claude:a', { text: 'Does treatment arm moderate crp_mg_l?' }),
       option('claude:b', { text: 'Does crp_mg_l rise by week?' }),
-      option('claude:c', { text: 'Is crp_mg_l missing at some visits?' })
+      option('claude:c', { text: 'Is **crp_mg_l** missing at some visits?' })
     ];
     const asked = [
       { id: 'claude:a', text: 'Does treatment arm moderate crp_mg_l?' },

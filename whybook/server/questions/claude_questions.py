@@ -29,6 +29,7 @@ from typing import Any, AsyncIterator, Sequence
 
 from .. import claude, connection, local_models, privacy
 from ..config import Whybook
+from .marks import plain
 from .models import TYPES, Candidate, Context, InvalidRequest, Placement, Selection, Variable
 from .rankers import merged_order, model_state
 from .templates import TIME_NAME
@@ -74,6 +75,10 @@ and "repeated" is measured on the rows after the start. Nothing causes a time co
 nothing confounds a relation with it. A repeated column can lie on the path from a column set
 at the start, but cannot cause it or confound its effect, and a column set at the start does
 not lie on the path from another one.
+
+In the text of a question, write each name of a frame or a column between two asterisks, and each
+value or name of code in backticks, as the view's own questions do: "Does **pain_score** differ
+between the levels of **site**?", "What if `cov_type` were `\"HC3\"`?".
 
 Answer once, with one JSON object whose only keys are "questions", "outcomes" and "units":
 "questions" is a list of objects, each with "text", "type", "why", "priority" and "columns",
@@ -504,7 +509,7 @@ def kept(
     for question in questions:
         text = question["text"].strip()
         words = _content(text, names)
-        repeat = next((before for before, seen in earlier if before.strip().lower() == text.lower() or _same(words, seen)), None)
+        repeat = next((before for before, seen in earlier if plain(before).strip().lower() == plain(text).lower() or _same(words, seen)), None)
         if repeat is not None:
             why = f'repeats "{repeat}"'
         elif not _uses(question, items, context):
@@ -657,7 +662,8 @@ def local_state(
         state["dropped_onto"] = {**cell, "code": cell["code"][:600]}
     state["analysis_so_far"] = [str(cell)[:300] for cell in state["analysis_so_far"][-8:]]
     state["already_asked"] = state["already_asked"][-15:]
-    state["already_suggested"] = [c.text for c in suggested]
+    # Without the marks of names and values, as the local models were measured.
+    state["already_suggested"] = [plain(c.text) for c in suggested]
     if found:
         state["found_so_far"] = [{**item, "answer": item["answer"][:LOCAL_FOUND_CHARS]} for item in found[:LOCAL_FOUND]]
     return state

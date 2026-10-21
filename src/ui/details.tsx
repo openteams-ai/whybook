@@ -8,6 +8,7 @@ import { dataLinks } from '../model/datalinks';
 import type { EpiModel, IEpiCell } from '../model/epimodel';
 import { askImage, imagePickOf } from '../model/imageask';
 import { codeMimeType } from '../model/languages';
+import { plainText } from '../model/inlinecode';
 import { outputsOf } from '../model/notebook';
 import { askedLine, guessWho } from '../model/person';
 import { cellWrittenBy, codeWriter, describeBy } from '../model/writtenby';
@@ -15,6 +16,7 @@ import type { IPerson } from '../tokens';
 import {
   AITag,
   CellLabel,
+  CodeText,
   DecisionChips,
   GuessChip,
   LabelledText,
@@ -112,7 +114,9 @@ function DetailsOf(props: {
         ) : (
           <CellLabel cell={cell} />
         )}
-        <span className="jp-Epi-details-title">{cell.title}</span>
+        <span className="jp-Epi-details-title">
+          <CodeText text={cell.title} />
+        </span>
         {badge && <TypeBadge type={badge} />}
       </div>
       {/* The view in front, named, on a line of its own; the others under it. */}
@@ -407,7 +411,7 @@ function CellLink(props: { model: EpiModel; cell: IEpiCell }): JSX.Element {
   return (
     <button
       className="jp-Epi-link jp-Epi-cell-link"
-      title={`Show ${cell.label} ${cell.title}, and its details`}
+      title={`Show ${cell.label} ${plainText(cell.title)}, and its details`}
       onClick={() => model.showCell(cell.id)}
     >
       {cell.label}
@@ -568,10 +572,10 @@ function CellLinks(props: {
           <button
             key={cell.id}
             className="jp-Epi-link jp-Epi-cell-link"
-            title={`Show ${cell.label} ${cell.title}, and its details`}
+            title={`Show ${cell.label} ${plainText(cell.title)}, and its details`}
             onClick={() => model.showCell(cell.id)}
           >
-            {cell.label} {cell.title}
+            {cell.label} <CodeText text={cell.title} />
           </button>
         ))}
       </span>

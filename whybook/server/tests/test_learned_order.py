@@ -4,6 +4,7 @@ import whybook.server.questions.drops as drops
 from whybook.server.questions.drops import DropRequest, drop_options
 from whybook.server.questions.models import Variable
 from whybook.server.questions.rankers import LEARNED, kind_group
+from whybook.server.questions.marks import plain
 
 FRAME = {"name": "df", "label": "df", "kind": "dataframe", "rows": 1000, "n_columns": 3}
 AGE = {"name": "df['age']", "label": "age", "kind": "numeric", "parent": "df", "rows": 1000}
@@ -13,7 +14,7 @@ CONTEXT = {"frames": {"df": {"rows": 1000, "columns": {"age": "num", "site": "ca
 
 def options(source, target, context=CONTEXT):
     result = drop_options(DropRequest.from_json({"source": source, "target": {"item": target}, "cells": [], "context": context}))
-    return [(option["type"], option["text"]) for option in result["options"]]
+    return [(option["type"], plain(option["text"])) for option in result["options"]]
 
 
 def test_the_weights_file_has_a_weight_per_feature():
@@ -48,7 +49,7 @@ def test_the_type_that_the_notebook_asks_most_comes_first():
 def test_a_drop_onto_a_cell_keeps_the_rules_order(monkeypatch):
     cell = {"id": "c7", "label": "[7]", "source": 'fit = smf.ols("pain ~ week", data=df).fit()', "defs": ["fit"], "uses": ["smf", "df"], "formulas": ["pain ~ week"]}
     body = {"source": AGE, "target": {"cell": cell}, "cells": [cell], "context": CONTEXT}
-    learned = [option["text"] for option in drop_options(DropRequest.from_json(body))["options"]]
+    learned = [plain(option["text"]) for option in drop_options(DropRequest.from_json(body))["options"]]
     monkeypatch.setattr(drops, "learned_order", lambda found, *args: found)
-    rules = [option["text"] for option in drop_options(DropRequest.from_json(body))["options"]]
+    rules = [plain(option["text"]) for option in drop_options(DropRequest.from_json(body))["options"]]
     assert learned == rules

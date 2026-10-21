@@ -19,6 +19,7 @@ import pytest
 
 from whybook.server.questions.cells import CellInfo, Decision, DecisionCall, alternative_code, decision_options, frame_looks_misread, next_steps
 from whybook.server.questions.models import Context
+from whybook.server.questions.marks import plain
 
 demo_only = pytest.mark.demo
 
@@ -149,7 +150,7 @@ def context(homes=HOMES, **more):
 
 
 def texts(steps):
-    return [step.text for step in steps]
+    return [plain(step.text) for step in steps]
 
 
 HEADER = "Does header = 'infer' change the result of [1]?"
@@ -164,7 +165,7 @@ def test_a_library_default_that_no_rule_shows_to_change_the_result_is_not_asked_
     assert HOW not in texts(steps)
     # The constant that the analyst's module chose is still asked about, as
     # are the columns not explored yet.
-    [days] = [step for step in steps if step.text == MIN_DAYS]
+    [days] = [step for step in steps if plain(step.text) == MIN_DAYS]
     assert days.reasons[0] == "Open assumption in [3]"
     assert "How does floor_area_m2 relate to kwh_import?" in texts(steps)
 
@@ -258,7 +259,7 @@ def test_the_separator_of_a_read_can_be_guessed_from_the_file(tmp_path, monkeypa
     cell = CellInfo("c1", "[1]", 'prices = pd.read_csv("prices.csv")', defs=("prices",))
     sep = Decision("sep", "','", "library_default", param="sep", function="read_csv", calls=(DecisionCall(1, 12, "prices"),))
     options = decision_options(cell, sep, Context())["options"]
-    assert options[0]["text"] == "What if sep were None?"
+    assert options[0]["text"] == "What if `sep` were `None` in the read of **prices**?"
     assert options[0]["effect"] == "None instead of ',' · guesses the separator from the first rows of the file"
     code = alternative_code(cell, sep)
     assert 'pd.read_csv("prices.csv", sep=None)' in code
@@ -286,7 +287,7 @@ def test_a_default_that_a_model_found_gets_no_value_by_its_name_alone():
     # asking next does not ask about it. The menu of its chip still does.
     assert next_steps([CellInfo(cell.id, cell.label, cell.source, decisions=(method,))], Context(), {}, set()) == []
     result = decision_options(cell, method, Context())
-    assert not [option for option in result["options"] if "spearman" in option["text"]]
+    assert not [option for option in result["options"] if "spearman" in plain(option["text"])]
     assert result["ask_model"] is True
     # The kernel's own default of a correlation keeps its other method.
     corr = Decision("method", "'pearson'", "library_default", param="method", function="DataFrame.corr")
