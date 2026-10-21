@@ -822,7 +822,9 @@ export function ParallelStrip(props: {
               <span className="jp-Epi-label">
                 {branch.cell?.label ?? end?.label}
               </span>
-              <span className="jp-Epi-strip-text">{title}</span>
+              <span className="jp-Epi-strip-text">
+                <CodeText text={title} />
+              </span>
               <span className="jp-Epi-subshell" title={PARALLEL_HELP}>
                 {now === 'failed' || now === 'done' || now === 'writing'
                   ? now === 'writing'

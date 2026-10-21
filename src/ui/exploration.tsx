@@ -16,6 +16,7 @@ import { QUESTION_TYPES } from '../tokens';
 import {
   AIOffNote,
   CloseButton,
+  CodeText,
   LabelledText,
   OptionRows,
   OrderNote,
@@ -761,7 +762,9 @@ function PreviewPane(props: {
   return (
     <div className="jp-Epi-preview" ref={box}>
       <div className="jp-Epi-preview-head">
-        <span className="jp-Epi-preview-title">{preview.title}</span>
+        <span className="jp-Epi-preview-title">
+          <CodeText text={preview.title} />
+        </span>
         <CloseButton
           label="Close the answer"
           onClick={() => model.closePreview()}

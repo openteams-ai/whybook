@@ -293,8 +293,8 @@ export function CellTitle(props: {
     return (
       <span
         className="jp-Epi-title jp-mod-pending"
-        title={cell.title}
-        aria-label={`${cell.title}: a title is being written`}
+        title={plainText(cell.title)}
+        aria-label={`${plainText(cell.title)}: a title is being written`}
       >
         <span className="jp-Epi-title-skeleton" aria-hidden="true" />
       </span>

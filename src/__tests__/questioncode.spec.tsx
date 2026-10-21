@@ -21,8 +21,11 @@ import {
 } from '../model/inlinecode';
 import { pyComment } from '../model/pycode';
 import type { IDecision, IOption } from '../tokens';
+import { ParallelStrip } from '../ui/bench';
 import { CodeText, LabelledText } from '../ui/common';
-import { mount } from './fakes/bench-render';
+import { RightPanel } from '../ui/exploration';
+import { benchModel } from './fakes/bench-fake';
+import { mount, settle } from './fakes/bench-render';
 
 const HOW: IDecision = {
   name: 'how',
@@ -155,5 +158,59 @@ describe('a question in the view', () => {
       'Is X[0] associated with y in [8], with ddof?'
     );
     await view.unmount();
+  });
+
+  it('shows the marks in the strip of a parallel exploration, and its bar reads the words alone', async () => {
+    const { model } = benchModel([
+      { id: 'c4', source: 'weekly = diary.pipe(drop_sparse)', count: 4 }
+    ]);
+    const cell = model.cells()[0];
+    model.parallel.set(cell.id, ['c4c']);
+    model.parallelEnded.set('c4c', {
+      ok: true,
+      error: null,
+      label: '[4c]',
+      title: 'What changes if `MIN_DAYS` changes?'
+    });
+    const view = await mount(<ParallelStrip model={model} cell={cell} />);
+    const row = view.host.querySelector('.jp-Epi-parallel-row')!;
+    const text = row.querySelector('.jp-Epi-strip-text')!;
+    const bar = row.querySelector('[role="progressbar"]');
+    await view.unmount();
+    model.dispose();
+    expect(text.textContent).toBe('What changes if MIN_DAYS changes?');
+    expect(text.querySelector('code.jp-Epi-inlinecode')?.textContent).toBe(
+      'MIN_DAYS'
+    );
+    expect(bar?.getAttribute('aria-label')).toBe(
+      'What changes if MIN_DAYS changes?'
+    );
+  });
+
+  it('shows the marks in the title of a quick look', async () => {
+    const { model } = benchModel([
+      { id: 'a', source: 'diary = load_diary()', count: 1 }
+    ]);
+    model.preview = {
+      title: 'Profile **diary**: types, missingness, duplicates',
+      code: 'whybook.profile(diary)',
+      status: 'running',
+      stage: null,
+      elapsed: null,
+      started: 1,
+      thinking: null,
+      outputs: [],
+      error: null,
+      option: option('Profile **diary**: types, missingness, duplicates')
+    };
+    const view = await mount(<RightPanel model={model} width={270} />);
+    await settle();
+    const title = view.host.querySelector('.jp-Epi-preview-title');
+    const text = title?.textContent;
+    const data = title?.querySelector('.jp-Epi-inlinedata')?.textContent;
+    await view.unmount();
+    model.dispose();
+    expect(text).toBe('Profile diary: types, missingness, duplicates');
+    expect(data).toBe('diary');
   });
 });
