@@ -85,7 +85,7 @@ Nothing leaves the machine until a remote AI model is connected. With `c.Whybook
 
 ## Report a problem or contribute
 
-Report a problem or ask a question in [the issues](https://github.com/openteams-ai/whybook/issues). [CONTRIBUTING.md](https://github.com/openteams-ai/whybook/blob/main/CONTRIBUTING.md) explains how to report a security problem privately, set up a checkout and run the tests.
+Report a problem or ask a question in [the issues](https://github.com/openteams-ai/whybook/issues). [CONTRIBUTING.md](https://github.com/openteams-ai/whybook/blob/main/.github/CONTRIBUTING.md) explains how to report a security problem privately, set up a checkout and run the tests.
 
 ## Uninstall
 

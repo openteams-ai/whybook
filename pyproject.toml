@@ -157,7 +157,7 @@ packages = ["whybook"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "whybook/labextension" = "share/jupyter/labextensions/whybook"
-"install.json" = "share/jupyter/labextensions/whybook/install.json"
+"jupyter-config/labextension/install.json" = "share/jupyter/labextensions/whybook/install.json"
 "jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
 # The kernelspec "Python 3 (sandboxed)". A kernel.json cannot hold the path of
 # the environment it is installed into, so its argv starts with "python", and

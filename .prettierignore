@@ -4,7 +4,6 @@ node_modules
 **/package.json
 !/package.json
 whybook
-epi
 eslint.config.mjs
 .venv
 src/kernelCode.ts
