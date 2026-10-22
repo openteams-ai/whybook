@@ -6,6 +6,7 @@ folder. So the test of a wheel's install points the command at a folder of its o
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -80,3 +81,21 @@ def test_writes_no_file_when_the_folder_has_one_of_them(tmp_path):
         "Choose another folder, or move these files out of it.\n"
     )
     assert {path.name: path.read_text() for path in folder.iterdir()} == {"prep.py": "my prep.py", "clinic.sqlite": "my clinic.sqlite"}
+
+
+def test_names_the_packages_of_the_notebook_when_the_environment_lacks_one(checkout, tmp_path, monkeypatch, capsys):
+    """`pip install whybook` installs neither pandas nor statsmodels, and the notebook's first cell imports both."""
+    found = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name, *args: None if name == "statsmodels" else found(name, *args))
+    folder = tmp_path / "pain_diary"
+    assert demo.main([str(folder)]) == 0
+    assert sorted(path.name for path in folder.iterdir()) == ["clinic.sqlite", "pain_diary_cohort.ipynb", "prep.py"]
+    assert capsys.readouterr().out.endswith(
+        'then press Run all.\n\nThe demo needs numpy, pandas, pyarrow and statsmodels: pip install "whybook[kernel,demo]"\n'
+    )
+
+
+def test_names_no_package_when_the_environment_has_them_all(checkout, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name, *args: object())
+    assert demo.main([str(tmp_path / "pain_diary")]) == 0
+    assert capsys.readouterr().out.endswith("then press Run all.\n")

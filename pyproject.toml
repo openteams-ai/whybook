@@ -33,6 +33,9 @@ dependencies = [
     "jupyter_server>=2.13.0,<3",
     # A tree file browser: files are dragged from it into the view.
     "jupyterlab-unfold>=0.3.4",
+    # Summarises data frames in the kernel, for the columns in the Variables
+    # panel. It has no dependencies of its own.
+    "narwhals>=2",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
@@ -50,6 +53,7 @@ models = [
     "pydantic-ai-slim[openrouter,anthropic,google,mistral]>=2.51,<3",
 ]
 # Installed in the kernel's environment: narwhals summarises data frames there.
+# narwhals is a dependency too, and the extra stays for the commands that name it.
 kernel = [
     "narwhals>=2",
 ]

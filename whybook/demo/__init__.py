@@ -13,6 +13,7 @@ editable install reads it there. The later demo, pain_diary_cohort_6h.ipynb
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import shlex
 import shutil
@@ -27,6 +28,10 @@ DEFAULT_FOLDER = "whybook-demo"
 # Where the files are, in the order the command looks: a wheel's install, then a checkout.
 PACKAGED = Path(__file__).with_name("pain_diary")
 REPOSITORY = Path(__file__).resolve().parents[2] / "examples" / "pain_diary"
+# What the notebook imports: `pip install whybook` installs none of them, and
+# without them its first cell stops at an import.
+NEEDS = ("numpy", "pandas", "pyarrow", "statsmodels")
+NEEDS_LINE = 'The demo needs numpy, pandas, pyarrow and statsmodels: pip install "whybook[kernel,demo]"'
 
 
 class DemoError(Exception):
@@ -71,6 +76,11 @@ def write(folder: Path) -> None:
         raise DemoError(f"The demo could not be written into {folder}: {error}") from error
 
 
+def missing() -> list[str]:
+    """The packages of NEEDS that this environment cannot import."""
+    return [name for name in NEEDS if importlib.util.find_spec(name) is None]
+
+
 def _names(names: list[str]) -> str:
     """The names as a sentence lists them: a, a and b, or a, b and c."""
     return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
@@ -107,4 +117,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"    jupyter lab {_shell(os.path.join(args.folder, NOTEBOOK))}")
     print()
     print(f'In JupyterLab, choose "Open Notebook in Whybook" in the command palette ({palette}), then press Run all.')
+    if missing():
+        print()
+        print(NEEDS_LINE)
     return 0

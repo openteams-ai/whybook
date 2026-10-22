@@ -5,7 +5,9 @@
 [![PyPI](https://img.shields.io/pypi/v/whybook)](https://pypi.org/project/whybook/)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb)
 
-Whybook is a research prototype for the future of Jupyter interfaces. For a high-level description, see [whybook.dev](https://whybook.dev).
+A research prototype that explores how to close the understanding gap in data analysis: the divide between what AI produces and what the analyst understands of it. Try the interactive demos on [whybook.dev](https://whybook.dev), and read why the gap matters.
+
+[![In Whybook, the column IL6 of olink is dragged onto the mixed model of cell [5]. Of the questions that Whybook offers, "Add IL6 as a covariate" is picked; Whybook edits the cell and runs it, and its code change shows as a diff. Click to open the demo on Binder.](https://raw.githubusercontent.com/openteams-ai/whybook/main/screenshots/whybook-demo.gif)](https://mybinder.org/v2/gh/openteams-ai/whybook/main?urlpath=lab/tree/examples/pain_diary/pain_diary_cohort.ipynb)
 
 ## You ask the questions. Agents write the code.
 
