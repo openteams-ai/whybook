@@ -263,4 +263,5 @@ jobs:
         with:
           # INFORMS answers 403 to scripts; its DOIs open in a browser.
           # Cloudflare's bot protection answers 403 to the runner at whybook.dev.
-          ignore_links: 'https://doi.org/10.1287/.* https://whybook.dev.*'
+          # YouTube answers 429 to the runner at times.
+          ignore_links: 'https://doi.org/10.1287/.* https://whybook.dev.* https://www.youtube.com/.*'
