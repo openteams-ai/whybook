@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1
+
+### Fixed
+
+- The Variables panel shows the columns of data frames after a plain `pip install whybook`.
+- The preview of an answer and the strip of a branch show a question's code in the code font, instead of backticks.
+- When a question is asked while Whybook is still drawing the notebook, Whybook now scrolls to the answer.
+- The decision model Decider by Perplexity works again, as version 1.2.
+- `python -m whybook.demo` names the packages that the demo needs, when one of them is missing.
+
 ## 0.5.0
 
 ### New
