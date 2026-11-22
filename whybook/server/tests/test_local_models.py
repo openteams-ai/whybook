@@ -55,7 +55,7 @@ class FakeCheckFirst:
 class FakeLlama:
     """Answers every request with ``answer`` and records what it was asked.
 
-    Like llama-cpp-python 0.3.35, it builds a sampler with _init_sampler for
+    Like llama-cpp-python 0.3.35 to 0.3.37, it builds a sampler with _init_sampler for
     each request and samples each token through it; ``samplers`` records the
     kind of each request's sampler. ``fast_answer``, when set, is the answer
     written through the fast check. A request whose grammar allows a list of
@@ -265,7 +265,7 @@ async def test_a_fast_check_that_raises_gives_way_to_the_standard_one(fake):
     assert second.samplers == ["StandardSampler"]
     assert result["warning"] == (
         "The fast JSON check failed: AttributeError: 'LlamaContext' object has no attribute 'ctx',"
-        " with llama-cpp-python 0.9.0 (measured with 0.3.35). Local models use the standard check,"
+        " with llama-cpp-python 0.9.0 (measured with 0.3.37). Local models use the standard check,"
         " which gives the same answers more slowly."
     )
     # The next request does not try the fast check again.
@@ -700,33 +700,15 @@ async def test_a_model_of_the_settings_on_this_machine_is_not_downloaded(fake, t
 # Files that store their token scores as integers, as Mistral AI's Ministral 3 files do.
 
 
-def test_a_file_with_integer_token_scores_is_read_from_a_copy_with_float_scores(fake, tmp_path):
-    source = gguf(tmp_path / "ministral.gguf", [0, -3, 12, 2**20])
-    copy = local_models.readable_path(source)
-    assert copy != source and copy.parent == local_models.copies_dir()
-    assert copy.stat().st_size == source.stat().st_size
-    with open(copy, "rb") as handle:
-        data = handle.read()
-    offset, element, count = local_models._scores_at(data)
-    assert (element, count) == (6, 4)
-    assert struct.unpack_from("<4f", data, offset + 12) == (0.0, -3.0, 12.0, 2.0**20)
-    # The copy is written once.
-    stamp = copy.stat().st_mtime_ns
-    assert local_models.readable_path(source) == copy and copy.stat().st_mtime_ns == stamp
-    # A file with float scores, or with none, is read as it is.
-    floats = gguf(tmp_path / "gemma.gguf", [1.5, 2.5], element=6)
-    assert local_models.readable_path(floats) == floats
-    assert local_models.readable_path(download(fake, GEMMA)) == local_models.model_path(GEMMA)
-
-
-async def test_ministral_loads_from_the_copy(fake):
+async def test_ministral_loads_from_its_own_file(fake):
+    # llama-cpp-python 0.3.37, the minimum, reads integer token scores.
     ministral = local_models.MODELS["ministral-3-3b"]
     download(fake, ministral)
     path = local_models.model_path(ministral)
     gguf(path, [1, 2, 3])
     events = [event async for event in local_models.ask_local("ministral-3-3b", [TABLE], threads=2)]
     assert events[-1]["type"] == "result"
-    assert FakeLlama.made[0].model_path.endswith(".scores-f32.gguf")
+    assert FakeLlama.made[0].model_path == str(path)
 
 
 # Chat templates that think unless told otherwise.
@@ -806,14 +788,6 @@ async def test_a_request_that_the_view_leaves_stops_after_its_item(fake, monkeyp
         await asyncio.sleep(0.02)
     # One table at most, of two calls: the lock is free for the next request.
     assert sum(len(llm.messages) for llm in FakeLlama.made) <= 2
-
-
-def test_a_copy_that_fails_leaves_no_partial_file(fake, tmp_path):
-    # A score too large for a float: the copy of the file, as large as the model, goes.
-    source = gguf(tmp_path / "big.gguf", [1, 2**25])
-    with pytest.raises(local_models.LocalModelError):
-        local_models.readable_path(source)
-    assert sorted(path.name for path in local_models.copies_dir().glob("*")) == []
 
 
 def test_h2o_lightning_is_a_local_decision_model_for_user_questions_alone():

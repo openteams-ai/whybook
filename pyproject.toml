@@ -78,9 +78,10 @@ plots = [
 ]
 # Small models run in the server: table labels without a call to Claude.
 # huggingface_hub fetches a model when the user presses Download for it.
+# llama-cpp-python 0.3.37 reads the files of H2O-Lightning-4B and Ministral 3 as published.
 local = [
     "huggingface_hub",
-    "llama-cpp-python>=0.3.35",
+    "llama-cpp-python>=0.3.37",
 ]
 # Spoken questions written as text in the server, by Moonshine Medium or Small
 # Streaming (research/voice-questions.md). moonshine-voice fetches a model from

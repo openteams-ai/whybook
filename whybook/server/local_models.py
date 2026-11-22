@@ -66,11 +66,8 @@ import importlib.util
 import json
 import logging
 import math
-import mmap
 import os
 import re
-import shutil
-import struct
 import threading
 import time
 import unicodedata
@@ -202,8 +199,7 @@ MODELS = {
             "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
             "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
             2147,
-            "descriptions right for 28 of 32 test tables, headlines for 26, none false; about 25 s a table on 4 CPU threads;"
-            " the server keeps a copy of its file, 2.1 GB more, that llama-cpp-python 0.3.35 can read",
+            "descriptions right for 28 of 32 test tables, headlines for 26, none false; about 25 s a table on 4 CPU threads",
             revision="eb599d408350ea2bb60452cb86be7c7b2fc28227",
             sha256="9ed150d4367e68df0ac8e1540f6ddc65b42d0ee26378329d1ecbca60f93fc5f8",
         ),
@@ -346,16 +342,13 @@ DECISION = {
             layout="h2o",
             tasks=("typed",),
             # The file declares a 33rd block, for multi-token prediction, whose
-            # tensors it does not hold, and llama.cpp stops at "tensor
-            # 'blk.32.attn_norm.weight' not found". 0.3.35 failed so, and 0.3.36,
-            # the newest release, vendors llama.cpp 0c1e570 of 1 October 2026,
-            # older than the changes expected to load the file:
-            # https://github.com/ggml-org/llama.cpp/pull/30017 (f0c41e0168, 6
-            # October) and https://github.com/ggml-org/llama.cpp/pull/30097
-            # (448147d42a, 7 October). The first release after 0.3.36 is
-            # expected to vendor a llama.cpp of 7 October or later. Confirm the
-            # check against that release, by loading this file in it, before
-            # Whybook relies on it.
+            # tensors it does not hold. The llama.cpp of 0.3.35 and 0.3.36
+            # stops at "tensor 'blk.32.attn_norm.weight' not found"; that of
+            # 0.3.37, the minimum, skips the block
+            # (https://github.com/ggml-org/llama.cpp/pull/30097) and gives the
+            # research run's answers to 59 of 60 questions
+            # (research/model-candidates-2.md). The check stays for a
+            # llama-cpp-python that pip did not install.
             llama_cpp_newer_than="0.3.36",
         ),
     ]
@@ -486,11 +479,6 @@ def hub_cache() -> Path:
     return Path.home() / ".cache" / "huggingface" / "hub"
 
 
-def copies_dir() -> Path:
-    """Where the server keeps the copies of model files that it rewrites: see readable_path."""
-    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "whybook" / "models"
-
-
 def model_path(model: LocalModel) -> Path | None:
     """The model's file on this machine, or None: from its pinned commit first, then from any other."""
     if model.path:
@@ -605,92 +593,6 @@ def status(models: list[LocalModel] | None = None) -> list[dict[str, Any]]:
     return entries
 
 
-# The GGUF value types, and the size in bytes of each, strings and arrays apart.
-_GGUF_SIZES = {0: 1, 1: 1, 2: 2, 3: 2, 4: 4, 5: 4, 6: 4, 7: 1, 10: 8, 11: 8, 12: 8}
-_GGUF_STRING, _GGUF_ARRAY, _GGUF_INT32, _GGUF_FLOAT32 = 8, 9, 5, 6
-
-
-def _gguf_string(buf: Any, offset: int) -> tuple[str, int]:
-    (length,) = struct.unpack_from("<Q", buf, offset)
-    return bytes(buf[offset + 8 : offset + 8 + length]).decode("utf-8", "replace"), offset + 8 + length
-
-
-def _gguf_after(buf: Any, offset: int, kind: int) -> int:
-    if kind == _GGUF_STRING:
-        return _gguf_string(buf, offset)[1]
-    if kind == _GGUF_ARRAY:
-        element, count = struct.unpack_from("<IQ", buf, offset)
-        offset += 12
-        if element == _GGUF_STRING:
-            for _ in range(count):
-                offset = _gguf_string(buf, offset)[1]
-            return offset
-        return offset + _GGUF_SIZES[element] * count
-    return offset + _GGUF_SIZES[kind]
-
-
-def _scores_at(buf: Any) -> tuple[int, int, int] | None:
-    """Where the token scores of a GGUF header are: the offset of their array, its element type and count."""
-    if bytes(buf[:4]) != b"GGUF":
-        return None
-    _, _, pairs = struct.unpack_from("<IQQ", buf, 4)
-    offset = 24
-    for _ in range(pairs):
-        key, offset = _gguf_string(buf, offset)
-        (kind,) = struct.unpack_from("<I", buf, offset)
-        offset += 4
-        if key == "tokenizer.ggml.scores" and kind == _GGUF_ARRAY:
-            element, count = struct.unpack_from("<IQ", buf, offset)
-            return offset, element, count
-        offset = _gguf_after(buf, offset, kind)
-    return None
-
-
-def _int_scores(path: Path) -> bool:
-    """Whether the file stores its token scores as 32-bit integers, as Mistral AI's Ministral 3 files do."""
-    try:
-        with open(path, "rb") as handle, mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as buf:
-            found = _scores_at(buf)
-    except (OSError, ValueError, KeyError, struct.error):
-        return False
-    return found is not None and found[1] == _GGUF_INT32
-
-
-def readable_path(path: Path) -> Path:
-    """The file for llama.cpp: ``path``, or a copy with its token scores as 32-bit floats.
-
-    The llama.cpp of llama-cpp-python 0.3.35 (4df29be4) refuses integer scores:
-    it came after ggml-org/llama.cpp#27075, and before #27260 read them again.
-    Both types take 4 bytes, so the copy keeps the layout of the file, and a
-    float holds each score exactly (research/local-models.md, "Models of 3B to
-    12B", and research/local_models/patch_scores.py).
-    """
-    if not _int_scores(path):
-        return path
-    real = Path(os.path.realpath(path))
-    copy = copies_dir() / f"{hashlib.sha256(str(real).encode()).hexdigest()[:12]}-{real.stem}.scores-f32.gguf"
-    if copy.exists():
-        return copy
-    copy.parent.mkdir(parents=True, exist_ok=True)
-    partial = copy.with_suffix(".partial")
-    try:
-        shutil.copyfile(real, partial)
-        with open(partial, "r+b") as handle, mmap.mmap(handle.fileno(), 0) as buf:
-            offset, _, count = _scores_at(buf)
-            values = struct.unpack_from(f"<{count}i", buf, offset + 12)
-            if values and max(abs(value) for value in values) > 2**24:
-                raise LocalModelError(f"{path.name} has a token score too large for a float to hold exactly")
-            struct.pack_into("<I", buf, offset, _GGUF_FLOAT32)
-            struct.pack_into(f"<{count}f", buf, offset + 12, *(float(value) for value in values))
-            buf.flush()
-        partial.replace(copy)
-    except BaseException:
-        # A copy is as large as the model: 2.1 GB for Ministral 3.
-        partial.unlink(missing_ok=True)
-        raise
-    return copy
-
-
 # One model is loaded, and one request runs, at a time. A request of several
 # items (_each) holds the lock for all of them, so that two tasks on two
 # models do not load a model for each answer; the calls of one item take it
@@ -704,9 +606,9 @@ _saved: dict[tuple[str, tuple[int, ...]], bytes] = {}
 def _thinking_off(llm: Any) -> None:
     """Render the model's own chat template with enable_thinking=False.
 
-    llama-cpp-python 0.3.35 renders the template of the GGUF file with a fixed
-    set of variables (llama_chat_format.Jinja2ChatFormatter), and
-    create_chat_completion passes it no others. This handler is the one that
+    llama-cpp-python renders the template of the GGUF file with a fixed set
+    of variables (llama_chat_format.Jinja2ChatFormatter, the same from 0.3.35
+    to 0.3.37), and create_chat_completion passes it no others. This handler is the one that
     Llama builds from the template, with one variable more, as
     research/local_models/bench.py (thinking_off) ran the benchmark.
     """
@@ -747,7 +649,7 @@ def _llm(model: LocalModel, threads: int) -> Any:
     _unload()
     overrides = LAYOUT_OVERRIDES.get(model.layout)
     llm = Llama(
-        model_path=str(readable_path(path)), n_ctx=4096, n_threads=threads, n_threads_batch=threads, n_batch=512, verbose=False,
+        model_path=str(path), n_ctx=4096, n_threads=threads, n_threads_batch=threads, n_batch=512, verbose=False,
         **({"kv_overrides": overrides} if overrides else {}),
     )
     if model.thinking_off:
@@ -784,7 +686,7 @@ def words(text: Any, limit: int) -> str:
 JSON_CHECKS = ("fast", "standard")
 # "fast" replaces a part of llama-cpp-python's sampling that is not public
 # API. It was measured with this version.
-FAST_CHECK_TESTED = "0.3.35"
+FAST_CHECK_TESTED = "0.3.37"
 # What "fast" uses of llama_cpp beyond Llama.
 _FAST_NEEDS = (
     "llama_get_logits_ith",
@@ -1436,7 +1338,7 @@ def _sha256(path: Path) -> str:
 
 
 def _checked(model: LocalModel, path: Path) -> None:
-    """Delete a downloaded file whose SHA-256 is not the one of MODELS, and raise; prepare the one that is."""
+    """Delete a downloaded file whose SHA-256 is not the one of MODELS, and raise."""
     if model.sha256:
         found = _sha256(path)
         if found != model.sha256:
@@ -1444,7 +1346,6 @@ def _checked(model: LocalModel, path: Path) -> None:
             path.unlink(missing_ok=True)
             real.unlink(missing_ok=True)
             raise LocalModelError(f"the file has the SHA-256 {found}, not {model.sha256}, and was deleted")
-    readable_path(path)
 
 
 @dataclass
@@ -1514,11 +1415,9 @@ async def _download_and_check(job: Download) -> None:
 async def download(model_id: str) -> AsyncIterator[dict[str, Any]]:
     """Fetch a model's file at its commit into the Hugging Face cache, with progress events.
 
-    The file of a model of MODELS is then checked against its SHA-256. A file
-    that stores its token scores as integers gets its copy with float scores
-    (readable_path), so that the first label does not wait for it. Both run
-    in a job (Download) that does not depend on this stream: a second view,
-    or the same one after a reload, follows the job that runs.
+    The file of a model of MODELS is then checked against its SHA-256. Both
+    run in a job (Download) that does not depend on this stream: a second
+    view, or the same one after a reload, follows the job that runs.
     """
     start = time.monotonic()
     model = model_of(model_id)
