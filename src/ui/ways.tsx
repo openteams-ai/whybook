@@ -202,28 +202,7 @@ export async function showThreeWays(state: IWaysState): Promise<WayId | null> {
     buttons: [Dialog.cancelButton({ label: 'Decide later' })]
   });
   dialog.addClass('jp-Epi-ways-dialog');
-  // JupyterLab's dialog takes Enter for its own buttons, before the
-  // button that has the focus sees it: Enter on a way presses that way.
-  const enter = (event: KeyboardEvent) => {
-    const active = document.activeElement;
-    if (
-      event.key === 'Enter' &&
-      active instanceof HTMLButtonElement &&
-      active.classList.contains('jp-Epi-way-button') &&
-      dialog.node.contains(active)
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      active.click();
-    }
-  };
-  document.addEventListener('keydown', enter, true);
   // The dialog disposes itself when it resolves.
-  const closed = dialog.launch();
-  try {
-    await closed;
-  } finally {
-    document.removeEventListener('keydown', enter, true);
-  }
+  await dialog.launch();
   return chosen;
 }

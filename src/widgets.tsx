@@ -255,12 +255,7 @@ export function createToolbarItem(
     case 'spacer':
       return Toolbar.createSpacerItem();
     case 'kernelName': {
-      // JupyterLab's toolbar measures an item once, and keeps that width
-      // when the item's text changes. The kernel's name grows from "No
-      // Kernel" once the kernel starts, and a toolbar with no room left
-      // wrapped it onto a row under the notebook, where it could not be
-      // clicked. At a fixed width (style/base.css) the measure holds, and the
-      // name goes into the toolbar's overflow menu when there is no room.
+      // The class ends a name longer than its room in an ellipsis (style/base.css).
       const kernelName = Toolbar.createKernelNameItem(
         sessionContext,
         options.sessionDialogs,

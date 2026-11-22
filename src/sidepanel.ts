@@ -8,9 +8,9 @@ import { Signal } from '@lumino/signaling';
 import type { AccordionPanel, Widget } from '@lumino/widgets';
 
 /**
- * The side panel of Variables, Contents and Questions. With JupyterLab 4.6
- * the user can move each section to another panel, such as the file browser,
- * from the context menu of its header, and back again.
+ * The side panel of Variables, Contents and Questions. The user can move each
+ * section to another panel, such as the file browser, from the context menu
+ * of its header, and back again.
  */
 export class EpiSidePanel extends SidePanel implements IMovableSectionSource {
   constructor(options: EpiSidePanel.IOptions) {

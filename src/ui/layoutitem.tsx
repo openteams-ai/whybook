@@ -11,12 +11,8 @@
  * icons push into "⋯". The three icons then fold, and the toolbar never shows
  * them while Run all or AI are in "⋯".
  *
- * The toolbar moves items by widths that it measures once and keeps: it
- * measures again only after a change of zoom. An item that changes its width
- * has to give the toolbar its new width, or the toolbar counts the old one,
- * and items then overflow the toolbar, or go into "⋯" with room left. The
- * item decides before the toolbar lays out its items for a new width, and
- * writes its new width where the toolbar keeps the widths (`toolbarWidths`).
+ * The item decides before the toolbar lays out its items for a new width, by
+ * the widths that the toolbar keeps for its items (`toolbarWidths`).
  */
 import { ReactWidget } from '@jupyterlab/ui-components';
 import type { IMessageHandler, Message } from '@lumino/messaging';
@@ -51,12 +47,8 @@ const MAX_RETRIES = 30;
  * The widths that JupyterLab's toolbar keeps for its items, by the items'
  * names, or null for a toolbar that keeps none.
  *
- * `ReactiveToolbar` keeps them in a private field, `_widgetWidths`, the same
- * map in JupyterLab 4.1 to 4.6. No public call makes the toolbar measure an
- * item again: JupyterLab 4.6.4 forgets the width of an item taken out of the
- * toolbar, but earlier releases, 4.4 and 4.5 and the Notebook 7 releases
- * built on them among them, keep it. src/__tests__/toolbarwidths.spec.ts
- * fails when the field changes.
+ * `ReactiveToolbar` keeps them in a private field, `_widgetWidths`.
+ * src/__tests__/toolbarwidths.spec.ts fails when the field changes.
  */
 export function toolbarWidths(toolbar: Widget): Map<string, number> | null {
   const widths = (toolbar as unknown as { _widgetWidths?: unknown })
@@ -190,7 +182,7 @@ export class LayoutItem extends ReactWidget {
     if (fold === this._folded) {
       return;
     }
-    this._setFolded(fold, widths);
+    this._setFolded(fold);
     if (fold) {
       if (relayout) {
         this._relayout();
@@ -314,18 +306,12 @@ export class LayoutItem extends ReactWidget {
     }
   }
 
-  private _setFolded(fold: boolean, widths: Map<string, number>): void {
+  private _setFolded(fold: boolean): void {
     const focused = this.node.contains(document.activeElement);
     this._folded = fold;
     this.toggleClass(FOLDED_CLASS, fold);
     this._show(fold);
     this._measure();
-    // The toolbar counts the new width from now on.
-    const width = fold ? this._button : this._icons;
-    const name = this.node.dataset.jpItemName;
-    if (name && width) {
-      widths.set(name, width);
-    }
     if (focused) {
       this._focusControl();
     }

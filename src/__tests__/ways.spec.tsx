@@ -713,9 +713,17 @@ describe('The screen', () => {
     }
     const focused = document.activeElement?.textContent?.trim();
     way.focus();
-    way.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
-    );
+    const enter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true
+    });
+    way.dispatchEvent(enter);
+    // A browser clicks the focused button on an Enter that no handler
+    // cancels, and jsdom does not.
+    if (!enter.defaultPrevented) {
+      way.click();
+    }
     const first = await pressed;
     const later = showThreeWays(state);
     const decide = await findButton('Decide later');

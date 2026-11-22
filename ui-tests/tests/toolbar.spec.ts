@@ -129,13 +129,12 @@ test("shows the kernel's status as JupyterLab's notebook does, next to the kerne
   expect(short.gap).toBeLessThanOrEqual(10);
   expect(short.offset).toBeLessThanOrEqual(1);
   expect(short.cut).toBe(false);
-  // A long name is cut with an ellipsis before the circle; it ran on under
-  // the circle before.
+  // A long name ends before the circle too, whole while the toolbar has room.
   const long = await layout(
     'R 4.5 in a conda environment with a very long name'
   );
   expect(long.gap).toBeGreaterThanOrEqual(2);
-  expect(long.cut).toBe(true);
+  expect(long.cut).toBe(false);
 });
 
 test("counts the cells of Run all in the kernel's status, one at a time", async ({

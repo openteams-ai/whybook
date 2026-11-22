@@ -1,14 +1,14 @@
 /**
  * The parts of JupyterLab's toolbar that the layout's item of Whybook's
  * toolbar relies on (src/ui/layoutitem.tsx): the widths that
- * `ReactiveToolbar` keeps for its items, by their names, in a private field;
- * what it counts beside them, 2 + 5 px of padding and 32 px for its "⋯"
- * button; and how many items it keeps in its row (`rowCount`). These tests
- * fail when JupyterLab changes them. Without the widths, the item keeps one
- * width: the three icons.
+ * `ReactiveToolbar` keeps for its items, by their names, in a private field,
+ * and measures again each time it lays them out; what it counts beside them,
+ * 2 + 5 px of padding and 32 px for its "⋯" button; and how many items it
+ * keeps in its row (`rowCount`). These tests fail when JupyterLab changes
+ * them. Without the widths, the item keeps one width: the three icons.
  *
- * jsdom lays nothing out: each item reads 100 px, and the toolbar's width is
- * the room of the test.
+ * jsdom lays nothing out: each item reads 100 px unless a test widens it,
+ * and the toolbar's width is the room of the test.
  */
 import './fakes/quiet';
 
@@ -29,10 +29,13 @@ const WIDTH = 100;
 
 let room = 1000;
 let host: Panel | null = null;
+/** The widths of the items that a test widens, by their names. */
+let wider: Record<string, number> = {};
 
 afterEach(() => {
   host?.dispose();
   host = null;
+  wider = {};
   document.body.innerHTML = '';
 });
 
@@ -53,11 +56,12 @@ async function setup(): Promise<ReactiveToolbar> {
   Widget.attach(host, document.body);
   for (const name of NAMES) {
     const item = new Widget();
-    Object.defineProperty(item.node, 'clientWidth', { get: () => WIDTH });
+    Object.defineProperty(item.node, 'clientWidth', {
+      get: () => wider[name] ?? WIDTH
+    });
     toolbar.addItem(name, item);
   }
-  // The toolbar measures every item again at its first size: it reads the
-  // zoom then.
+  // The toolbar measures its items when it gets a size.
   await resize(toolbar, room);
   return toolbar;
 }
@@ -80,7 +84,7 @@ function inMenu(toolbar: ReactiveToolbar): string[] {
 }
 
 describe("JupyterLab's toolbar", () => {
-  it('keeps the width of each item by its name, and lays out its items by a width written there', async () => {
+  it('keeps the width of each item by its name', async () => {
     room = 1000;
     const toolbar = await setup();
     const widths = toolbarWidths(toolbar);
@@ -92,9 +96,16 @@ describe("JupyterLab's toolbar", () => {
       d: WIDTH
     });
     expect(inMenu(toolbar)).toEqual([]);
-    // The item b grows by 600 px, and gives the toolbar its new width.
-    widths!.set('b', WIDTH + 600);
+  });
+
+  it('measures its items again each time it lays them out', async () => {
+    room = 1000;
+    const toolbar = await setup();
+    expect(inMenu(toolbar)).toEqual([]);
+    // The item b grows by 600 px, as the kernel's name does when a kernel starts.
+    wider.b = WIDTH + 600;
     await resize(toolbar, 1000);
+    expect(toolbarWidths(toolbar)!.get('b')).toBe(WIDTH + 600);
     expect(inMenu(toolbar)).toEqual(['d']);
   });
 

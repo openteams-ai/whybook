@@ -337,9 +337,8 @@ test.describe('With the screen off, as on Binder', () => {
 
     // The command palette, in the category Whybook. The notebook takes the
     // focus once more after it shows, and that closes a palette opened before
-    // it: up to half a second later on JupyterLab 4.6.4, sooner on 4.6.6.
-    // The palette opens again until it stays open for a second: five checks
-    // in a row, 250 ms apart.
+    // it. The palette opens again until it stays open for a second: five
+    // checks in a row, 250 ms apart.
     const search = page.locator('#command-palette .lm-CommandPalette-input');
     let checks = 0;
     await expect

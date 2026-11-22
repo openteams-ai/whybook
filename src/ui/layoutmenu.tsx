@@ -191,13 +191,7 @@ export function LayoutMenuButton(props: {
           return;
         }
         // A click from Enter or Space has no pointer: the keyboard then
-        // reaches the menu's items. JupyterLab's toolbar activates the
-        // notebook on a click after which the focus is not in the toolbar,
-        // and the notebook would take the focus from the menu's item: that
-        // click stops at the button.
-        if (event.detail === 0) {
-          event.stopPropagation();
-        }
+        // reaches the menu's items.
         openMenu(event.detail === 0 ? 'current' : null);
       }}
       onKeyDown={event => {

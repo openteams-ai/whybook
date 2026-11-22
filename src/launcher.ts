@@ -23,9 +23,8 @@ export const NEW_WHYBOOK = 'whybook:new-epinotebook';
 export const CATEGORY = 'Whybook';
 
 /**
- * The rank of the section: JupyterLab 4.6 gives Notebook 0 and Console 20,
- * so the section comes between them. JupyterLab 4.4 and 4.5 have no rank
- * for sections, and put it after Other.
+ * The rank of the section: JupyterLab gives Notebook 0 and Console 20, so
+ * the section comes between them.
  */
 const CATEGORY_RANK = 10;
 

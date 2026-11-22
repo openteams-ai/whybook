@@ -27,9 +27,9 @@ classifiers = [
     "Programming Language :: Python :: 3.15",
 ]
 dependencies = [
-    # The prebuilt frontend extension needs JupyterLab 4.4, the first release that
-    # can send kernel messages to a subshell (NOTES.md, "The JupyterLab floor").
-    "jupyterlab>=4.4.0,<5",
+    # The prebuilt frontend extension needs the toolbar and keyboard fixes of
+    # JupyterLab 4.6.6 (NOTES.md, "The JupyterLab floor of 4.6.6").
+    "jupyterlab>=4.6.6,<5",
     "jupyter_server>=2.13.0,<3",
     # A tree file browser: files are dragged from it into the view.
     "jupyterlab-unfold>=0.3.4",
