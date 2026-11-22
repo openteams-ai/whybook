@@ -1374,6 +1374,8 @@ async def claude_driver(run: Run, request: AgentRequest, config: Whybook) -> dic
         extra_args={"no-session-persistence": None},
         # The three tools are loaded at once, without the search for tools.
         env={"ENABLE_TOOL_SEARCH": "false"},
+        # The prompt holds the notebook's text, and the CLI reads and sends any file that an @path in it names.
+        verbatim_prompts=True,
     )
     state: dict[str, Any] = {"model": None, "cost": None}
     # The CLI gives the cost in its last message alone: a run that the analyst

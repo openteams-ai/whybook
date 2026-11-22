@@ -303,6 +303,8 @@ async def structured_call(
             cwd=_workdir(),
             output_format={"type": "json_schema", "schema": schema} if structured else None,
             extra_args={"no-session-persistence": None},
+            # The prompt holds the notebook's text, and the CLI reads and sends any file that an @path in it names.
+            verbatim_prompts=True,
         )
 
     async def run(text: str, structured: bool) -> AsyncIterator[Event]:

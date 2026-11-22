@@ -236,6 +236,19 @@ def claude_code_sdk(messages):
     return module
 
 
+async def test_a_run_with_the_claude_code_login_sends_the_prompt_to_the_cli_as_written(monkeypatch):
+    from .test_claude import ResultMessage
+
+    # Without verbatim_prompts, the CLI reads the file of an @path in the notebook's text and sends it with the prompt.
+    def failed(SystemMessage):
+        return [ResultMessage(is_error=True, subtype="error_during_execution", errors=["the API is overloaded"], total_cost_usd=0.02)]
+
+    sdk = claude_code_sdk(failed)
+    monkeypatch.setitem(sys.modules, "claude_agent_sdk", sdk)
+    await drive(agent.run_events(request(), Whybook(), agent.claude_driver), [])
+    assert getattr(sdk.options[-1], "verbatim_prompts", False) is True
+
+
 async def test_a_run_with_the_claude_code_login_gets_the_lower_cap_and_stops_there(monkeypatch):
     from .test_claude import ResultMessage
 

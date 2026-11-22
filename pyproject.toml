@@ -41,8 +41,9 @@ dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [project.optional-dependencies]
 # Claude for suggesting questions and writing cells; uses the Claude Code login or ANTHROPIC_API_KEY.
+# verbatim_prompts came in 0.2.158 (whybook/server/claude.py).
 claude = [
-    "claude-agent-sdk>=0.2.157",
+    "claude-agent-sdk>=0.2.158",
 ]
 # Any other model for cells and answers, through Pydantic AI: OpenRouter,
 # Hugging Face, Anthropic, OpenAI, Google, Mistral AI, and servers with an

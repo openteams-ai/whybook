@@ -45,10 +45,12 @@ def fake_sdk(replies):
     """An SDK whose query() answers with the next reply: a ResultMessage or an exception."""
     module = types.ModuleType("claude_agent_sdk")
     module.calls = []
+    module.options = []
 
     class ClaudeAgentOptions:
         def __init__(self, **kwargs):
             self.__dict__.update(kwargs)
+            module.options.append(self)
 
     async def query(prompt, options):
         module.calls.append({"prompt": prompt, "structured": options.output_format is not None})
@@ -98,6 +100,15 @@ async def test_a_structured_output_failure_retries_as_plain_json(monkeypatch):
     assert [c["structured"] for c in calls] == [True, False]
     assert events[-1]["type"] == "result"
     assert events[-1]["output"] == CELL
+
+
+async def test_every_attempt_sends_the_prompt_to_the_cli_as_written(monkeypatch):
+    # Without verbatim_prompts, the CLI reads the file of an @path in the notebook's text and sends it with the prompt.
+    failure = FakeSDKError("Claude Code returned an error result: Failed to provide valid structured output after 5 attempts")
+    sdk = fake_sdk([failure, ResultMessage(result='{"summary": "s", "code": "x = 1", "assumptions": [], "follow_up": []}')])
+    monkeypatch.setitem(sys.modules, "claude_agent_sdk", sdk)
+    [e async for e in claude.structured_call("{}", schema=SCHEMA, system_prompt="s", config=Whybook(), effort="low")]
+    assert [getattr(options, "verbatim_prompts", False) for options in sdk.options] == [True, True]
 
 
 async def test_a_retry_that_breaks_the_schema_is_an_error(monkeypatch):
