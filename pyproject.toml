@@ -87,7 +87,7 @@ local = [
 # Streaming (research/voice-questions.md). moonshine-voice fetches a model from
 # download.moonshine.ai when the user presses Download for it.
 speech = [
-    "moonshine-voice>=0.1.5,<0.2",
+    "moonshine-voice>=0.1.6,<0.2",
 ]
 dev = [
     "jupyter-builder>=1.2.0",
