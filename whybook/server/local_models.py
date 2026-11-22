@@ -931,14 +931,35 @@ def title(model: LocalModel, cell: dict[str, Any], threads: int, check: str = "f
 
 
 def _chat(llm: Any, system: str, user: str) -> str:
-    """The prompt as the model's own chat template writes it, ready for the answer."""
+    """The prompt as the model's own chat template writes it, ready for the answer.
+
+    The template reads as llama-cpp-python's Jinja2ChatFormatter reads it for
+    the labels, after Hugging Face transformers: a ``{% generation %}`` block,
+    which Jais-3's template puts around each answer, renders as its content,
+    ``{% break %}`` and ``{% continue %}`` work, and ``tojson`` keeps non-ASCII
+    characters.
+    """
     import jinja2
+    import jinja2.ext
     from jinja2.sandbox import ImmutableSandboxedEnvironment
+
+    class Generation(jinja2.ext.Extension):
+        tags = {"generation"}
+
+        def parse(self, parser: Any) -> Any:
+            parser.stream.skip(1)
+            return parser.parse_statements(("name:endgeneration",), drop_needle=True)
 
     def fail(message: str) -> None:
         raise jinja2.exceptions.TemplateError(message)
 
-    env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True, loader=jinja2.BaseLoader())
+    def tojson(value: Any, ensure_ascii: bool = False, indent: int | None = None, separators: Any = None, sort_keys: bool = False) -> str:
+        return json.dumps(value, ensure_ascii=ensure_ascii, indent=indent, separators=separators, sort_keys=sort_keys)
+
+    env = ImmutableSandboxedEnvironment(
+        trim_blocks=True, lstrip_blocks=True, loader=jinja2.BaseLoader(), extensions=[Generation, jinja2.ext.loopcontrols]
+    )
+    env.filters["tojson"] = tojson
     env.globals["raise_exception"] = fail
     env.globals["strftime_now"] = lambda fmt: datetime.datetime.now().strftime(fmt)
     template = env.from_string(llm.metadata["tokenizer.chat_template"])

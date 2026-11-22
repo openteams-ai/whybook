@@ -267,6 +267,22 @@ def fake_llama(tmp_path, monkeypatch):
     return module
 
 
+def test_a_local_model_whose_template_marks_its_answers_types_a_question(fake_llama, monkeypatch):
+    # Jais-3's template, as Hugging Face's templates do, marks each answer with a generation block.
+    template = "{% for m in messages %}<{{ m.role }}>{% generation %}{{ m.content }}{% endgeneration %}\n{% endfor %}<assistant>"
+    monkeypatch.setattr(FakeChatLlama, "__init__", _with_template(FakeChatLlama.__init__, template))
+    found = local_models.classify(local_models.MODELS["gemma-4-e2b"], "Should age enter the model?", 4)
+    assert found["type"]["choice"] == "model"
+
+
+def _with_template(init, template):
+    def made(self, model_path, **options):
+        init(self, model_path, **options)
+        self.metadata = {"tokenizer.chat_template": template}
+
+    return made
+
+
 def test_a_local_model_types_a_question_from_the_letters_where_the_answer_starts(fake_llama):
     first = local_models.classify(local_models.MODELS["gemma-4-e2b"], "Should age enter the model?", 4)
     assert first["type"]["choice"] == "model"
