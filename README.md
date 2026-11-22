@@ -44,7 +44,7 @@ The data in the screenshots is synthetic: the demo cohort of `examples/pain_diar
 
 ## Install
 
-Whybook needs Python 3.10 or later and JupyterLab 4.4 or later, in the 4.x series.
+Whybook needs Python 3.11 or later and JupyterLab 4.4 or later, in the 4.x series.
 
 ```bash
 pip install "whybook[kernel,demo,models]"

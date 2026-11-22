@@ -8,7 +8,7 @@ readme = "README.md"
 license = "Apache-2.0"
 # The Seatbelt profiles in whybook/sandbox/codex/ are OpenAI Codex's: their LICENSE and NOTICE ship with them.
 license-files = ["LICENSE", "whybook/sandbox/codex/LICENSE", "whybook/sandbox/codex/NOTICE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
@@ -20,11 +20,11 @@ classifiers = [
     "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
 ]
 dependencies = [
     # The prebuilt frontend extension needs JupyterLab 4.4, the first release that

@@ -84,7 +84,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v7
       with:
-        python-version: '3.10'
+        python-version: '3.11'
         architecture: 'x64'
     - uses: actions/download-artifact@v8
       with:
@@ -108,6 +108,35 @@ jobs:
 
         # This job has no checkout, so the demo's files can come only from the wheel.
         python -m whybook.demo "$RUNNER_TEMP/whybook-demo"
+
+  # The build job runs the Python tests on the default Python of base-setup,
+  # 3.12; this job runs them on the newest Python.
+  test_newest_python:
+    name: Python tests on Python 3.15
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Install Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.15'
+        architecture: 'x64'
+
+    - uses: actions/download-artifact@v8
+      with:
+        name: extension-artifacts
+
+    # The wheel brings the kernelspec of the sandboxed kernel, and the tests
+    # import whybook from the checkout.
+    - name: Install the wheel with the dependencies of the tests
+      run: pip install "$(ls whybook*.whl)[test,models]"
+
+    - name: Run the Python tests
+      run: pytest -vv -r ap
 
   integration-tests:
     name: Integration tests (${{ matrix.shard }}/${{ matrix.shards }})
