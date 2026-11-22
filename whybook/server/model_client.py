@@ -256,6 +256,20 @@ def cost_of(result: Any) -> float | None:
     return round(total, 6)
 
 
+def is_retry(part: Any) -> bool:
+    """Whether Pydantic AI sent the model this part to ask it again.
+
+    From 2.60 a retry is a ToolReturnPart with the outcome "retried", or a
+    RetryFeedbackPart; before 2.60 it was a RetryPromptPart.
+    """
+    from pydantic_ai import messages
+
+    feedback = getattr(messages, "RetryFeedbackPart", None)
+    if feedback is None:
+        return isinstance(part, messages.RetryPromptPart)
+    return isinstance(part, feedback) or (isinstance(part, messages.ToolReturnPart) and getattr(part, "outcome", None) == "retried")
+
+
 class Progress:
     """The view's progress events from Pydantic AI's stream: the stage, and the last line of the model's thinking."""
 
@@ -271,7 +285,6 @@ class Progress:
             OutputToolResultEvent,
             PartDeltaEvent,
             PartStartEvent,
-            RetryPromptPart,
             TextPart,
             ThinkingPart,
             ThinkingPartDelta,
@@ -288,7 +301,7 @@ class Progress:
         elif isinstance(event, PartDeltaEvent) and isinstance(event.delta, ThinkingPartDelta):
             self.thoughts[event.index] = self.thoughts.get(event.index, "") + (event.delta.content_delta or "")
             events += self.thought(event.index)
-        elif isinstance(event, OutputToolResultEvent) and isinstance(event.part, RetryPromptPart):
+        elif isinstance(event, OutputToolResultEvent) and is_retry(event.part):
             events += self.at("retrying")
         return events
 

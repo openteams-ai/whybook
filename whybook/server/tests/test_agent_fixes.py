@@ -208,7 +208,7 @@ def function_model(monkeypatch, calls):
     import pytest
 
     pytest.importorskip("pydantic_ai")
-    from pydantic_ai.messages import ModelRequest, RetryPromptPart
+    from pydantic_ai.messages import ModelRequest
     from pydantic_ai.models.function import DeltaToolCall, FunctionModel
 
     from whybook.server import model_client
@@ -218,7 +218,7 @@ def function_model(monkeypatch, calls):
 
     async def stream(messages, info):
         last = messages[-1]
-        retried.extend(part.content for part in (last.parts if isinstance(last, ModelRequest) else []) if isinstance(part, RetryPromptPart))
+        retried.extend(part.content for part in (last.parts if isinstance(last, ModelRequest) else []) if model_client.is_retry(part))
         name, arguments = remaining.pop(0)
         yield {1: DeltaToolCall(name=name, json_args=json.dumps(arguments))}
 
