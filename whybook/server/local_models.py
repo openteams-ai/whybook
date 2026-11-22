@@ -9,7 +9,7 @@ measures, for the target machine of research/local-hardware.md: a laptop with
 about 3 GB.
 
 - For the target laptop, the three best models in files of 2 to 3 GB:
-  Ministral 3 3B, Gemma 4 E2B and Qwen3 4B.
+  Ministral 3 3B, Gemma 4 E2B and Qwen3.5 4B.
 - One step down, for machines with 8 GB: MiniCPM5 2B, a file of 1.6 GB that
   labels tables as well as the three.
 - One step up, for machines with 24 GB or more: Gemma 4 E4B.
@@ -214,14 +214,14 @@ MODELS = {
             sha256="424921f1fc149888b7a368d73e95af5fea8c94c0e7d065711965e5fd50ac40ce",
         ),
         LocalModel(
-            "qwen3-4b",
-            "Qwen3 4B",
-            "Qwen/Qwen3-4B-GGUF",
-            "Qwen3-4B-Q4_K_M.gguf",
-            2497,
-            "descriptions right for 24 of 32 test tables, headlines for 24, none false; about 22 s a table on 4 CPU threads",
-            revision="bc640142c66e1fdd12af0bd68f40445458f3869b",
-            sha256="7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+            "qwen3.5-4b",
+            "Qwen3.5 4B",
+            "ggml-org/Qwen3.5-4B-GGUF",
+            "Qwen3.5-4B-Q4_K_M.gguf",
+            3032,
+            "descriptions right for 25 of 32 test tables, headlines for 25, none false; about 18 s a table on 4 CPU threads",
+            revision="8d43d974efc48399cb58957ad49c8b26bf5a109c",
+            sha256="217002fa8008ef4fc6d548353a3aebef055a96e6ff8e0e2c0953ef8254a89c14",
             thinking_off=True,
         ),
         LocalModel(

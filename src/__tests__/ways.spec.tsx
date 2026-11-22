@@ -144,7 +144,7 @@ describe('What each way sets', () => {
     const before: ModelChoices = {
       ...LOCAL_LABELS,
       cells: 'off',
-      questions: 'qwen3-4b',
+      questions: 'qwen3.5-4b',
       typed: 'gemma-4-e2b',
       ranking: 'rules',
       speech: 'browser-local'
@@ -240,13 +240,13 @@ describe('What each way sets', () => {
       savedWaySettings(
         {
           keepDataLocal: true,
-          models: { ...DEFAULT_MODELS, labels: 'qwen3-4b' }
+          models: { ...DEFAULT_MODELS, labels: 'qwen3.5-4b' }
         },
-        { models: { labels: 'qwen3-4b' } }
+        { models: { labels: 'qwen3.5-4b' } }
       )
     ).toEqual({
       keepDataLocal: true,
-      models: { ...DEFAULT_MODELS, labels: 'qwen3-4b' }
+      models: { ...DEFAULT_MODELS, labels: 'qwen3.5-4b' }
     });
   });
 });

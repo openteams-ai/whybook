@@ -17,7 +17,7 @@ from tornado.httpclient import AsyncHTTPClient, HTTPClientError, HTTPRequest
 from whybook.server import local_models
 
 GEMMA = local_models.MODELS["gemma-4-e2b"]
-QWEN = local_models.MODELS["qwen3-4b"]
+QWEN = local_models.MODELS["qwen3.5-4b"]
 H2O = local_models.DECISION["h2o-lightning-4b"]
 # Code writes no candidate headline for this table, so its label takes one call.
 TABLE = {"id": "a1", "code": "fit.summary()", "table": "Coef. P>|z|\nage -0.003 0.779", "rows": 2, "columns": 2}
@@ -166,10 +166,10 @@ def test_a_model_not_in_the_cache_gives_the_command_that_fetches_it(fake):
     assert status["gemma-4-e2b"]["available"] is True
     assert status["gemma-4-e2b"]["reason"] is None
     assert local_models.model_path(GEMMA) == path
-    assert status["qwen3-4b"]["available"] is False
+    assert status["qwen3.5-4b"]["available"] is False
     # The command fetches the file at the commit that the view pins.
-    assert status["qwen3-4b"]["reason"] == (
-        "not downloaded: hf download Qwen/Qwen3-4B-GGUF Qwen3-4B-Q4_K_M.gguf --revision bc640142c66e1fdd12af0bd68f40445458f3869b"
+    assert status["qwen3.5-4b"]["reason"] == (
+        "not downloaded: hf download ggml-org/Qwen3.5-4B-GGUF Qwen3.5-4B-Q4_K_M.gguf --revision 8d43d974efc48399cb58957ad49c8b26bf5a109c"
     )
 
 
@@ -218,9 +218,9 @@ async def test_a_local_model_labels_each_table_and_loads_once(fake):
 async def test_an_answer_that_is_not_json_is_an_error(fake, monkeypatch):
     download(fake, QWEN)
     monkeypatch.setattr(FakeLlama, "answer", '{"description": "cut off')
-    events = [event async for event in local_models.ask_local("qwen3-4b", [TABLE], threads=2)]
+    events = [event async for event in local_models.ask_local("qwen3.5-4b", [TABLE], threads=2)]
     assert events[-1]["type"] == "error"
-    assert events[-1]["message"].startswith("Qwen3 4B did not answer with JSON")
+    assert events[-1]["message"].startswith("Qwen3.5 4B did not answer with JSON")
 
 
 async def test_a_model_that_is_not_downloaded_is_an_error(fake):
@@ -363,7 +363,7 @@ async def test_the_server_reports_its_local_models(jp_fetch, fake):
     assert [(entry["id"], entry["tier"], entry["available"]) for entry in status["local_models"]] == [
         ("ministral-3-3b", "recommended", False),
         ("gemma-4-e2b", "recommended", True),
-        ("qwen3-4b", "recommended", False),
+        ("qwen3.5-4b", "recommended", False),
         ("minicpm5-2b", "smaller", False),
         ("gemma-4-e4b", "larger", False),
         ("jevk5-4b", "decision", False),
@@ -402,23 +402,23 @@ async def test_download_fetches_the_pinned_file_at_its_commit_and_checks_it(fake
     assert {entry["downloadable"] for entry in local_models.status()} == {True}
     # The fake file is b"GGUF": its SHA-256 stands in for the pinned one.
     monkeypatch.setattr(local_models, "_sha256", lambda path: QWEN.sha256)
-    events = [event async for event in local_models.download("qwen3-4b")]
-    assert [event["stage"] for event in events if event["type"] == "progress"][-1] == "checking Qwen3 4B"
+    events = [event async for event in local_models.download("qwen3.5-4b")]
+    assert [event["stage"] for event in events if event["type"] == "progress"][-1] == "checking Qwen3.5 4B"
     assert events[-1]["type"] == "result"
-    assert fake_hub == [("Qwen/Qwen3-4B-GGUF", "Qwen3-4B-Q4_K_M.gguf", str(fake), "bc640142c66e1fdd12af0bd68f40445458f3869b")]
+    assert fake_hub == [("ggml-org/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf", str(fake), "8d43d974efc48399cb58957ad49c8b26bf5a109c")]
     status = {entry["id"]: entry for entry in local_models.status()}
-    assert status["qwen3-4b"]["available"] is True
-    assert status["qwen3-4b"]["downloadable"] is False
+    assert status["qwen3.5-4b"]["available"] is True
+    assert status["qwen3.5-4b"]["downloadable"] is False
     # A second press finds the file and fetches nothing.
-    again = [event async for event in local_models.download("qwen3-4b")]
+    again = [event async for event in local_models.download("qwen3.5-4b")]
     assert [event["type"] for event in again] == ["result"]
     assert len(fake_hub) == 1
 
 
 async def test_a_downloaded_file_whose_sha256_differs_is_deleted(fake, fake_hub):
-    events = [event async for event in local_models.download("qwen3-4b")]
+    events = [event async for event in local_models.download("qwen3.5-4b")]
     assert events[-1]["type"] == "error"
-    assert events[-1]["message"].startswith("the download of Qwen3 4B failed: the file has the SHA-256 ")
+    assert events[-1]["message"].startswith("the download of Qwen3.5 4B failed: the file has the SHA-256 ")
     assert events[-1]["message"].endswith(f"not {QWEN.sha256}, and was deleted")
     assert local_models.model_path(QWEN) is None
 
@@ -463,7 +463,7 @@ def slow_hub(fake, monkeypatch):
 
 
 async def settled():
-    """Wait until the download job of Qwen3 4B has ended."""
+    """Wait until the download job of Qwen3.5 4B has ended."""
     for _ in range(200):
         job = local_models.DOWNLOADS.get(QWEN.id)
         if job is None or job.done():
@@ -473,39 +473,39 @@ async def settled():
 
 
 async def test_a_page_that_goes_away_during_a_download_leaves_the_check_to_run(fake, slow_hub):
-    events = local_models.download("qwen3-4b")
+    events = local_models.download("qwen3.5-4b")
     assert (await events.__anext__())["type"] == "progress"
     # What BaseHandler.stream does when the analyst reloads the page.
     await events.aclose()
     # While the job runs, the model is neither available nor offered again.
-    status = {entry["id"]: entry for entry in local_models.status()}["qwen3-4b"]
+    status = {entry["id"]: entry for entry in local_models.status()}["qwen3.5-4b"]
     assert (status["available"], status["downloadable"], status["reason"]) == (False, False, "downloading")
     slow_hub.set()
     await settled()
     # The file whose SHA-256 is not the pinned one is deleted, as when the page stays.
     assert local_models.model_path(QWEN) is None
-    status = {entry["id"]: entry for entry in local_models.status()}["qwen3-4b"]
+    status = {entry["id"]: entry for entry in local_models.status()}["qwen3.5-4b"]
     assert status["available"] is False and status["reason"].startswith("the last download failed: the file has the SHA-256 ")
     # The next press of Download starts again, and reads what the job says.
-    again = local_models.download("qwen3-4b")
+    again = local_models.download("qwen3.5-4b")
     assert (await again.__anext__())["type"] == "progress"
     await again.aclose()
 
 
 async def test_a_second_view_follows_the_download_that_runs(fake, slow_hub, monkeypatch):
     monkeypatch.setattr(local_models, "_sha256", lambda path: QWEN.sha256)
-    first = local_models.download("qwen3-4b")
+    first = local_models.download("qwen3.5-4b")
     assert (await first.__anext__())["type"] == "progress"
     await first.aclose()
-    second = local_models.download("qwen3-4b")
+    second = local_models.download("qwen3.5-4b")
     assert (await second.__anext__())["type"] == "progress"
     slow_hub.set()
     events = [event async for event in second]
-    assert events[-1] == {"type": "result", "model": "qwen3-4b", "elapsed": events[-1]["elapsed"]}
+    assert events[-1] == {"type": "result", "model": "qwen3.5-4b", "elapsed": events[-1]["elapsed"]}
     # One download for both views.
     assert slow_hub.calls == [QWEN.file]
     assert local_models.model_path(QWEN) is not None
-    assert {entry["id"]: entry for entry in local_models.status()}["qwen3-4b"]["available"] is True
+    assert {entry["id"]: entry for entry in local_models.status()}["qwen3.5-4b"]["available"] is True
 
 
 async def test_the_route_checks_the_file_when_the_page_reloads(jp_fetch, jp_http_port, jp_base_url, jp_auth_header, fake, slow_hub):
@@ -518,7 +518,7 @@ async def test_the_route_checks_the_file_when_the_page_reloads(jp_fetch, jp_http
         raise ConnectionAbortedError("the page went away")
 
     url = f"http://localhost:{jp_http_port}{jp_base_url}whybook/models/download"
-    request = HTTPRequest(url, method="POST", body=json.dumps({"model": "qwen3-4b"}), headers=jp_auth_header, streaming_callback=on_chunk, request_timeout=30)
+    request = HTTPRequest(url, method="POST", body=json.dumps({"model": "qwen3.5-4b"}), headers=jp_auth_header, streaming_callback=on_chunk, request_timeout=30)
     client = AsyncHTTPClient(force_instance=True)
     fetch = asyncio.ensure_future(client.fetch(request, raise_error=False))
     assert json.loads((await asyncio.wait_for(first_line, 10)).decode().splitlines()[0])["type"] == "progress"
@@ -764,7 +764,7 @@ async def test_two_requests_on_two_local_models_load_each_model_once(fake, monke
 
     async def titles():
         cells = [{"id": f"c{index}", "code": "weekly = diary.groupby('week').mean()", "title": ""} for index in range(3)]
-        return [event async for event in local_models.ask_local_titles("qwen3-4b", cells, threads=2)]
+        return [event async for event in local_models.ask_local_titles("qwen3.5-4b", cells, threads=2)]
 
     labelled, titled = await asyncio.gather(labels(), titles())
     assert [event["type"] for event in labelled] == ["progress"] * 3 + ["result"]

@@ -118,6 +118,13 @@ describe('readModels, from the settings of an earlier version', () => {
       })
     ).toMatchObject({ typed: 'rules', ranking: 'rules' });
   });
+
+  it('gives a choice of Qwen3 4B to Qwen3.5 4B, which took its place', () => {
+    expect(saved({ labels: 'qwen3-4b', typed: 'qwen3-4b' })).toMatchObject({
+      labels: 'qwen3.5-4b',
+      typed: 'qwen3.5-4b'
+    });
+  });
 });
 
 describe('modelAvailable', () => {

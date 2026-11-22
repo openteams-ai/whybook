@@ -318,8 +318,8 @@ export const TASKS: {
         'the type of every user question: on 276 questions from public notebooks, 70% right, against 67% with the keywords alone; about 0.3 s a question on 7 CPU threads',
       'gemma-4-e4b':
         'the type of every user question: on 276 questions from public notebooks, 71% right, against 67% with the keywords alone; about 0.5 s a question on 7 CPU threads',
-      'qwen3-4b':
-        'the type of every user question: on 276 questions from public notebooks, 64% right, against 67% with the keywords alone; about 0.5 s a question on 7 CPU threads',
+      'qwen3.5-4b':
+        'the type of every user question: on 276 questions from public notebooks, 79% right, against 67% with the keywords alone; about 0.5 s a question on 6 CPU threads',
       'jevk5-4b':
         "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
       'h2o-lightning-4b':
@@ -382,6 +382,7 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
  */
 const DROPPED: Record<string, string> = {
   'qwen3.5-0.8b': 'minicpm5-2b',
+  'qwen3-4b': 'qwen3.5-4b',
   // OpenRouter no longer serves it, and it has no newer version.
   'decision:mercury-decide': 'rules',
   // Jev is one of the decision models.
