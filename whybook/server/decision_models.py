@@ -52,13 +52,12 @@ MODELS = {
     model.id: model
     for model in (
         DecisionModel("jev", "Jev 1.13 by TypeSafe", "typesafe/jev-1.13", True, typesafe=True),
+        DecisionModel("drex-max", "Drex Max by Nace.AI", "nace-ai/drex-max", True),
         DecisionModel("solar-decide", "Solar Decide by Upstage", "upstage/solar-decide", True),
         DecisionModel("clef", "Clef by Cloudflare", "cloudflare/clef", True),
         DecisionModel("clef-flash", "Clef Flash by Cloudflare", "cloudflare/clef-flash", True),
-        # OpenRouter no longer serves V1 and V1.1, which research/choice-classifiers.md
-        # and local-predictors-2.md measured; research/model-candidates.md measured
-        # V1.2. The id keeps the analyst's choice.
-        DecisionModel("pplx-decider", "Decider V1.2 27B by Perplexity", "perplexity/pplx-decider-v1.2", True),
+        # The id keeps a choice saved for an older version. OpenRouter serves V1.3 only as a free variant.
+        DecisionModel("pplx-decider", "Decider V1.3 26B by Perplexity", "perplexity/pplx-decider-v1.3:free", True),
         DecisionModel("luna-decisions", "GPT-6 Luna Decisions by OpenAI", "openai/gpt-6-luna-decisions", False),
         # The id keeps a choice saved for D1.
         DecisionModel("d1", "D1.2 by Liquid AI", "liquid/d1.2", True),

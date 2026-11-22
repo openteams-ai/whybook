@@ -63,8 +63,10 @@ def test_a_decision_model_needs_an_openrouter_key_or_its_makers_api():
 
 
 # Decision models with an endpoint that keeps no data. A choice saved for
-# D1 goes to D1.2.
+# Decider V1.2 goes to V1.3, and one saved for D1 to D1.2.
 ZERO_RETENTION = [
+    ("drex-max", "Drex Max by Nace.AI", "nace-ai/drex-max"),
+    ("pplx-decider", "Decider V1.3 26B by Perplexity", "perplexity/pplx-decider-v1.3:free"),
     ("d1", "D1.2 by Liquid AI", "liquid/d1.2"),
 ]
 
@@ -135,7 +137,7 @@ async def test_jev_goes_through_typesafes_api_when_there_is_no_openrouter_key():
     url, options = calls[0]
     assert url == "https://jev.example/v1/systemone"
     assert options["headers"]["Authorization"] == "Bearer key"
-    assert json.loads(options["body"])["model"] == "jev-latest"
+    assert json.loads(options["body"])["model"] == "jev-1.13.0"
     assert sorted_["model"] == "jev-1.13.0"
     # Another decision model has no API of its own here.
     with pytest.raises(ValueError, match="OpenRouter key"):

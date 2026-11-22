@@ -241,7 +241,7 @@ class Whybook(Configurable):
     ).tag(config=True)
 
     typesafe_model = Unicode(
-        help="The Jev model of the TypeSafe API: TYPESAFE_DEFAULT_MODEL, or jev-latest."
+        help="The Jev model of the TypeSafe API: TYPESAFE_DEFAULT_MODEL, or jev-1.13.0, the Jev of the OpenRouter route."
     ).tag(config=True)
 
     @default("typesafe_api_key")
@@ -254,4 +254,5 @@ class Whybook(Configurable):
 
     @default("typesafe_model")
     def _default_typesafe_model(self):
-        return os.environ.get("TYPESAFE_DEFAULT_MODEL") or "jev-latest"
+        # jev-latest serves Jev 1.14, below 1.13 on all four sets of research/model-candidates-2.md.
+        return os.environ.get("TYPESAFE_DEFAULT_MODEL") or "jev-1.13.0"

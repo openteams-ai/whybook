@@ -638,18 +638,19 @@ function localChoices(
  * reader who saw no method (research/local-predictors-2.md); and the share of
  * 300 cells of public notebooks whose first question had the type of the
  * analyst's next question, as one choice over the questions
- * (research/choice-classifiers.md). research/model-candidates.md measured
- * Decider V1.2 of Perplexity on both.
+ * (research/choice-classifiers.md). research/model-candidates-2.md measured
+ * Drex Max, Decider V1.3 of Perplexity and D1.2 on both.
  */
 const DECISION_MEASURED: Record<
   string,
   { type: number; order: number | null } | undefined
 > = {
   jev: { type: 89, order: 49 },
+  'drex-max': { type: 90, order: 45 },
   'solar-decide': { type: 84, order: 40 },
   clef: { type: 88, order: 40 },
   'clef-flash': { type: 80, order: 44 },
-  'pplx-decider': { type: 89, order: 46 },
+  'pplx-decider': { type: 90, order: 46 },
   'luna-decisions': { type: 79, order: 40 },
   d1: { type: 85, order: 50 },
   kev: { type: 77, order: 50 },
