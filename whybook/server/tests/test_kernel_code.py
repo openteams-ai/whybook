@@ -149,6 +149,17 @@ def test_a_call_of_the_warnings_module_makes_no_decision(demo):
         demo.run("del _warnings")
 
 
+def test_a_call_of_the_warnings_module_of_python_3_14_makes_no_decision(demo):
+    # From Python 3.14 the functions of the warnings module are defined in _py_warnings.
+    demo.run("def _simplefilter(action, record=False):\n    pass\n_simplefilter.__module__ = '_py_warnings'")
+    try:
+        cells = [{"id": "w", "source": '_simplefilter("always", record=True)'}]
+        analysis = demo.kernel("analyze_cells", {"cells": cells})["cells"]
+        assert analysis["w"]["decisions"] == []
+    finally:
+        demo.run("del _simplefilter")
+
+
 def test_each_call_leaves_its_own_decision_and_calls_that_agree_share_one(demo):
     """Home energy [4] merges twice and showed one chip, since the analysis
     kept the first decision of each name. Each decision is now keyed by its

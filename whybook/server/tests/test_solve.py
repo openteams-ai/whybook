@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import sys
 from contextlib import closing
 
 import pytest
@@ -169,7 +170,9 @@ async def test_code_that_does_not_parse_goes_back_to_the_model_once_with_its_err
     found = [event async for event in solve(branch_request(), Whybook())]
     assert len(prompts) == 2
     assert "previous_attempt" not in prompts[0]
-    assert prompts[1]["previous_attempt"] == {"code": broken, "error": "SyntaxError: invalid syntax (line 1)"}
+    # Python 3.14 words this error "cannot use name as import target", and older ones "invalid syntax".
+    message = "cannot use name as import target" if sys.version_info >= (3, 14) else "invalid syntax"
+    assert prompts[1]["previous_attempt"] == {"code": broken, "error": f"SyntaxError: {message} (line 1)"}
     # The analyst gets the second answer, with what both calls cost.
     assert [event["type"] for event in found] == ["result"]
     assert found[0]["cell"]["code"] == fixed

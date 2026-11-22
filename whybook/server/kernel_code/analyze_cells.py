@@ -1018,8 +1018,8 @@ def _whybook_analyze_cells(args):
                 continue
             # The warnings module chooses which warnings show, and no result: an agent's
             # catch_warnings(record=True) and simplefilter("always") made two chips in the
-            # finance video's dry run.
-            if getattr(func, "__module__", None) == "warnings":
+            # finance video's dry run. From Python 3.14 its functions are in _py_warnings.
+            if getattr(func, "__module__", None) in ("warnings", "_warnings", "_py_warnings"):
                 continue
             # The file that a reader such as read_csv or read_parquet reads, even
             # where its parameter is named "path", a name kept out below.
