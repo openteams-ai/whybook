@@ -323,7 +323,11 @@ export const TASKS: {
       'jevk5-4b':
         "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
       'h2o-lightning-4b':
-        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads"
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads",
+      'decider-2b':
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 61%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 2 s for the type and 2 s for the place on 6 CPU threads",
+      'decider-4b':
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 79%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 71.7% for the place, against 42.5% with the first words alone; about 3 s for the type and 3 s for the place on 6 CPU threads"
     }
   },
   {
