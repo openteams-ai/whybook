@@ -117,7 +117,7 @@ async def plain_errors(events: AsyncIterator[dict[str, Any]], config: Whybook) -
 
 class StatusHandler(BaseHandler):
     """What the server can run. A POST carries the local models of the view's
-    settings (custom_local_models), which the status then lists after the five."""
+    settings (custom_local_models), which the status then lists after the server's own."""
 
     @tornado.web.authenticated
     def get(self):

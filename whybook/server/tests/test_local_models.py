@@ -364,6 +364,7 @@ async def test_the_server_reports_its_local_models(jp_fetch, fake):
         ("ministral-3-3b", "recommended", False),
         ("gemma-4-e2b", "recommended", True),
         ("qwen3.5-4b", "recommended", False),
+        ("jais-3-3.7b", "recommended", False),
         ("minicpm5-2b", "smaller", False),
         ("gemma-4-e4b", "larger", False),
         ("jevk5-4b", "decision", False),

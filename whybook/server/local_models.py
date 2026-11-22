@@ -1,17 +1,19 @@
 """Models that run in the Jupyter server, on the analyst's machine.
 
-The view offers five local models (MODELS), and the analyst can add any other
-GGUF model in the settings (customLocalModels): the view sends those to the
-server (register_custom), and they show after the five. The five are chosen
-again at each release, from the models that research/local-models.md
+The view offers its own local models (MODELS), and the analyst can add any
+other GGUF model in the settings (customLocalModels): the view sends those to
+the server (register_custom), and they show after the view's own. These are
+chosen again at each release, from the models that research/local-models.md
 measures, for the target machine of research/local-hardware.md: a laptop with
 16 GB, where about 4 GB go to the model and its cache, so a file of up to
 about 3 GB.
 
-- For the target laptop, the three best models in files of 2 to 3 GB:
-  Ministral 3 3B, Gemma 4 E2B and Qwen3.5 4B.
+- For the target laptop, four models in files of 2 to 3.2 GB: Ministral 3 3B,
+  Gemma 4 E2B, Qwen3.5 4B and Jais-3 3.7B. Their labels of 32 tables differ
+  by no more than chance (research/model-candidates-2.md), and Qwen3.5 4B
+  types the most user questions right.
 - One step down, for machines with 8 GB: MiniCPM5 2B, a file of 1.6 GB that
-  labels tables as well as the three.
+  labels tables as well as those four.
 - One step up, for machines with 24 GB or more: Gemma 4 E4B.
 
 Qwen3.5 0.8B described 2 of 12 held-out tables right, and is no longer
@@ -19,7 +21,7 @@ offered.
 
 They run through llama.cpp (llama-cpp-python) from GGUF files in the Hugging
 Face cache. The server downloads a model only when the user presses Download
-for it: for the five, only the file of MODELS at its commit, checked against
+for it: for the view's own, only the file of MODELS at its commit, checked against
 its SHA-256. Without huggingface_hub, a missing model shows the command that
 fetches it.
 
@@ -150,8 +152,8 @@ TITLE_SCHEMA = {
     "required": ["title"],
 }
 
-# Where a model stands among the five: the three best for the target laptop,
-# one step down and one step up. A model of the settings is "custom".
+# Where a model stands among the view's own: for the target laptop, one step
+# down and one step up. A model of the settings is "custom".
 TIERS = ("recommended", "smaller", "larger", "decision", "custom")
 
 
@@ -223,6 +225,16 @@ MODELS = {
             revision="8d43d974efc48399cb58957ad49c8b26bf5a109c",
             sha256="217002fa8008ef4fc6d548353a3aebef055a96e6ff8e0e2c0953ef8254a89c14",
             thinking_off=True,
+        ),
+        LocalModel(
+            "jais-3-3.7b",
+            "Jais-3 3.7B",
+            "IFM/Jais-3-3.7B-GGUF",
+            "Jais-3-3.7B-Q4_K_M.gguf",
+            3157,
+            "descriptions right for 28 of 32 test tables, headlines for 27, none false; about 12 s a table on 4 CPU threads",
+            revision="dbdeb53ba90fc21a20b39e35564dcad2e8f3955a",
+            sha256="d2039e169049f0646f79bc27aec82ffc0842ff9af1bf75bfc16628929636e09a",
         ),
         LocalModel(
             "minicpm5-2b",

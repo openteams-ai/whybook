@@ -308,7 +308,7 @@ export class EpiSettings {
    * unless the analyst turns it off; the server can pin it on.
    */
   zeroDataRetention = true;
-  /** The local models that the settings add to the server's five: customLocalModels. */
+  /** The local models that the settings add to the server's own: customLocalModels. */
   customLocalModels: ICustomLocalModel[] = [];
   /**
    * How a question that needs AI is answered: an agent adds and runs the

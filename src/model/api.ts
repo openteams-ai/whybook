@@ -13,8 +13,8 @@ import type {
 } from './guard';
 
 /**
- * Where a local model stands: one of the three best for a laptop with 16 GB,
- * the step down or the step up, or a model added in the settings.
+ * Where a local model stands: one of the models for a laptop with 16 GB, the
+ * step down or the step up, or a model added in the settings.
  * whybook/server/local_models.py, TIERS.
  */
 export type LocalTier =

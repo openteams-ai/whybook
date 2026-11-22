@@ -269,7 +269,7 @@ export const TASKS: {
   help: string;
   /** What the task sends to the remote model. */
   sends: string;
-  /** Whether a local model can do it: then the server's five and the models of the settings can. */
+  /** Whether a local model can do it: then the server's own and the models of the settings can. */
   local: boolean;
   /**
    * What was measured of a local model on this task, in place of its note,
@@ -320,6 +320,8 @@ export const TASKS: {
         'the type of every user question: on 276 questions from public notebooks, 71% right, against 67% with the keywords alone; about 0.5 s a question on 7 CPU threads',
       'qwen3.5-4b':
         'the type of every user question: on 276 questions from public notebooks, 79% right, against 67% with the keywords alone; about 0.5 s a question on 6 CPU threads',
+      'jais-3-3.7b':
+        'the type of every user question: on 276 questions from public notebooks, 73% right, against 67% with the keywords alone; about 0.8 s a question on 6 CPU threads',
       'jevk5-4b':
         "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
       'h2o-lightning-4b':
@@ -367,8 +369,8 @@ export const TASKS: {
 export const NOT_MEASURED = 'not measured on this task';
 
 /**
- * The heading of each group of local models in a select: the three best for
- * the target laptop, one step down, one step up, and those of the settings.
+ * The heading of each group of local models in a select: the models for the
+ * target laptop, one step down, one step up, and those of the settings.
  */
 export const LOCAL_GROUPS: Record<LocalTier, string> = {
   recommended: 'Local, for a laptop with 16 GB',
