@@ -546,9 +546,25 @@ async def test_a_label_takes_a_description_then_one_of_the_headlines_that_code_w
     # The first call stops after the description; the second, in the same conversation, may only pick a candidate.
     assert llm.stops == [['"headline"'], None]
     assert second[: len(first)] == first
-    assert second[len(first)] == {"role": "assistant", "content": json.dumps({"description": "mixed model coefficient table"})}
+    assert second[len(first)] == {"role": "assistant", "content": json.dumps({"description": "mixed model coefficient table"}), "reasoning_content": ""}
     assert '"week and pain_score: -0.61"' in second[-1]["content"]
     assert llm.schemas[1]["properties"]["headline"]["enum"] == ["week and pain_score: -0.61", ""]
+
+
+class ThinkingFieldLlama(FakeLlama):
+    """A model whose chat template, as Jais-3's, refuses an earlier answer without a thinking field."""
+
+    def create_chat_completion(self, messages, **options):
+        if any(message["role"] == "assistant" and "reasoning_content" not in message for message in messages):
+            raise ValueError("Assistant message is missing a thinking field. Provide one of: think, reasoning, reasoning_content, think_fast, think_faster.")
+        return super().create_chat_completion(messages, **options)
+
+
+async def test_a_model_whose_template_needs_a_thinking_field_writes_its_headline(fake, monkeypatch):
+    download(fake, GEMMA)
+    monkeypatch.setattr(sys.modules["llama_cpp"], "Llama", ThinkingFieldLlama)
+    events = [event async for event in local_models.ask_local("gemma-4-e2b", [CORRELATION], threads=2)]
+    assert events[-1].get("tables") == [{"id": "c1", "description": "mixed model coefficient", "headline": "week and pain_score: -0.61"}]
 
 
 async def test_a_model_that_picks_no_candidate_leaves_the_headline_empty(fake, monkeypatch):

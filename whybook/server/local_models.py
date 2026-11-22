@@ -906,7 +906,8 @@ def label(model: LocalModel, table: dict[str, Any], threads: int, check: str = "
     if candidates:
         follow = [
             *messages,
-            {"role": "assistant", "content": json.dumps({"description": description})},
+            # Jais-3's template refuses an earlier answer without a thinking field; the offered models render an empty one as none.
+            {"role": "assistant", "content": json.dumps({"description": description}), "reasoning_content": ""},
             {"role": "user", "content": FOLLOW_CHOOSE.format(candidates="\n".join(json.dumps(text, ensure_ascii=False) for text in candidates))},
         ]
         chosen = str(_answer(model, follow, choose_schema(candidates), 64, threads, check).get("headline") or "")
