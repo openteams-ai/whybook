@@ -325,9 +325,9 @@ export const TASKS: {
       'h2o-lightning-4b':
         "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads",
       'decider-2b':
-        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 61%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 2 s for the type and 2 s for the place on 6 CPU threads",
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 66%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 56.4% for the place, against 42.5% with the first words alone; about 3 s for the type and 2 s for the place on 6 CPU threads",
       'decider-4b':
-        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 79%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 71.7% for the place, against 42.5% with the first words alone; about 3 s for the type and 3 s for the place on 6 CPU threads"
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with its maker's prompt; on 276 questions from public notebooks, the type was right for 75%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 71.1% for the place, against 42.5% with the first words alone; about 3.5 s for the type and 4 s for the place on 6 CPU threads"
     }
   },
   {
@@ -347,9 +347,9 @@ export const TASKS: {
       'jevk5-2b':
         "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 39% of them, against 57% with the rules, built in",
       'decider-2b':
-        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 45% of them, against 57% with the rules, built in",
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 46% of them, against 57% with the rules, built in",
       'decider-4b':
-        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 40% of them, against 57% with the rules, built in",
+        "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 47% of them, against 57% with the rules, built in",
       'gemma-4-12b-cygnet':
         "one reading of the offered questions as lettered options, with its maker's prompt; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for 42% of them, against 57% with the rules, built in; about 25 s a list on 6 CPU threads"
     }

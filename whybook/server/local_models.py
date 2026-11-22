@@ -255,7 +255,8 @@ MODELS = {
 
 # The decision models, for user questions and the order of offered questions,
 # from the commits and with the SHA-256 that research/choice-classifiers.md
-# measured. The notes of the view (src/model/models.ts) give what each measured.
+# measured, and research/model-candidates-2.md for decider-2b v12 and
+# decider-4b v3. The notes of the view (src/model/models.ts) give what each measured.
 DECISION_TASKS = ("typed", "ranking")
 DECISION = {
     model.id: model
@@ -288,27 +289,27 @@ DECISION = {
         ),
         LocalModel(
             "decider-2b",
-            "decider-2b v11",
+            "decider-2b v12",
             "Mapika/decider-2b-GGUF",
-            "decider-2b-v11-Q8_0.gguf",
+            "decider-2b-v12-Q8_0.gguf",
             2012,
             "a decision model of Mapika, read with its prompt",
             tier="decision",
-            revision="ff2e5e687327eda9ac34e9a3ca84d3f400672c87",
-            sha256="3657848acb4851da4465ab4abad7c6fe273c7e1f15e83629cd6da972a5282cb3",
+            revision="0df001b8fe4e5298c5dd45d875d3795fcdaea0ab",
+            sha256="b89b9bed14dc889075de93136e9a9e3cd859c26b008bfb4bb0211ca0d7357c27",
             layout="decider",
             tasks=DECISION_TASKS,
         ),
         LocalModel(
             "decider-4b",
-            "decider-4b v2.1",
+            "decider-4b v3",
             "Mapika/decider-4b-GGUF",
-            "decider-4b-v2.1-Q4_K_M.gguf",
+            "decider-4b-v3-Q4_K_M.gguf",
             2709,
             "a decision model of Mapika, read with its prompt",
             tier="decision",
-            revision="b79f09d9ba7837f1b744295ea267b55d08e958ec",
-            sha256="c7083fcfc93f650cd66caeade4a3840ef9eeeeb1e80920907c554f70619d7c56",
+            revision="d3a78581751d518bbfa9e871a6d84059554d53c5",
+            sha256="fc6e32a39ca74a4201f7a7b2393bde16b83b7c26957465f257ca75c5c3fc3b3a",
             layout="decider",
             tasks=DECISION_TASKS,
         ),
