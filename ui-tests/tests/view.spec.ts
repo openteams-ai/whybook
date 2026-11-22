@@ -387,8 +387,10 @@ test('shows the Whybook view again after a reload, with no second tab of the not
   const file = `${tmpPath}/reload.ipynb`;
   await newNotebook(page, file, ['x = 1']);
   await openInWhybook(page, file);
-  // JupyterLab keeps the path of the current document in the URL, and a
-  // reload opened that file again, in the notebook view, which it showed.
+  // JupyterLab keeps the path of the current document in the URL, and after a
+  // reload jupyterlab-unfold opens that file again, in the notebook view, in
+  // front (jupyterlab-contrib/jupyterlab-unfold#70). src/reload.ts closes that
+  // copy: drop it when jupyterlab-unfold opens the file with `openOrReveal`.
   await expect.poll(() => page.url()).toContain(`/tree/${file}`);
   const views = () =>
     page.evaluate(

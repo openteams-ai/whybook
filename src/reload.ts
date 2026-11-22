@@ -16,15 +16,18 @@ interface IExecuted {
 }
 
 /**
- * A reload of the page opens the file of its URL, /lab/tree/<path>, in the
- * file's default view. JupyterLab writes the path of the current document
- * there, a Whybook view's too, so each reload opened the notebook of the
- * current Whybook view a second time, in JupyterLab's notebook view, and
- * showed that tab in place of the view.
+ * After each reload, jupyterlab-unfold opens the file of the page's URL,
+ * /lab/tree/<path>, in the file's default view, even when the layout has a
+ * tab of that file (jupyterlab-contrib/jupyterlab-unfold#70). JupyterLab
+ * writes the path of the current document there, a Whybook view's too, so
+ * each reload opens the notebook of the current Whybook view a second time,
+ * in JupyterLab's notebook view, and the URL's route then shows that tab in
+ * place of the view.
  *
  * This closes that second tab and shows the Whybook view again. When the
  * layout that the page restores had the file open in the notebook view too,
- * the reload opened a second notebook view beside it, and that one closes.
+ * the reload opens a second notebook view beside it, and that one closes.
+ * Drop this when jupyterlab-unfold opens the file with `openOrReveal`.
  */
 export function closeReloadCopy(
   app: JupyterFrontEnd,
