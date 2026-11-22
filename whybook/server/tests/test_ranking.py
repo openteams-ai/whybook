@@ -98,20 +98,20 @@ async def test_a_decision_model_makes_one_choice_over_the_questions_through_open
     async def fetch(url, **options):
         calls.append((url, options))
         answers = {"next": {"type": "choice", "choice": "q1", "probabilities": {"q0": 0.3, "q1": 0.7}}}
-        return types.SimpleNamespace(body=json.dumps({"model": "liquid/d1-20260930", "usage": {"cost": 0.00002}, "answers": answers}))
+        return types.SimpleNamespace(body=json.dumps({"model": "togethercomputer/tev1-4b-experimental-20261001", "usage": {"cost": 0.00002}, "answers": answers}))
 
     KeyStore().set("openrouter", "sk-or-test")
-    found = await events(ranking.request_from_json(body("decision:d1")), Whybook(), fetch)
+    found = await events(ranking.request_from_json(body("decision:tev1")), Whybook(), fetch)
     url, options = calls[0]
     assert url == "https://openrouter.ai/api/v1/systemone"
     sent = json.loads(options["body"])
-    assert sent["model"] == "liquid/d1"
+    assert sent["model"] == "togethercomputer/tev1-4b-experimental"
     assert sent["provider"] == {"zdr": True}
     assert sent["questions"]["next"]["type"] == "choice"
     assert sent["questions"]["next"]["instructions"] == ranking.NEXT_INSTRUCTION
     assert list(sent["questions"]["next"]["criteria"].values()) == [question["text"] for question in QUESTIONS]
     assert found[-1]["scores"] == {"q1": 0.3, "q2": 0.7}
-    assert found[-1]["model"] == "liquid/d1-20260930"
+    assert found[-1]["model"] == "togethercomputer/tev1-4b-experimental-20261001"
     assert found[-1]["cost_usd"] == 0.00002
 
 

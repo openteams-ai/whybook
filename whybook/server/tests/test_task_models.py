@@ -56,14 +56,14 @@ def test_a_choice_names_the_connected_model_a_tier_or_a_model_of_the_provider():
         with pytest.raises(ValueError):
             tiers.parse(wrong)
     assert tiers.model_for("remote", "openrouter") is None
-    assert tiers.model_for("remote:fast", "openrouter") == "inception/mercury-2.5"
+    assert tiers.model_for("remote:fast", "openrouter") == "openai/gpt-6-luna"
     assert tiers.model_for("remote:fastest", "openrouter") == "google/gemini-3.5-flash-lite"
     # No model of the tier for the provider: the connected model answers.
     assert tiers.model_for("remote:fast", "anthropic") is None
     assert tiers.model_for("remote:openrouter:z-ai/glm-5.3-flash", "openrouter") == "z-ai/glm-5.3-flash"
     with pytest.raises(tiers.OtherProvider):
         tiers.model_for("remote:openrouter:z-ai/glm-5.3-flash", "anthropic")
-    assert [model["id"] for model in tiers.recommended("openrouter")["fast"]] == ["inception/mercury-2.5", "openai/gpt-6-luna", "z-ai/glm-5.3-flash"]
+    assert [model["id"] for model in tiers.recommended("openrouter")["fast"]] == ["openai/gpt-6-luna", "z-ai/glm-5.3-flash"]
     assert tiers.recommended("ollama") == {"fast": [], "fastest": []}
 
 
@@ -74,7 +74,7 @@ def test_a_request_names_its_task_s_model_in_its_own_config():
     own = connection.for_request(config, {"model": "remote:fast", "zero_data_retention": False})
     assert (own.task_model, own.zdr) == ("remote:fast", False)
     assert (config.task_model, config.zdr) == ("remote", True)
-    assert connection.task_connection(OPENROUTER, own) == Connection(provider="openrouter", model="inception/mercury-2.5")
+    assert connection.task_connection(OPENROUTER, own) == Connection(provider="openrouter", model="openai/gpt-6-luna")
     assert connection.task_connection(OPENROUTER, config) == OPENROUTER
     picked = connection.for_request(config, {"model": "remote:anthropic:claude-haiku-4-5"})
     with pytest.raises(tiers.OtherProvider, match="claude-haiku-4-5, a model of Anthropic, and the connected model is OpenRouter: anthropic/claude-sonnet-5"):
@@ -93,7 +93,7 @@ async def test_each_route_calls_its_task_s_model_with_the_provider_s_key(jp_fetc
     # The order of the questions offered.
     offered = [{"id": "q1", "text": "Is pain associated with arm?", "type": "association"}]
     await post(jp_fetch, "questions", "rank", body={"model": "remote:fast", "questions": offered, "selection": {"source": ARM, "target": PAIN}})
-    fast = ("openrouter", "inception/mercury-2.5", "sk-or-v1-test", 0.5)
+    fast = ("openrouter", "openai/gpt-6-luna", "sk-or-v1-test", 0.5)
     sonnet = ("openrouter", "anthropic/claude-sonnet-5", "sk-or-v1-test", 0.5)
     assert called == [
         fast,
@@ -116,7 +116,7 @@ async def test_a_model_of_another_provider_is_refused_with_the_reason(jp_fetch, 
 
 async def test_the_status_lists_the_connected_provider_s_models_of_each_tier(jp_fetch, called):
     status = json.loads((await jp_fetch("whybook", "status")).body)
-    assert [model["id"] for model in status["remote_tiers"]["fast"]] == ["inception/mercury-2.5", "openai/gpt-6-luna", "z-ai/glm-5.3-flash"]
+    assert [model["id"] for model in status["remote_tiers"]["fast"]] == ["openai/gpt-6-luna", "z-ai/glm-5.3-flash"]
     assert [model["id"] for model in status["remote_tiers"]["fastest"]] == ["google/gemini-3.5-flash-lite"]
     connection.save(Connection(provider="anthropic", model="claude-sonnet-5"))
     status = json.loads((await jp_fetch("whybook", "status")).body)

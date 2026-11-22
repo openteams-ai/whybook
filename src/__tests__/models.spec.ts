@@ -109,6 +109,15 @@ describe('readModels, from the settings of an earlier version', () => {
     ).toMatchObject({ labels: 'minicpm5-2b', typed: 'rules' });
     expect(saved({ typed: 'minicpm5-2b' }).typed).toBe('rules');
   });
+
+  it('gives a choice of Mercury Decide to the built-in rules', () => {
+    expect(
+      saved({
+        typed: 'decision:mercury-decide',
+        ranking: 'decision:mercury-decide'
+      })
+    ).toMatchObject({ typed: 'rules', ranking: 'rules' });
+  });
 });
 
 describe('modelAvailable', () => {

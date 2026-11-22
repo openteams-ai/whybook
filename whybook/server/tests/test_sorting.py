@@ -62,6 +62,33 @@ def test_a_decision_model_needs_an_openrouter_key_or_its_makers_api():
     assert decision_models.status(Whybook(zero_data_retention=False))["luna-decisions"]["available"] is True
 
 
+# Decision models with an endpoint that keeps no data. A choice saved for
+# D1 goes to D1.2.
+ZERO_RETENTION = [
+    ("d1", "D1.2 by Liquid AI", "liquid/d1.2"),
+]
+
+
+@pytest.mark.parametrize(("choice", "label", "openrouter"), ZERO_RETENTION)
+def test_a_decision_model_with_an_endpoint_that_keeps_no_data_can_run_with_zero_data_retention(choice, label, openrouter):
+    KeyStore().set("openrouter", "sk-or-test")
+    assert decision_models.status(Whybook()).get(choice) == {"label": label, "available": True, "reason": None}
+
+
+@pytest.mark.parametrize(("choice", "label", "openrouter"), ZERO_RETENTION)
+async def test_a_decision_model_is_asked_by_its_openrouter_id(choice, label, openrouter):
+    calls = []
+
+    async def fetch(url, **options):
+        calls.append(json.loads(options["body"]))
+        return types.SimpleNamespace(body=json.dumps({"model": openrouter, "usage": {}, "answers": answers_of()}))
+
+    KeyStore().set("openrouter", "sk-or-test")
+    request = sorting.request_from_json({"text": "Add age", "places": ["new", "edit"]})
+    await sorting.ask(decision_models.MODELS[choice], request, Whybook(), fetch)
+    assert calls[0]["model"] == openrouter
+
+
 def answers_of(place="edit"):
     return {
         "type": {"type": "choice", "choice": "model", "confidence": 0.6, "probabilities": {"model": 0.7, "causal": 0.3}},

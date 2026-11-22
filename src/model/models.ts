@@ -375,13 +375,15 @@ export const LOCAL_GROUPS: Record<LocalTier, string> = {
 };
 
 /**
- * Local models that the view no longer offers, and the one that takes the
+ * Models that the view no longer offers, and the one that takes the
  * choice. Qwen3.5 0.8B is no longer offered: it described 2 of 12
  * held-out tables right (research/local-models.md), and user questions
  * gained 4 points with it over the keywords.
  */
 const DROPPED: Record<string, string> = {
   'qwen3.5-0.8b': 'minicpm5-2b',
+  // OpenRouter no longer serves it, and it has no newer version.
+  'decision:mercury-decide': 'rules',
   // Jev is one of the decision models.
   jev: `${DECISION_PREFIX}jev`
 };
@@ -649,8 +651,7 @@ const DECISION_MEASURED: Record<
   'clef-flash': { type: 80, order: 44 },
   'pplx-decider': { type: 89, order: 46 },
   'luna-decisions': { type: 79, order: 40 },
-  'mercury-decide': { type: 81, order: 44 },
-  d1: { type: 79, order: 49 },
+  d1: { type: 85, order: 50 },
   kev: { type: 77, order: 50 },
   tev1: { type: 82, order: 47 }
 };

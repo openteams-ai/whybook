@@ -27,16 +27,11 @@ PREFIX = "remote:"
 # The models of each tier, by provider, the first being the tier's default:
 # research/model_access/demo-model.md timed them on Whybook's own routes on
 # 1 October 2026, GPT-6 Luna and GLM 5.3 Flash with zero data retention on,
-# Mercury 2.5 and Gemini 3.5 Flash-Lite with it off and on. The notes are
-# what the panel says of each.
+# Gemini 3.5 Flash-Lite with it off and on. The notes are what the panel says
+# of each.
 RECOMMENDED: dict[str, dict[str, list[dict[str, str]]]] = {
     "openrouter": {
         "fast": [
-            {
-                "id": "inception/mercury-2.5",
-                "label": "Mercury 2.5",
-                "note": "questions in about 4 s in the demo, at $0.04 in and $0.15 out per million tokens; one provider, which turned 2 of 7 calls away for a moment",
-            },
             {
                 "id": "openai/gpt-6-luna",
                 "label": "GPT-6 Luna",

@@ -13,7 +13,8 @@ holds that API's key and there is no OpenRouter key. With
 through that API, and only when its URL is on this machine or in its network
 (``network.py``): OpenRouter is outside.
 
-research/choice-classifiers.md measured each model on Whybook's tasks.
+research/choice-classifiers.md measured each model on Whybook's tasks, and
+research/model-candidates-2.md the models that came since.
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ class DecisionModel:
     # The model's id on OpenRouter.
     openrouter: str
     # OpenRouter lists an endpoint of the model with zero data retention
-    # (https://openrouter.ai/api/v1/endpoints/zdr, read on 21 October 2026).
+    # (https://openrouter.ai/api/v1/endpoints/zdr, read on 21 November 2026).
     zdr: bool
     # The model on its maker's own API, TypeSafe's for now: config.typesafe_*.
     typesafe: bool = False
@@ -59,9 +60,9 @@ MODELS = {
         # V1.2. The id keeps the analyst's choice.
         DecisionModel("pplx-decider", "Decider V1.2 27B by Perplexity", "perplexity/pplx-decider-v1.2", True),
         DecisionModel("luna-decisions", "GPT-6 Luna Decisions by OpenAI", "openai/gpt-6-luna-decisions", False),
-        DecisionModel("mercury-decide", "Mercury Decide by Inception", "inception/mercury-decide", True),
-        DecisionModel("d1", "D1 by Liquid AI", "liquid/d1", True),
-        DecisionModel("kev", "Kev 4B", "jaredpalmer/kev-4b", True),
+        # The id keeps a choice saved for D1.
+        DecisionModel("d1", "D1.2 by Liquid AI", "liquid/d1.2", True),
+        DecisionModel("kev", "Kev 4B", "jaredpalmer/kev-4b", False),
         DecisionModel("tev1", "Tev1 4B by Together AI", "togethercomputer/tev1-4b-experimental", True),
     )
 }
