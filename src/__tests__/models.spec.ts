@@ -267,7 +267,7 @@ describe('choicesFor', () => {
     // Each decision model with what it did, as Whybook asks it.
     expect(typed[3].label).toBe('Solar Decide by Upstage, remote');
     expect(typed[3].note).toMatch(
-      /^the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; .* the type was right for 84%, against 67% with the keywords alone$/
+      /^the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; .* the type was right for 84%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 71% for the place, against 43% with the first words alone$/
     );
     expect(typed[3].group).toBe(DECISION_GROUP);
     // Until the server answers, it lists no decision model.
@@ -361,7 +361,7 @@ describe('local decision models', () => {
       true
     ]);
     expect(jevk5.note).toBe(
-      "2.7 GB; the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; about 4 s for the type and 6 s for the place on 6 CPU threads"
+      "2.7 GB; the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 4 s for the type and 6 s for the place on 6 CPU threads"
     );
     const ranking = choicesFor(deciding, 'ranking');
     expect(ranking.find(choice => choice.id === 'jevk5-4b')?.note).toMatch(

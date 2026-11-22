@@ -321,7 +321,7 @@ export const TASKS: {
       'qwen3.5-4b':
         'the type of every user question: on 276 questions from public notebooks, 79% right, against 67% with the keywords alone; about 0.5 s a question on 6 CPU threads',
       'jevk5-4b':
-        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
+        "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its card; on 276 questions from public notebooks, the type was right for 76%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 57.5% for the place, against 42.5% with the first words alone; about 4 s for the type and 6 s for the place on 6 CPU threads",
       'h2o-lightning-4b':
         "the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's, read with the prompt of its maker's shim; on 276 questions from public notebooks, the type was right for 85.9%, against 67.4% with the keywords alone; on 360 questions written for a place, a balanced accuracy of 73.3% for the place, against 42.5% with the first words alone and 25% with a new cell every time; about 4 s for the type and 4 s for the place on 6 CPU threads"
     }
@@ -636,26 +636,27 @@ function localChoices(
 /**
  * What research measured of each decision model, as Whybook asks it: the
  * share of 276 questions from public notebooks given the right type, by a
- * reader who saw no method (research/local-predictors-2.md); and the share of
- * 300 cells of public notebooks whose first question had the type of the
- * analyst's next question, as one choice over the questions
- * (research/choice-classifiers.md). research/model-candidates-2.md measured
- * Drex Max, Decider V1.3 of Perplexity and D1.2 on both.
+ * reader who saw no method (research/local-predictors-2.md); the balanced
+ * accuracy of the place on 360 questions written for a place (the same
+ * page); and the share of 300 cells of public notebooks whose first question
+ * had the type of the analyst's next question, as one choice over the
+ * questions (research/choice-classifiers.md). research/model-candidates-2.md
+ * measured Drex Max, Decider V1.3 of Perplexity and D1.2 on all three.
  */
 const DECISION_MEASURED: Record<
   string,
-  { type: number; order: number | null } | undefined
+  { type: number; place: number; order: number | null } | undefined
 > = {
-  jev: { type: 89, order: 49 },
-  'drex-max': { type: 90, order: 45 },
-  'solar-decide': { type: 84, order: 40 },
-  clef: { type: 88, order: 40 },
-  'clef-flash': { type: 80, order: 44 },
-  'pplx-decider': { type: 90, order: 46 },
-  'luna-decisions': { type: 79, order: 40 },
-  d1: { type: 85, order: 50 },
-  kev: { type: 77, order: 50 },
-  tev1: { type: 82, order: 47 }
+  jev: { type: 89, place: 77, order: 49 },
+  'drex-max': { type: 90, place: 88, order: 45 },
+  'solar-decide': { type: 84, place: 71, order: 40 },
+  clef: { type: 88, place: 82, order: 40 },
+  'clef-flash': { type: 80, place: 80, order: 44 },
+  'pplx-decider': { type: 90, place: 83, order: 46 },
+  'luna-decisions': { type: 79, place: 78, order: 40 },
+  d1: { type: 85, place: 81, order: 50 },
+  kev: { type: 77, place: 74, order: 50 },
+  tev1: { type: 82, place: 72, order: 47 }
 };
 
 /** The heading of the decision models in a select. */
@@ -672,7 +673,7 @@ function decisionChoices(
     const note =
       task === 'typed'
         ? measured
-          ? `the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; ${info.sends} leave the machine; on 276 questions from public notebooks, by a reader who saw no method, the type was right for ${measured.type}%, against 67% with the keywords alone`
+          ? `the type of every user question, and a place for the answer that shows under the Ask button whenever it differs from the button's; ${info.sends} leave the machine; on 276 questions from public notebooks, by a reader who saw no method, the type was right for ${measured.type}%, against 67% with the keywords alone; on 360 questions written for a place, a balanced accuracy of ${measured.place}% for the place, against 43% with the first words alone`
           : NOT_MEASURED
         : measured?.order
           ? `one choice over the offered questions; ${info.sends} leave the machine; on 300 cells of public notebooks, asked again by dragging the variables they use, the first question had the type of the analyst's next question for ${measured.order}% of them, against 57% with the rules, built in`
