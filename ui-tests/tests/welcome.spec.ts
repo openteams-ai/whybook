@@ -335,14 +335,31 @@ test.describe('With the screen off, as on Binder', () => {
     await expect(page.locator('.jp-Epi-aibutton').first()).toBeVisible();
     await expect(page.locator(SCREEN)).toHaveCount(0);
 
-    // The command palette, in the category Whybook.
-    await page.evaluate(() =>
-      (window as any).jupyterapp.commands
-        .execute('apputils:activate-command-palette')
-        .then(() => null)
-    );
+    // The command palette, in the category Whybook. The notebook takes the
+    // focus once more after it shows, and that closes a palette opened before
+    // it: up to half a second later on JupyterLab 4.6.4, sooner on 4.6.6.
+    // The palette opens again until it stays open for a second: five checks
+    // in a row, 250 ms apart.
     const search = page.locator('#command-palette .lm-CommandPalette-input');
-    await expect(search).toBeVisible();
+    let checks = 0;
+    await expect
+      .poll(
+        async () => {
+          if (await search.isVisible()) {
+            checks += 1;
+            return checks;
+          }
+          checks = 0;
+          await page.evaluate(() =>
+            (window as any).jupyterapp.commands
+              .execute('apputils:activate-command-palette')
+              .then(() => null)
+          );
+          return checks;
+        },
+        { intervals: [250], timeout: 15000 }
+      )
+      .toBeGreaterThanOrEqual(5);
     await search.fill('three ways');
     const item = page.locator('#command-palette .lm-CommandPalette-item', {
       hasText: 'Three ways to use models'
