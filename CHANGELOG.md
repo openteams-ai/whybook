@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.0
+
+### New
+
+- Drex Max by Nace.AI is a new decision model. It suggests where an answer goes better than the other decision models.
+- Qwen3.5 4B replaces Qwen3 4B among the local models for laptops with 16 GB. It gives the questions you type the right type more often. If you chose Qwen3 4B, Whybook switches to Qwen3.5 4B: download it in the settings.
+
+### Changed
+
+- Whybook needs Python 3.11 or later.
+- Local models need llama-cpp-python 0.3.37 or later. Ministral 3 no longer needs an extra copy of its file, so you can delete `~/.cache/whybook/models`.
+- Spoken questions need moonshine-voice 0.1.6 or later. Download your Moonshine model again in the settings.
+- On OpenRouter, More questions now use GPT-6 Luna by default, because OpenRouter no longer serves Mercury 2.5.
+- Decider by Perplexity now uses version 1.3, and D1 by Liquid AI uses D1.2.
+- Mercury Decide is gone, because OpenRouter no longer serves it. If you chose it, Whybook uses its built-in rules.
+- Jev through TypeSafe's own API now asks for Jev 1.13, which did better than Jev 1.14 in our tests.
+- Kev 4B now works only with "Zero data retention (OpenRouter)" turned off.
+
+### Fixed
+
+- "AI is retrying" shows again with Pydantic AI 2.60 or later.
+- On Python 3.14, a call of `warnings.filterwarnings` no longer shows as a chip.
+
+### Security
+
+- With the Claude Code login, Claude Code no longer reads a file that a cell or a question names with `@`, and no longer sends it with the prompt.
+
 ## 0.5.1
 
 ### Fixed

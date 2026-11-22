@@ -1,6 +1,6 @@
 {
     "name": "whybook",
-    "version": "0.5.1",
+    "version": "0.6.0",
     "description": "Whybook: a question-driven view of Jupyter notebooks",
     "keywords": [
         "jupyter",
