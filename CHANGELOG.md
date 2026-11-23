@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.0
+
+### New
+
+- Whybook masks keys, tokens and passwords in every prompt before it goes to a model outside your machine, such as an API key in a cell or a password that an output prints. The model sees `[secret: <name>]` in their place.
+- A new setting, "Allow Safety Retention (OpenRouter)", sits under "Zero data retention (OpenRouter)". Turn it off to skip providers that keep requests to detect abuse, such as Google for its Gemini models.
+- Jais-3 3.7B is a new local model for laptops with 16 GB. It can label tables and give the questions you type their type.
+- Administrators can require zero data retention without Safety Retention for every user with `c.Whybook.openrouter_zdr_only = True`.
+- The user documentation in `docs/`, with pages on security and privacy and on configuring a server for a team.
+
+### Changed
+
+- Whybook needs JupyterLab 4.6.6 or later.
+- The local Decider models use newer versions, decider-2b v12 and decider-4b v3. If you use one, download it again in the settings.
+
+### Fixed
+
+- A custom local model whose chat template is like Jais-3's no longer fails on labels or on the questions you type.
+
 ## 0.6.0
 
 ### New
