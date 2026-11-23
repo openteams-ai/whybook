@@ -1,0 +1,18 @@
+# The user documentation of Whybook. Build it from this folder: jupyter book build --html
+version: 1
+project:
+  title: Whybook
+  description: A view of a Jupyter notebook that asks the questions of an analysis and writes the cells that answer them.
+  github: https://github.com/openteams-ai/whybook
+  license: Apache-2.0
+  exclude:
+    - _build/**
+  toc:
+    - file: index.md
+    - file: security.md
+    - file: deployment.md
+site:
+  template: book-theme
+  options:
+    logo_text: Whybook
+    hide_myst_branding: true
