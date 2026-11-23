@@ -57,7 +57,8 @@ import { modelsFieldRenderer } from './ui/modelsfield';
 import {
   dataPolicyFieldRenderer,
   replacedFieldRenderer,
-  retentionFieldRenderer
+  retentionFieldRenderer,
+  safetyRetentionFieldRenderer
 } from './ui/datapolicy';
 import { findDefaultsFieldRenderer } from './ui/founddefaults';
 import { addSettingCards } from './ui/settingcards';
@@ -486,8 +487,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       fieldRenderer: modelsFieldRenderer(
         new Api(app.serviceManager.serverSettings, {
           customModels: () => settings.customLocalModels,
-          // The list of OpenRouter's models for a task follows this setting.
-          zeroDataRetention: () => settings.zeroDataRetention
+          // The list of OpenRouter's models for a task follows these settings.
+          zeroDataRetention: () => settings.zeroDataRetention,
+          allowSafetyRetention: () => settings.allowSafetyRetention
         })
       ) as unknown as IFormRenderer['fieldRenderer']
     });
@@ -501,6 +503,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Zero data retention on OpenRouter, read only while the server pins it.
     formRegistry?.addRenderer(`${PLUGIN_ID}.zeroDataRetention`, {
       fieldRenderer: retentionFieldRenderer(
+        new Api(app.serviceManager.serverSettings, {
+          customModels: () => settings.customLocalModels
+        })
+      ) as unknown as IFormRenderer['fieldRenderer']
+    });
+    // Safety Retention on OpenRouter, read only while the server skips its providers.
+    formRegistry?.addRenderer(`${PLUGIN_ID}.allowSafetyRetention`, {
+      fieldRenderer: safetyRetentionFieldRenderer(
         new Api(app.serviceManager.serverSettings, {
           customModels: () => settings.customLocalModels
         })

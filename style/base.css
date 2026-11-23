@@ -4651,6 +4651,8 @@ button.jp-Epi-textoutput:hover,
  * "Keep data on this machine", with "Zero data retention (OpenRouter)" under
  * it when OpenRouter is connected, spans the panel above the tasks. A lock by
  * the server greys a box and says why, in the colour of a note, not an error.
+ * "Allow Safety Retention (OpenRouter)" narrows zero data retention, so it
+ * sits indented under it.
  */
 .jp-Epi-policies {
   display: flex;
@@ -4662,22 +4664,29 @@ button.jp-Epi-textoutput:hover,
 }
 
 .jp-Epi-datapolicy,
-.jp-Epi-retention {
+.jp-Epi-retention,
+.jp-Epi-safetyretention {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .jp-Epi-datapolicy label,
-.jp-Epi-retention label {
+.jp-Epi-retention label,
+.jp-Epi-safetyretention label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
 .jp-Epi-datapolicy .jp-Epi-aipanel-note,
-.jp-Epi-retention .jp-Epi-aipanel-note {
+.jp-Epi-retention .jp-Epi-aipanel-note,
+.jp-Epi-safetyretention .jp-Epi-aipanel-note {
   color: var(--jp-ui-font-color2);
+}
+
+.jp-Epi-policies .jp-Epi-safetyretention {
+  padding-left: 22px;
 }
 
 /* "Find more defaults with AI" in the settings editor, and what it waits for. */

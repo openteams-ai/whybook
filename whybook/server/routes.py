@@ -156,6 +156,8 @@ class StatusHandler(BaseHandler):
             "guard_models": guard.models.status(),
             # True when the server pins zero data retention on OpenRouter for every user.
             "openrouter_zdr": config.openrouter_zdr,
+            # True when the server also skips OpenRouter's providers that keep requests to detect abuse.
+            "openrouter_zdr_only": config.openrouter_zdr_only,
             # The connected provider's models for the tasks that need speed: tiers.py.
             "remote_tiers": tiers.recommended(remote["provider"]),
             # Each decision model by id, with its label, and whether it can run and why not.
@@ -859,7 +861,12 @@ class ConnectionHandler(BaseHandler):
             if not unchecked:
                 try:
                     listed = await providers.models(
-                        chosen.provider, key=key, base_url=chosen.url, zdr=self.future_config.zdr, typed=typed is not None
+                        chosen.provider,
+                        key=key,
+                        base_url=chosen.url,
+                        zdr=self.future_config.zdr,
+                        typed=typed is not None,
+                        safety_retention=self.future_config.safety_retention,
                     )
                     if chosen.provider == "openrouter":
                         if not key:
@@ -913,7 +920,14 @@ class ConnectionModelsHandler(BaseHandler):
         key = typed or keys.get(name)
         try:
             # With zero data retention, the models that have a provider that keeps no data.
-            listed = await providers.models(provider, key=key, base_url=chosen.url, zdr=self.future_config.zdr, typed=typed is not None)
+            listed = await providers.models(
+                provider,
+                key=key,
+                base_url=chosen.url,
+                zdr=self.future_config.zdr,
+                typed=typed is not None,
+                safety_retention=self.future_config.safety_retention,
+            )
         except providers.ProviderError as error:
             if isinstance(error, providers.KeyRefused) and typed is None and key:
                 keys.refuse(name, key)

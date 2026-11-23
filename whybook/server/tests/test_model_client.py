@@ -212,7 +212,7 @@ async def test_an_agent_goes_again_without_thinking_where_the_model_takes_one_or
         raise AssertionError("the driver streams")
 
     monkeypatch.setattr(model_client, "build_model", lambda chosen, key: FunctionModel(reply, stream_function=stream, model_name="claude-opus-5-5"))
-    monkeypatch.setattr(model_client, "model_settings", lambda chosen, config, effort: {"thinking": "medium"})
+    monkeypatch.setattr(model_client, "model_settings", lambda chosen, config, effort, ignore=None: {"thinking": "medium"})
     driver = model_client.agent_driver(Connection(provider="anthropic", model="claude-opus-5-5"), "sk-ant-x", agent.TOOLS)
     found = await drive(agent.run_events(request(), Whybook(), driver), [])
     assert found[-1]["type"] == "result" and found[-1]["answer"] == "Arm B has less pain."

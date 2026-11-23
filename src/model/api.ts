@@ -143,6 +143,12 @@ export interface IServerStatus {
    * user (c.Whybook.openrouter_zdr): the setting zeroDataRetention is fixed.
    */
   openrouter_zdr?: boolean;
+  /**
+   * True when the server also skips OpenRouter's providers that keep requests
+   * to detect abuse, for every user (c.Whybook.openrouter_zdr_only): the
+   * settings zeroDataRetention and allowSafetyRetention are fixed.
+   */
+  openrouter_zdr_only?: boolean;
   /** The review guard's mode when the server fixes it for every user (c.Whybook.review_guard), else "". */
   review_guard?: string;
   /** The guard models of the server, with the reason each cannot run: whybook/server/guard/models.py. */
@@ -929,15 +935,21 @@ export class Api {
    * The body with `zero_data_retention: false` when the analyst turned zero
    * data retention off, and the server does not pin it: requests through
    * OpenRouter may then go to any provider. A body without it keeps the
-   * providers that keep no data.
+   * providers that keep no data. With `allow_safety_retention: false`, they
+   * also skip the providers that keep requests to detect abuse.
    */
   private _retention(body: unknown): unknown {
-    return this._options.zeroDataRetention?.() === false &&
-      body &&
-      typeof body === 'object' &&
-      !Array.isArray(body)
-      ? { ...body, zero_data_retention: false }
-      : body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return body;
+    }
+    const choices: Record<string, boolean> = {};
+    if (this._options.zeroDataRetention?.() === false) {
+      choices.zero_data_retention = false;
+    }
+    if (this._options.allowSafetyRetention?.() === false) {
+      choices.allow_safety_retention = false;
+    }
+    return Object.keys(choices).length ? { ...body, ...choices } : body;
   }
 
   /**
@@ -1045,6 +1057,12 @@ export namespace Api {
      * data: when it is false, the requests say so.
      */
     zeroDataRetention?: () => boolean;
+    /**
+     * Whether requests through OpenRouter with zero data retention may go to
+     * providers that keep them to detect abuse: when it is false, the
+     * requests say so.
+     */
+    allowSafetyRetention?: () => boolean;
     /** The local models that the settings add: customLocalModels. */
     customModels?: () => ICustomLocalModel[];
     /** Called once for each call that reached a model, with what it cost. */

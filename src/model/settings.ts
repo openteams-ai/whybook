@@ -35,6 +35,7 @@ interface IPluginSettings {
   localJsonCheck?: unknown;
   keepDataLocal?: unknown;
   zeroDataRetention?: unknown;
+  allowSafetyRetention?: unknown;
   customLocalModels?: unknown;
   answers?: unknown;
   agentView?: unknown;
@@ -94,6 +95,8 @@ export function readSettings(
     keepDataLocal: all.keepDataLocal === true,
     // On, unless the analyst turns it off.
     zeroDataRetention: all.zeroDataRetention !== false,
+    // On, as OpenRouter's own default, unless the analyst turns it off.
+    allowSafetyRetention: all.allowSafetyRetention !== false,
     customLocalModels: readCustomModels(all.customLocalModels),
     answers: all.answers === 'cell' ? 'cell' : 'agent',
     agentView: agentViewOf(all.agentView),

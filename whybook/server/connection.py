@@ -287,7 +287,9 @@ def for_request(config: Whybook, body: Any) -> Whybook:
     """The config for the calls of one request, with what the view chose for them.
 
     A request turns zero data retention off with ``"zero_data_retention": false``,
-    unless the server pins it (``c.Whybook.openrouter_zdr``). Its ``model``
+    unless the server pins it (``c.Whybook.openrouter_zdr`` or
+    ``openrouter_zdr_only``), and Safety Retention off with
+    ``"allow_safety_retention": false``. Its ``model``
     names the remote model of its task: a tier or a model of the connected
     provider (tiers.py), which ``structured_call`` and ``agent_driver`` use in
     place of the connected model. The server's own config stays as it is: the
@@ -296,15 +298,18 @@ def for_request(config: Whybook, body: Any) -> Whybook:
     """
     if not isinstance(body, dict):
         return config
-    retention = body.get("zero_data_retention") is False and not config.openrouter_zdr and config.zero_data_retention
+    retention = body.get("zero_data_retention") is False and not config.openrouter_zdr and not config.openrouter_zdr_only and config.zero_data_retention
+    safety = body.get("allow_safety_retention") is False and config.allow_safety_retention
     model = body.get("model")
     task = model if tiers.is_remote(model) and model != config.task_model else None
     guarded = isinstance(body.get("guard"), dict) or config.review_guard
-    if not retention and task is None and not guarded:
+    if not retention and not safety and task is None and not guarded:
         return config
     own = copy.copy(config)
     if retention:
         own.zero_data_retention = False
+    if safety:
+        own.allow_safety_retention = False
     if task is not None:
         own.task_model = task
     if guarded:
@@ -322,7 +327,7 @@ def task_connection(connection: Connection, config: Whybook) -> Connection:
     model of another provider, and ValueError when it names nothing.
     """
     try:
-        model = tiers.model_for(config.task_model, connection.provider)
+        model = tiers.model_for(config.task_model, connection.provider, safety_retention=not config.skips_safety_retention)
     except tiers.OtherProvider:
         _, owner, chosen = tiers.parse(config.task_model)
         other = PROVIDERS[owner].label if owner in PROVIDERS else owner

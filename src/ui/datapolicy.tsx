@@ -35,10 +35,29 @@ export const RETENTION_LABEL = 'Zero data retention (OpenRouter)';
  * The settings editor shows the schema's description, a short form of it.
  */
 export const RETENTION_HELP =
-  'OpenRouter sends each request to one of the companies that serve the model. With this on, it sends it only to those that keep neither the prompt nor the answer, and the list of models leaves out a model that no such company serves. With it off, any of them can get the request, and some keep it.';
+  'OpenRouter sends each request to one of the companies that serve the model. With this on, it sends it only to those that keep neither the prompt nor the answer, or that keep them only to detect abuse while Allow Safety Retention is on, and the list of models leaves out a model that no such company serves. With it off, any of them can get the request, and some keep it.';
 
 /** Why zero data retention cannot change, when the server pins it. */
 export const RETENTION_FIXED = 'Fixed on the server: c.Whybook.openrouter_zdr';
+
+/** Why zero data retention, and Safety Retention, cannot change while the server skips its providers. */
+export const ZDR_ONLY_FIXED =
+  'Fixed on the server: c.Whybook.openrouter_zdr_only';
+
+/** Why zero data retention cannot change, by the setting of the server that pins it. */
+export function retentionFixedNote(status: IServerStatus | null): string {
+  return status?.openrouter_zdr_only ? ZDR_ONLY_FIXED : RETENTION_FIXED;
+}
+
+/** The name of the setting allowSafetyRetention, as its schema titles it. */
+export const SAFETY_RETENTION_LABEL = 'Allow Safety Retention (OpenRouter)';
+
+/**
+ * What Safety Retention is, for its help icon in the AI models panel. The
+ * settings editor shows the schema's description, a short form of it.
+ */
+export const SAFETY_RETENTION_HELP =
+  'Some companies that OpenRouter lists with zero data retention keep the prompt and the answer to detect abuse, which OpenRouter calls Safety Retention: Google does so for its Gemini models. With this on, requests can go to them too. With it off, Whybook skips them, and a model that only they serve cannot answer.';
 
 /** The props of a setting's check box that the server can fix. */
 interface IToggleProps {
@@ -63,6 +82,8 @@ function PolicyToggle(
     label: string;
     text: string;
     fixedNote: string;
+    /** What the box shows while the server fixes the setting: checked, unless the server fixes it off. */
+    fixedValue?: boolean;
   }
 ): JSX.Element {
   const [help, setHelp] = React.useState(false);
@@ -77,7 +98,7 @@ function PolicyToggle(
           <input
             type="checkbox"
             id={props.id}
-            checked={checked || props.fixed}
+            checked={props.fixed ? (props.fixedValue ?? true) : checked}
             disabled={props.fixed}
             onChange={event => {
               const value = event.currentTarget.checked;
@@ -123,7 +144,7 @@ export function DataPolicyToggle(props: IToggleProps): JSX.Element {
 
 /**
  * "Zero data retention (OpenRouter)": checked and greyed when the server
- * pins it for every user (c.Whybook.openrouter_zdr).
+ * pins it for every user (c.Whybook.openrouter_zdr or openrouter_zdr_only).
  */
 export function RetentionToggle(props: IToggleProps): JSX.Element {
   return (
@@ -132,7 +153,24 @@ export function RetentionToggle(props: IToggleProps): JSX.Element {
       className="jp-Epi-retention"
       label={RETENTION_LABEL}
       text={RETENTION_HELP}
-      fixedNote={RETENTION_FIXED}
+      fixedNote={props.fixedNote ?? RETENTION_FIXED}
+    />
+  );
+}
+
+/**
+ * "Allow Safety Retention (OpenRouter)": unchecked and greyed when the
+ * server skips those providers for every user (c.Whybook.openrouter_zdr_only).
+ */
+export function SafetyRetentionToggle(props: IToggleProps): JSX.Element {
+  return (
+    <PolicyToggle
+      {...props}
+      className="jp-Epi-safetyretention"
+      label={SAFETY_RETENTION_LABEL}
+      text={SAFETY_RETENTION_HELP}
+      fixedNote={ZDR_ONLY_FIXED}
+      fixedValue={false}
     />
   );
 }
@@ -145,7 +183,7 @@ interface IFieldProps {
 /** A setting that the server can fix, as its field in the settings editor draws it. */
 interface IPolicyField {
   /** The key in schema/plugin.json. */
-  key: 'keepDataLocal' | 'zeroDataRetention';
+  key: 'keepDataLocal' | 'zeroDataRetention' | 'allowSafetyRetention';
   /** Its value when the analyst saved none: the schema's default. */
   byDefault: boolean;
   className: string;
@@ -169,8 +207,17 @@ const RETENTION_FIELD: IPolicyField = {
   key: 'zeroDataRetention',
   byDefault: true,
   className: 'jp-Epi-retentionfield',
-  fixed: status => !!status?.openrouter_zdr,
+  fixed: status => !!status?.openrouter_zdr || !!status?.openrouter_zdr_only,
+  note: retentionFixedNote,
   toggle: RetentionToggle
+};
+
+const SAFETY_RETENTION_FIELD: IPolicyField = {
+  key: 'allowSafetyRetention',
+  byDefault: true,
+  className: 'jp-Epi-safetyretentionfield',
+  fixed: status => !!status?.openrouter_zdr_only,
+  toggle: SafetyRetentionToggle
 };
 
 /**
@@ -195,6 +242,18 @@ export function retentionFieldRenderer(
   api: Api
 ): (props: IFieldProps) => JSX.Element {
   return props => <PolicyField {...props} api={api} field={RETENTION_FIELD} />;
+}
+
+/**
+ * "Allow Safety Retention (OpenRouter)" in the settings editor: read only,
+ * and off, while the server skips those providers (c.Whybook.openrouter_zdr_only).
+ */
+export function safetyRetentionFieldRenderer(
+  api: Api
+): (props: IFieldProps) => JSX.Element {
+  return props => (
+    <PolicyField {...props} api={api} field={SAFETY_RETENTION_FIELD} />
+  );
 }
 
 function PolicyField(

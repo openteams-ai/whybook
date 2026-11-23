@@ -3,7 +3,10 @@
  * 1.80): the setting, the box in the AI models panel beside "Keep data on
  * this machine", the field of the settings editor, and the flag that the
  * requests carry. The server can pin it on (c.Whybook.openrouter_zdr): the
- * box then shows on, greyed, with the reason.
+ * box then shows on, greyed, with the reason. "Allow Safety Retention
+ * (OpenRouter)" narrows it: off, the requests skip the providers that keep
+ * them to detect abuse, and the server can pin it off
+ * (c.Whybook.openrouter_zdr_only).
  */
 import './fakes/quiet';
 
@@ -22,7 +25,10 @@ import { AIButton } from '../ui/aipanel';
 import {
   RETENTION_FIXED,
   RetentionToggle,
-  retentionFieldRenderer
+  retentionFieldRenderer,
+  SafetyRetentionToggle,
+  safetyRetentionFieldRenderer,
+  ZDR_ONLY_FIXED
 } from '../ui/datapolicy';
 import { benchModel } from './fakes/bench-fake';
 import type { IMounted } from './fakes/bench-render';
@@ -266,7 +272,11 @@ describe('The AI models panel', () => {
     const policies = panel.querySelector('.jp-Epi-policies')!;
     expect(
       Array.from(policies.querySelectorAll('input')).map(input => input.id)
-    ).toEqual(['jp-Epi-quick-keepDataLocal', 'jp-Epi-quick-zeroDataRetention']);
+    ).toEqual([
+      'jp-Epi-quick-keepDataLocal',
+      'jp-Epi-quick-zeroDataRetention',
+      'jp-Epi-quick-allowSafetyRetention'
+    ]);
     expect(box.checked).toBe(true);
     expect(box.disabled).toBe(false);
     await step(() => box.click());
@@ -353,5 +363,161 @@ describe('The field of the settings editor', () => {
     await step(() => box.click());
     expect(saved).toEqual([['zeroDataRetention', false]]);
     expect(box.checked).toBe(false);
+  });
+});
+
+describe('Allow Safety Retention', () => {
+  it('is on unless the analyst turns it off', () => {
+    expect(readSettings({}, null).allowSafetyRetention).toBe(true);
+    expect(
+      readSettings(
+        { allowSafetyRetention: false },
+        { allowSafetyRetention: false }
+      ).allowSafetyRetention
+    ).toBe(false);
+  });
+
+  it('goes with the requests only when the analyst turned it off', async () => {
+    const off = new Api(server, { allowSafetyRetention: () => false });
+    await off.solve({ question: { text: 'q' } }, () => {});
+    await off.connectionModels('openrouter');
+    const on = new Api(server, { allowSafetyRetention: () => true });
+    await on.solve({ question: { text: 'q' } }, () => {});
+    const streamed = stream.mock.calls.map(call => call[2]);
+    const requested = request.mock.calls.map(call => JSON.parse(call[2].body));
+    expect(streamed.map(body => body.allow_safety_retention)).toEqual([
+      false,
+      undefined
+    ]);
+    expect(requested.map(body => body.allow_safety_retention)).toEqual([false]);
+  });
+
+  it('shows its box off and greyed, with the reason, while the server skips those providers', async () => {
+    const changes: boolean[] = [];
+    const view = await mount(
+      <SafetyRetentionToggle
+        id="box"
+        checked={true}
+        fixed={true}
+        onChange={value => changes.push(value)}
+      />
+    );
+    const box = view.host.querySelector<HTMLInputElement>('#box')!;
+    expect(box.checked).toBe(false);
+    expect(box.disabled).toBe(true);
+    expect(view.host.textContent).toContain(ZDR_ONLY_FIXED);
+    await step(() => box.click());
+    expect(changes).toEqual([]);
+  });
+});
+
+describe('Allow Safety Retention in the AI models panel', () => {
+  async function openPanel(status: IServerStatus) {
+    answer(status, stateOf('openrouter', true));
+    const { model } = benchModel([{ id: 'a' }]);
+    models.push(model);
+    const view = await mount(
+      <AIButton model={model} openSettings={() => undefined} />
+    );
+    await settle();
+    await step(() =>
+      view.host.querySelector<HTMLButtonElement>('.jp-Epi-aibutton')!.click()
+    );
+    await settle();
+    const panel = document.body.querySelector('.jp-Epi-aipanel')!;
+    return { model, panel };
+  }
+
+  it('turns off with a click, and the requests then skip those providers', async () => {
+    const { model, panel } = await openPanel(statusOf());
+    const box = panel.querySelector<HTMLInputElement>(
+      '#jp-Epi-quick-allowSafetyRetention'
+    )!;
+    expect(box.checked).toBe(true);
+    await step(() => box.click());
+    await settle();
+    expect(model.settings.allowSafetyRetention).toBe(false);
+    stream.mockClear();
+    await model.api.solve({ question: { text: 'q' } }, () => {});
+    expect(stream.mock.calls[0][2].allow_safety_retention).toBe(false);
+  });
+
+  it('leaves its box out while zero data retention is off', async () => {
+    const { model, panel } = await openPanel(statusOf());
+    await step(() => model.settings.set('zeroDataRetention', false));
+    await settle();
+    expect(
+      panel.querySelector('#jp-Epi-quick-allowSafetyRetention')
+    ).toBeNull();
+  });
+
+  it('shows both boxes fixed, with the reason, while the server requires ZDR only', async () => {
+    const { model, panel } = await openPanel(
+      statusOf({ openrouter_zdr_only: true })
+    );
+    await step(() => model.settings.set('zeroDataRetention', false));
+    await settle();
+    const retention = panel.querySelector<HTMLInputElement>(
+      '#jp-Epi-quick-zeroDataRetention'
+    )!;
+    const safety = panel.querySelector<HTMLInputElement>(
+      '#jp-Epi-quick-allowSafetyRetention'
+    )!;
+    expect([retention.checked, retention.disabled]).toEqual([true, true]);
+    expect([safety.checked, safety.disabled]).toEqual([false, true]);
+    expect(panel.textContent).toContain(ZDR_ONLY_FIXED);
+  });
+
+  it('leaves the choice out of the requests while the server requires ZDR only', async () => {
+    const { model } = await openPanel(statusOf({ openrouter_zdr_only: true }));
+    stream.mockClear();
+    await model.api.solve({ question: { text: 'q' } }, () => {});
+    expect(stream.mock.calls[0][2]).not.toHaveProperty('zero_data_retention');
+    expect(stream.mock.calls[0][2].allow_safety_retention).toBe(false);
+  });
+});
+
+describe('Allow Safety Retention in the settings editor', () => {
+  function settingsOf(value: boolean) {
+    const saved: [string, unknown][] = [];
+    const settings = {
+      composite: { allowSafetyRetention: value },
+      user: {},
+      changed: new Signal({}),
+      set: async (key: string, next: unknown) => {
+        saved.push([key, next]);
+      }
+    } as unknown as ISettingRegistry.ISettings;
+    return { settings, saved };
+  }
+
+  it('is read only and off while the server requires ZDR only', async () => {
+    answer(
+      statusOf({ openrouter_zdr_only: true }),
+      stateOf('openrouter', true)
+    );
+    const Field = safetyRetentionFieldRenderer(new Api(server));
+    const { settings, saved } = settingsOf(true);
+    const view = await mount(<Field formContext={{ settings }} />);
+    await settle();
+    const box = view.host.querySelector<HTMLInputElement>(
+      '#jp-Epi-settings-allowSafetyRetention'
+    )!;
+    expect([box.checked, box.disabled]).toEqual([false, true]);
+    await step(() => box.click());
+    expect(saved).toEqual([]);
+  });
+
+  it("saves the analyst's choice while the server leaves it to them", async () => {
+    answer(statusOf(), stateOf('openrouter', true));
+    const Field = safetyRetentionFieldRenderer(new Api(server));
+    const { settings, saved } = settingsOf(true);
+    const view = await mount(<Field formContext={{ settings }} />);
+    await settle();
+    const box = view.host.querySelector<HTMLInputElement>(
+      '#jp-Epi-settings-allowSafetyRetention'
+    )!;
+    await step(() => box.click());
+    expect(saved).toEqual([['allowSafetyRetention', false]]);
   });
 });

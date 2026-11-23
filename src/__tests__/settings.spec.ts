@@ -31,6 +31,7 @@ describe('readSettings', () => {
       jsonCheck: 'fast',
       keepDataLocal: false,
       zeroDataRetention: true,
+      allowSafetyRetention: true,
       customLocalModels: [],
       answers: 'agent',
       agentView: 'strip',

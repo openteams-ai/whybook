@@ -1105,9 +1105,11 @@ function ModelPicker(props: {
   // The callbacks of the section, which each of its renders makes anew.
   const section = React.useRef(props);
   section.current = props;
-  // OpenRouter lists other models with zero data retention on or off.
+  // OpenRouter lists other models with zero data retention on or off, and with Safety Retention allowed or not.
   const retention =
-    pick.provider === 'openrouter' ? model.zeroDataRetention : null;
+    pick.provider === 'openrouter'
+      ? `${model.zeroDataRetention} ${model.allowSafetyRetention}`
+      : null;
   React.useEffect(() => {
     let live = true;
     const key = pick.key;

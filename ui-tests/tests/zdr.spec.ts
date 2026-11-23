@@ -190,10 +190,10 @@ test('the box is on by default and usable while the server leaves it to the anal
   await openInWhybook(page, file);
   const panel = await openPanel(page, 'OpenRouter: openai/gpt-6');
   const box = panel.locator('#jp-Epi-quick-zeroDataRetention');
-  // Beside "Keep data on this machine", in its block.
+  // Beside "Keep data on this machine", in its block, with "Allow Safety Retention (OpenRouter)" under it.
   await expect(
     panel.locator('.jp-Epi-policies input[type="checkbox"]')
-  ).toHaveCount(2);
+  ).toHaveCount(3);
   await expect(box).toBeChecked();
   await expect(box).toBeEnabled();
   await expect(panel).not.toContainText('c.Whybook.openrouter_zdr');
@@ -301,4 +301,40 @@ test('the box is not in the panel without an OpenRouter connection', async ({
   const panel = await openPanel(page, 'Anthropic: claude-sonnet-5');
   await expect(panel.locator('#jp-Epi-quick-keepDataLocal')).toBeVisible();
   await expect(panel.locator('#jp-Epi-quick-zeroDataRetention')).toHaveCount(0);
+});
+
+test('Allow Safety Retention sits under zero data retention, and the list of models follows it', async ({
+  page,
+  tmpPath
+}) => {
+  const listed: any[] = [];
+  await serve(page, { connected: OPENROUTER, fixed: false }, listed);
+  const file = `${tmpPath}/zdr-safety.ipynb`;
+  await newNotebook(page, file, ['x = 21']);
+  await openInWhybook(page, file);
+  const panel = await openPanel(page, 'OpenRouter: openai/gpt-6');
+  const box = panel.locator('#jp-Epi-quick-allowSafetyRetention');
+  await expect(box).toBeChecked();
+  // Indented under "Zero data retention (OpenRouter)", which it narrows.
+  const retention = await panel
+    .locator('#jp-Epi-quick-zeroDataRetention')
+    .boundingBox();
+  const safety = await box.boundingBox();
+  expect(safety!.x).toBeGreaterThan(retention!.x);
+  expect(safety!.y).toBeGreaterThan(retention!.y);
+
+  // OpenRouter's models, listed with Safety Retention allowed.
+  await panel.getByRole('button', { name: 'Change' }).click();
+  await panel
+    .locator('.jp-Epi-provider[data-provider="openrouter"]')
+    .getByRole('button', { name: 'Models' })
+    .click();
+  await expect.poll(() => listed.length).toBe(1);
+  expect(listed[0]).not.toHaveProperty('allow_safety_retention');
+
+  // Turned off: the list of models is read again without those providers.
+  await box.uncheck();
+  await expect(box).not.toBeChecked();
+  await expect.poll(() => listed.length).toBe(2);
+  expect(listed[1].allow_safety_retention).toBe(false);
 });

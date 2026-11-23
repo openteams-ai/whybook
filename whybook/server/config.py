@@ -83,10 +83,24 @@ class Whybook(Configurable):
         False,
         help=(
             "Send requests through OpenRouter only to providers that keep neither the prompt"
-            " nor the answer (zero data retention), for every user of the server. A model"
-            " with no such provider then refuses the request. When True, the setting shows"
-            " as fixed in Whybook; when False, each user chooses with the setting 'Zero"
+            " nor the answer (zero data retention), for every user of the server, or that keep"
+            " them only to detect abuse where Safety Retention is allowed (openrouter_zdr_only)."
+            " A model with no such provider then refuses the request. When True, the setting"
+            " shows as fixed in Whybook; when False, each user chooses with the setting 'Zero"
             " data retention (OpenRouter)', which is on unless the user turns it off."
+        ),
+    ).tag(config=True)
+
+    openrouter_zdr_only = Bool(
+        False,
+        help=(
+            "Send requests through OpenRouter only to providers that keep neither the prompt nor"
+            " the answer, not even to detect abuse, for every user of the server: zero data"
+            " retention on, and OpenRouter's Safety Retention endpoints skipped, as OpenRouter's"
+            " privacy setting 'ZDR only' does. A model whose providers with zero data retention"
+            " all keep requests to detect abuse, such as Google's Gemini models on Vertex, then"
+            " refuses the request. When True, 'Zero data retention (OpenRouter)' and 'Allow"
+            " Safety Retention (OpenRouter)' show as fixed in Whybook."
         ),
     ).tag(config=True)
 
@@ -99,10 +113,31 @@ class Whybook(Configurable):
         ),
     )
 
+    allow_safety_retention = Bool(
+        True,
+        help=(
+            "Whether the calls of one request with zero data retention may go to OpenRouter's"
+            " providers that keep requests to detect abuse (Safety Retention), as the user's"
+            " setting chose it: a route's copy of this config turns it off for a request that"
+            " says so (connection.for_request). Not a setting of the server: openrouter_zdr_only"
+            " pins it off."
+        ),
+    )
+
     @property
     def zdr(self) -> bool:
         """Whether requests through OpenRouter go only to providers that keep no data: the server pins it, or the request asks for it."""
-        return self.openrouter_zdr or self.zero_data_retention
+        return self.openrouter_zdr or self.openrouter_zdr_only or self.zero_data_retention
+
+    @property
+    def safety_retention(self) -> bool:
+        """Whether requests through OpenRouter with zero data retention may go to providers that keep them to detect abuse."""
+        return not self.openrouter_zdr_only and self.allow_safety_retention
+
+    @property
+    def skips_safety_retention(self) -> bool:
+        """Whether requests through OpenRouter skip the providers that keep them to detect abuse: zero data retention without Safety Retention."""
+        return self.zdr and not self.safety_retention
 
     task_model = Unicode(
         "remote",

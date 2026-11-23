@@ -21,7 +21,9 @@ import { ConnectionSection } from './connection';
 import {
   DataPolicyToggle,
   dataPolicyFixed,
-  RetentionToggle
+  RetentionToggle,
+  retentionFixedNote,
+  SafetyRetentionToggle
 } from './datapolicy';
 import { viewExtensions } from './extensions';
 import { GuardSection } from './guard';
@@ -195,9 +197,22 @@ export function AIButton(props: {
                   id="jp-Epi-quick-zeroDataRetention"
                   checked={settings.zeroDataRetention}
                   fixed={model.retentionFixed}
+                  fixedNote={retentionFixedNote(model.status)}
                   onChange={value => settings.set('zeroDataRetention', value)}
                 />
               )}
+              {/* Under zero data retention, which it narrows. */}
+              {usesOpenRouter(model.status, connection) &&
+                model.zeroDataRetention && (
+                  <SafetyRetentionToggle
+                    id="jp-Epi-quick-allowSafetyRetention"
+                    checked={settings.allowSafetyRetention}
+                    fixed={model.safetyRetentionFixed}
+                    onChange={value =>
+                      settings.set('allowSafetyRetention', value)
+                    }
+                  />
+                )}
             </div>
             <GuardSection model={model} />
             {TASKS.map(task => {

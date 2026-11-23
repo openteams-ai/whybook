@@ -28,8 +28,11 @@ PREFIX = "remote:"
 # research/model_access/demo-model.md timed them on Whybook's own routes on
 # 1 October 2026, GPT-6 Luna and GLM 5.3 Flash with zero data retention on,
 # Gemini 3.5 Flash-Lite with it off and on. The notes are what the panel says
-# of each.
-RECOMMENDED: dict[str, dict[str, list[dict[str, str]]]] = {
+# of each. "safety_retention" marks a model whose providers with zero data
+# retention all keep requests to detect abuse (OpenRouter's list of such
+# endpoints, read on 22 November 2026): a tier skips it where Safety
+# Retention is not allowed.
+RECOMMENDED: dict[str, dict[str, list[dict[str, Any]]]] = {
     "openrouter": {
         "fast": [
             {
@@ -47,7 +50,8 @@ RECOMMENDED: dict[str, dict[str, list[dict[str, str]]]] = {
             {
                 "id": "google/gemini-3.5-flash-lite",
                 "label": "Gemini 3.5 Flash-Lite",
-                "note": "labels in about 2 s and titles in about 1 s in the demo, at $0.30 in and $2.50 out per million tokens; 5 providers",
+                "note": "labels in about 2 s and titles in about 1 s in the demo, at $0.30 in and $2.50 out per million tokens; Google keeps requests to detect abuse (Safety Retention), and where that is not allowed the connected model answers",
+                "safety_retention": True,
             },
         ],
     },
@@ -81,24 +85,25 @@ def parse(choice: Any) -> tuple[str | None, str | None, str | None]:
     return None, provider, model.strip()
 
 
-def recommended(provider: str) -> dict[str, list[dict[str, str]]]:
+def recommended(provider: str) -> dict[str, list[dict[str, Any]]]:
     """The models of each tier for a provider, for the view's choices: empty lists for a provider that has none."""
     known = RECOMMENDED.get(provider, {})
     return {tier: [dict(model) for model in known.get(tier, [])] for tier in TIERS}
 
 
-def model_for(choice: Any, provider: str) -> str | None:
+def model_for(choice: Any, provider: str, safety_retention: bool = True) -> str | None:
     """The model of the connected provider that a task's choice names, or None for the connected model.
 
-    A tier takes its first recommended model; a provider that has none answers
-    with the connected model. Raises OtherProvider for a model of another
-    provider, and ValueError for a choice that names nothing.
+    A tier takes its first recommended model, without the models that only
+    Safety Retention serves when it is not allowed; a provider that has none
+    answers with the connected model. Raises OtherProvider for a model of
+    another provider, and ValueError for a choice that names nothing.
     """
     if not choice or choice == "remote":
         return None
     tier, owner, model = parse(choice)
     if tier is not None:
-        models = recommended(provider)[tier]
+        models = [item for item in recommended(provider)[tier] if safety_retention or not item.get("safety_retention")]
         return models[0]["id"] if models else None
     if owner != provider:
         raise OtherProvider(f"the task's model, {model}, is a model of {owner}, and the connected model is not")

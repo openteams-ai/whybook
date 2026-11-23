@@ -382,7 +382,13 @@
     },
     "zeroDataRetention": {
       "title": "Zero data retention (OpenRouter)",
-      "description": "Requests through OpenRouter go only to providers that keep neither the prompt nor the answer. A model with no such provider cannot answer.",
+      "description": "Requests through OpenRouter go only to providers that keep neither the prompt nor the answer, or that keep them only to detect abuse while Allow Safety Retention is on. A model with no such provider cannot answer.",
+      "type": "boolean",
+      "default": true
+    },
+    "allowSafetyRetention": {
+      "title": "Allow Safety Retention (OpenRouter)",
+      "description": "With zero data retention on, requests may also go to providers that keep them to detect abuse, such as Google for Gemini. Off, Whybook skips those providers, and a model that only they serve cannot answer.",
       "type": "boolean",
       "default": true
     },

@@ -199,12 +199,52 @@ async def openrouter_price(model: str, fetch: Fetch | None = None) -> dict[str, 
     return _prices.get(model)
 
 
-async def openrouter_models(zdr: bool = True, fetch: Fetch | None = None) -> list[dict[str, Any]]:
+# The providers of OpenRouter's endpoints with zero data retention, by model:
+# "strict" ones, and "retained" ones, which keep requests to detect abuse
+# (Safety Retention, "safety_retention": true in the list). The server reads
+# the list again an hour after it last did, as it does the prices.
+_zdr_routes: dict[str, dict[str, set[str]]] = {}
+_zdr_read: list[float] = []
+# The providers with Safety Retention endpoints in OpenRouter's list, read on
+# 22 November 2026: a request skips them when the list cannot be read.
+SAFETY_RETENTION_PROVIDERS = frozenset({"google-vertex"})
+
+
+def keep_zdr_routes(data: Any) -> None:
+    """Keep the providers of each model's endpoints with zero data retention, by their slug: "google-vertex" of the tag "google-vertex/global"."""
+    routes: dict[str, dict[str, set[str]]] = {}
+    for endpoint in data.get("data", []) if isinstance(data, dict) else []:
+        if not isinstance(endpoint, dict) or not endpoint.get("model_id") or not isinstance(endpoint.get("tag"), str):
+            continue
+        kind = "retained" if endpoint.get("safety_retention") is True else "strict"
+        routes.setdefault(str(endpoint["model_id"]), {"strict": set(), "retained": set()})[kind].add(endpoint["tag"].split("/", 1)[0])
+    if routes:
+        _zdr_routes.clear()
+        _zdr_routes.update(routes)
+        _zdr_read[:] = [time.monotonic()]
+
+
+async def zdr_routes(model: str, fetch: Fetch | None = None) -> dict[str, set[str]] | None:
+    """The providers of a model's endpoints with zero data retention, "strict" and "retained"; None when the list cannot be read."""
+    if not _zdr_read or time.monotonic() - _zdr_read[0] > PRICES_SECONDS:
+        try:
+            keep_zdr_routes(await get_json(OPENROUTER_ZDR, timeout=LIST_SECONDS, fetch=fetch))
+        except Exception as error:  # noqa: BLE001  the request then skips the providers known for it
+            log.warning("OpenRouter's list of endpoints with zero data retention could not be read: %s", error)
+            _zdr_read[:] = [time.monotonic() - PRICES_SECONDS + PRICES_RETRY_SECONDS]
+    if not _zdr_routes:
+        return None
+    return _zdr_routes.get(model, {"strict": set(), "retained": set()})
+
+
+async def openrouter_models(zdr: bool = True, fetch: Fetch | None = None, safety_retention: bool = True) -> list[dict[str, Any]]:
     """OpenRouter's models that take tools, which Whybook's answers and agent need; the lists need no key.
 
     With zero data retention (the view's setting, or ``c.Whybook.openrouter_zdr``
     for every user), only the models that have a provider keeping no data and
-    taking tools: the others would refuse every request.
+    taking tools: the others would refuse every request. Without Safety
+    Retention, only the providers that do not keep requests to detect abuse
+    count.
     """
     data = await get_json(OPENROUTER_MODELS, timeout=LIST_SECONDS, fetch=fetch)
     # The prices of the list, for the models whose price genai-prices lacks.
@@ -212,10 +252,13 @@ async def openrouter_models(zdr: bool = True, fetch: Fetch | None = None) -> lis
     allowed = None
     if zdr:
         endpoints = await get_json(OPENROUTER_ZDR, timeout=LIST_SECONDS, fetch=fetch)
+        keep_zdr_routes(endpoints)
         allowed = {
             endpoint.get("model_id")
             for endpoint in (endpoints.get("data", []) if isinstance(endpoints, dict) else [])
-            if isinstance(endpoint, dict) and "tools" in (endpoint.get("supported_parameters") or [])
+            if isinstance(endpoint, dict)
+            and "tools" in (endpoint.get("supported_parameters") or [])
+            and (safety_retention or endpoint.get("safety_retention") is not True)
         }
     models = []
     for item in data.get("data", []):
@@ -313,7 +356,14 @@ KEYED_LISTS = {"anthropic": anthropic_models, "openai": openai_models, "google":
 
 
 async def models(
-    provider_id: str, *, key: str | None, base_url: str | None, zdr: bool = True, fetch: Fetch | None = None, typed: bool = False
+    provider_id: str,
+    *,
+    key: str | None,
+    base_url: str | None,
+    zdr: bool = True,
+    fetch: Fetch | None = None,
+    typed: bool = False,
+    safety_retention: bool = True,
 ) -> list[dict[str, Any]]:
     """The models of a provider as the panel lists them: ``{"id", "label", "note"}``.
 
@@ -333,7 +383,7 @@ async def models(
         raise ProviderError(f"{label}: the server's URL is needed")
     try:
         if provider_id == "openrouter":
-            return await openrouter_models(zdr, fetch)
+            return await openrouter_models(zdr, fetch, safety_retention)
         if provider_id == "huggingface":
             return await huggingface_models(fetch)
         if provider_id in KEYED_LISTS:

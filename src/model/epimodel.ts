@@ -308,6 +308,12 @@ export class EpiSettings {
    * unless the analyst turns it off; the server can pin it on.
    */
   zeroDataRetention = true;
+  /**
+   * With zero data retention, requests through OpenRouter may also go to
+   * providers that keep them to detect abuse (Safety Retention), unless the
+   * analyst turns it off; the server can pin it off.
+   */
+  allowSafetyRetention = true;
   /** The local models that the settings add to the server's own: customLocalModels. */
   customLocalModels: ICustomLocalModel[] = [];
   /**
@@ -431,6 +437,7 @@ export class EpiSettings {
       | 'models'
       | 'keepDataLocal'
       | 'zeroDataRetention'
+      | 'allowSafetyRetention'
       | 'answers'
       | 'agentView'
       | 'agentMaxCells'
@@ -487,6 +494,7 @@ export class EpiSettings {
         | 'jsonCheck'
         | 'keepDataLocal'
         | 'zeroDataRetention'
+        | 'allowSafetyRetention'
         | 'customLocalModels'
         | 'answers'
         | 'agentView'
@@ -936,6 +944,7 @@ export class EpiModel implements IDisposable {
       onWarning: message => this._warnJsonCheck(message),
       keepDataLocal: () => this.keepDataLocal,
       zeroDataRetention: () => this.zeroDataRetention,
+      allowSafetyRetention: () => this.allowSafetyRetention,
       customModels: () => this.settings.customLocalModels,
       // Every call of this view that reached a model: its cost is kept.
       onCall: call => this._onModelCall(call),
@@ -1216,15 +1225,30 @@ export class EpiModel implements IDisposable {
 
   /**
    * Whether requests through OpenRouter go only to providers that keep no
-   * data: the server's lock (c.Whybook.openrouter_zdr), or else the setting's.
+   * data: the server's lock (c.Whybook.openrouter_zdr or openrouter_zdr_only),
+   * or else the setting's.
    */
   get zeroDataRetention(): boolean {
-    return !!this.status?.openrouter_zdr || this.settings.zeroDataRetention;
+    return this.retentionFixed || this.settings.zeroDataRetention;
   }
 
   /** Whether the server pins zero data retention, so that the setting is fixed. */
   get retentionFixed(): boolean {
-    return !!this.status?.openrouter_zdr;
+    return !!this.status?.openrouter_zdr || !!this.status?.openrouter_zdr_only;
+  }
+
+  /**
+   * Whether requests through OpenRouter with zero data retention may go to
+   * providers that keep them to detect abuse: the setting's, unless the
+   * server skips those providers for every user (c.Whybook.openrouter_zdr_only).
+   */
+  get allowSafetyRetention(): boolean {
+    return !this.safetyRetentionFixed && this.settings.allowSafetyRetention;
+  }
+
+  /** Whether the server skips the providers with Safety Retention, so that the setting is fixed off. */
+  get safetyRetentionFixed(): boolean {
+    return !!this.status?.openrouter_zdr_only;
   }
 
   /** The status with the data policy in force, for the choices of models. */

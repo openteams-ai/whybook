@@ -179,15 +179,46 @@ def signs_in(connection: Any) -> bool:
     return bool(provider.signin) or not provider.needs_key
 
 
-def model_settings(connection: Any, config: Whybook, effort: str | None) -> dict[str, Any]:
+def model_settings(connection: Any, config: Whybook, effort: str | None, ignore: list[str] | None = None) -> dict[str, Any]:
+    """The settings of a call; ``ignore`` names the providers that keep requests to detect abuse, which it skips (``retention_ignore``)."""
     settings: dict[str, Any] = {}
     if effort and connection.provider in KNOWN_MODELS:
         settings["thinking"] = THINKING.get(effort, "medium")
     if connection.provider == "openrouter" and config.zdr:
         # Only the providers that keep no prompt or answer (research/model-access.md):
         # the server's lock, or the setting of the view that sent the request.
-        settings["openrouter_provider"] = {"zdr": True}
+        settings["openrouter_provider"] = {"zdr": True, **({"ignore": ignore} if ignore else {})}
     return settings
+
+
+def safety_retention_reason(label: str, config: Any) -> str:
+    """Why a model that only Safety Retention serves does not answer, and what the analyst can change."""
+    how = (
+        "The server requires it (c.Whybook.openrouter_zdr_only): choose another model."
+        if getattr(config, "openrouter_zdr_only", False)
+        else 'Choose another model, or turn on "Allow Safety Retention (OpenRouter)" in the AI models panel.'
+    )
+    return f"No AI model answered: every provider of {label} with zero data retention keeps requests to detect abuse (Safety Retention), which is not allowed. {how}"
+
+
+async def retention_ignore(connection: Any, config: Whybook, fetch: Any = None) -> list[str] | None:
+    """The providers that a request through OpenRouter skips because they keep requests to detect abuse (Safety Retention).
+
+    OpenRouter's ``zdr`` of a request follows the account's own choice of
+    Safety Retention, so a request skips those providers by name. None when
+    the request may go to them, or goes elsewhere. Raises ValueError, with
+    the reason, when only such providers serve the model.
+    """
+    if connection.provider != "openrouter" or not connection.model or not config.skips_safety_retention:
+        return None
+    from . import providers
+
+    routes = await providers.zdr_routes(connection.model, fetch)
+    if routes is None:
+        return sorted(providers.SAFETY_RETENTION_PROVIDERS)
+    if routes["retained"] and not routes["strict"] - routes["retained"]:
+        raise ValueError(safety_retention_reason(connection.label(config), config))
+    return sorted(routes["retained"]) or None
 
 
 def cost_limit(connection: Any, budget: float) -> float | None:
@@ -359,6 +390,11 @@ async def structured_call(
     if missing:
         yield {"type": "error", "message": missing}
         return
+    try:
+        ignore = await retention_ignore(connection, config)
+    except ValueError as error:
+        yield {"type": "error", "message": str(error)}
+        return
     from pydantic_ai import Agent, ModelRetry, StructuredDict, UsageLimits
     from pydantic_ai.run import AgentRunResultEvent
     from pydantic_ai.usage import RunUsage
@@ -401,7 +437,7 @@ async def structured_call(
             agent.output_validator(check)
             async with agent.run_stream_events(
                 user_content(prompt, images),
-                model_settings=model_settings(connection, config, effort),
+                model_settings=model_settings(connection, config, effort, ignore=ignore),
                 usage=usage,
                 usage_limits=UsageLimits(
                     request_limit=4,
@@ -454,6 +490,7 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
         missing = missing_key(connection, key)
         if missing:
             raise RuntimeError(missing)
+        ignore = await retention_ignore(connection, config)
         from pydantic_ai import Agent, ModelRetry, StructuredDict, Tool, ToolOutput, UsageLimits
         from pydantic_ai.exceptions import UserError
         from pydantic_ai.messages import PartEndEvent, TextPart
@@ -533,7 +570,7 @@ def agent_driver(connection: Any, key: str | None, tools: dict[str, dict[str, An
                         result = event.result
             return result
 
-        settings = model_settings(connection, config, config.agent_effort)
+        settings = model_settings(connection, config, config.agent_effort, ignore=ignore)
         try:
             try:
                 result = await attempt(settings)
