@@ -391,8 +391,13 @@ async def structured_call(
     except ValueError as error:
         yield {"type": "error", "message": f"No AI model answered: {error}."}
         return
-    from . import guard
+    from . import guard, masking
 
+    if not connection.local:
+        # Keys, tokens and passwords leave the prompt before the guard reads it, whatever the guard's mode.
+        prompt, masked = masking.Masker.for_config(config).text(prompt)
+        if masked:
+            yield masking.progress(masked)
     settings = guard.settings_of(config)
     if settings.checks_prompts and not connection.local:
         # The privacy guard reads the prompt before it leaves this machine.

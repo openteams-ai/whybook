@@ -60,7 +60,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Awaitable, Callable
 
-from . import claude, guard, languages, privacy
+from . import claude, guard, languages, masking, privacy
 from .config import Whybook
 from .questions.models import InvalidRequest
 from .solve import SolveRequest, about_task
@@ -845,6 +845,8 @@ class Run:
     local: bool = False
     threads: int = 4
     review: Callable[[str], Any] | None = None
+    # The secrets masked in what goes to a remote model, with those that the run's texts showed so far: masking.py.
+    masker: masking.Masker | None = None
     # The cells of the run that failed and are in their notebook, by the
     # notebook ("" for the analyst's) and the label: finish refuses while one
     # is left (design iteration 1.103). Every label that a cell had when it
@@ -1052,7 +1054,12 @@ class Run:
             self.saw(str(tool_input.get("code") or ""), result.get("cell"))
         if isinstance(result, dict):
             self.track(name, tool_input, result, fixing)
-        return await self.guard_result(name, privacy.tool_result(result, self.keep_local))
+        kept = privacy.tool_result(result, self.keep_local)
+        if self.masker is not None:
+            kept, masked = self.masker.value(kept)
+            if masked:
+                self.emit(masking.progress(masked))
+        return await self.guard_result(name, kept)
 
     def code_language(self, name: str, tool_input: dict[str, Any]) -> str:
         """The language of the kernel that runs a tool's code, for the guard's rules: a module's by its extension, a cell's by its notebook.
@@ -1143,6 +1150,13 @@ async def run_events(request: AgentRequest, config: Whybook, driver: Driver | No
     settings = guard.settings_of(config)
     connected = connection.load(config)
     to, local = connected.label(config), connected.local
+    # Keys, tokens and passwords leave the question and the notebook, and each tool result, whatever the guard's mode.
+    masker = None if local else masking.Masker.for_config(config)
+    if masker is not None:
+        prompt, masked = masker.text(request.prompt())
+        if masked:
+            request = dataclasses.replace(request, guarded_prompt=prompt)
+            yield masking.progress(masked, round(time.monotonic() - start, 1))
     if settings.checks_prompts and not local:
         # The privacy guard reads the question and the notebook before the run sends them.
         held: list[guard.Outcome] = []
@@ -1167,6 +1181,7 @@ async def run_events(request: AgentRequest, config: Whybook, driver: Driver | No
         local=local,
         threads=config.local_threads,
         review=guard.code_review(config, settings),
+        masker=masker,
     )
     RUNS[run.id] = run
     run.task = asyncio.ensure_future((driver or claude_driver)(run, request, config))

@@ -27,7 +27,7 @@ from typing import Any, Awaitable, Callable
 
 from tornado.httpclient import AsyncHTTPClient
 
-from . import network
+from . import masking, network
 from .config import Whybook
 
 ENDPOINT = "https://openrouter.ai/api/v1/systemone"
@@ -138,6 +138,8 @@ async def ask(model: DecisionModel, body: dict[str, Any], config: Whybook, fetch
     reason = reason_of(model, config, key)
     if reason:
         raise ValueError(f"{model.label} {reason}")
+    # Keys, tokens and passwords leave the question and the cell's lines, whatever the guard's mode: masking.py.
+    body, _ = masking.Masker.for_config(config).value(body)
     if key and not config.network_only:
         url, token, payload = ENDPOINT, key, {**body, "model": model.openrouter}
         if config.zdr:
